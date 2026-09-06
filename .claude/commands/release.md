@@ -44,6 +44,8 @@ for p in $prs; do gh pr view "$p" --json body -q .body \
 
 Every issue that list yields goes into a `## Auto-closes` block at the end of the release PR body, **with the keyword repeated before each one**: `Closes #N1, closes #N2, …`.
 
+> **Trap:** that grep matches the keyword anywhere in the body, **including inside a sentence that says the opposite.** A PR body reading *"This does **not** close #1298"* yields `#1298` — and #1298 was an issue whose whole scope was still outstanding, so pasting the output unread would have closed a job nobody had done. Real, on the v2.50.0 release. **Read the context of every hit before it goes in the block**, and prefer `grep -n "#N"` on the body over trusting the one-liner: the script finds candidates, it does not decide them. Sentences like "does not close", "will close once", and "closes the fanout half of" all match.
+
 > **Trap:** `Closes #N1, #N2` closes only `#N1`. GitHub takes one issue per closing keyword and ignores the rest of the comma list. v2.47.0 shipped this way and left its epic open.
 
 > **Trap:** GitHub only auto-closes from a PR merged into the **default branch**. Feature PRs target `develop`, so their own `Closes #N` never fires. Without this block the leaf issues stay open forever. Verify afterwards (step 6) — a long list occasionally drops one.

@@ -34,6 +34,8 @@ Every `develop → main` release PR body MUST end with an `## Auto-closes` block
 Closes #N1, closes #N2, closes #N3, …
 ```
 
+> ⚠️ **The list is candidates, not conclusions.** The grep that assembles it (in [`/release`](../../.claude/commands/release.md) step 3) matches a closing keyword **anywhere** in a PR body, including inside a sentence that says the opposite. On v2.50.0 it returned `#1298` from a body reading *"This does **not** close #1298"* — an issue whose entire scope was still outstanding, and which pasting the output unread would have closed as done. Open each hit and read the line it came from; "does not close", "will close once" and "closes the fanout half of" all match identically.
+
 > ⚠️ **Repeat the keyword before every reference.** `Closes #N1, #N2` closes only `#N1` — GitHub parses one issue per closing keyword and ignores the rest of the comma list. This is not theoretical: v2.47.0 shipped with `Closes #1362, #1364`, closed #1362, and left the epic #1364 open. Verify each issue actually flipped to CLOSED after the merge; a straggler means the keyword was dropped, not that GitHub was slow.
 
 GitHub auto-closes those issues the moment the release PR is merged. Without this block they stay open forever, because:
