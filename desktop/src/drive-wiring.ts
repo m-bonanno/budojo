@@ -12,27 +12,71 @@ import type { TokenVault } from './token-vault.js';
  * Builds the real `DriveSyncIO` (#1301). Nothing here decides anything — it is
  * the wiring between `DriveSyncService` and the world.
  *
- * The OAuth client is read from the environment at build time rather than
- * hardcoded, so the shipped identity can change without a code edit and a fork
- * can use its own. **`clientSecret` is not a secret** for an installed app:
- * the binary is on the user's disk, Google documents this for "Desktop app"
- * clients, and it is precisely why the flow uses PKCE. It is committed to
- * nothing, but its leaking is not the threat model — the authorization code is
- * useless without the verifier.
+ * **`clientSecret` is not a secret** for an installed app: the binary is on
+ * the user's disk, Google documents this for "Desktop app" clients, and it is
+ * precisely why the flow uses PKCE. Its leaking is not the threat model — the
+ * authorization code is useless without the verifier.
  */
 
-export function driveClientConfig(env: NodeJS.ProcessEnv = process.env): DriveClientConfig | null {
-  const clientId = env.BUDOJO_GOOGLE_CLIENT_ID?.trim();
-  const clientSecret = env.BUDOJO_GOOGLE_CLIENT_SECRET?.trim();
+/**
+ * The OAuth client, from the artefact rather than from the machine (#1331).
+ *
+ * This used to read `process.env` at **launch**, on the end user's computer,
+ * while its own comment claimed the values were substituted at build time.
+ * Nothing substituted anything — `tsc` performs no substitution,
+ * `electron-builder.yml` defined nothing, `release.yml` never mentioned the
+ * variables — so the client was always null in a shipped build and the whole
+ * of #1301 was unreachable in every installer. Setting the two GitHub secrets,
+ * the obvious fix, would have changed nothing.
+ *
+ * Now the values ride in the artefact's own `package.json`, injected by
+ * `electron-builder`'s `extraMetadata` at package time. That is the mechanism
+ * the release already uses for the version number, so it is one channel rather
+ * than a second one to keep working.
+ *
+ * @param baked `package.json` from the packaged app — whatever `extraMetadata`
+ *              put there, unvalidated, because it is JSON assembled by a shell
+ *              command and a mis-quoted argument can land any shape
+ * @param env   development only. `main.ts` passes `process.env` under
+ *              `ELECTRON_DEV` and an **empty object** otherwise, which is what
+ *              makes a shipped build unable to be influenced by anything on
+ *              the machine it runs on — not merely unlikely to be
+ */
+export function driveClientConfig(
+  baked: Record<string, unknown>,
+  env: NodeJS.ProcessEnv,
+): DriveClientConfig | null {
+  const clientId =
+    nonEmpty(baked['budojoGoogleClientId']) ?? nonEmpty(env.BUDOJO_GOOGLE_CLIENT_ID);
+  const clientSecret =
+    nonEmpty(baked['budojoGoogleClientSecret']) ?? nonEmpty(env.BUDOJO_GOOGLE_CLIENT_SECRET);
 
   // No client configured means the feature is simply not available. The UI asks
   // the state, sees `configured: false`, and says so — rather than offering a
-  // Connect button that opens a Google error page.
-  if (clientId === undefined || clientId === '' || clientSecret === undefined || clientSecret === '') {
+  // Connect button that opens a Google error page. Half a client is the same
+  // answer: it cannot complete a flow either.
+  if (clientId === null || clientSecret === null) {
     return null;
   }
 
   return { clientId, clientSecret };
+}
+
+/**
+ * A usable string, or nothing.
+ *
+ * Blank counts as absent because that is what an unpopulated CI secret expands
+ * to — an empty string, not a missing key — and a client that looks configured
+ * and fails at Google is worse than one that is honestly absent.
+ */
+function nonEmpty(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed === '' ? null : trimmed;
 }
 
 export function createDriveSyncIO(input: {

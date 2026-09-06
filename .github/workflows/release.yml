@@ -441,9 +441,31 @@ jobs:
       - name: Package the NSIS installer
         shell: bash
         working-directory: desktop
+        env:
+          # The Google OAuth client for Drive backup sync (#1301, #1331). Baked
+          # into the artefact's package.json below, NOT read from the user's
+          # environment at launch — which is what it used to do, on machines
+          # where these have never been set.
+          #
+          # Absent secrets are not a failure: `driveClientConfig` answers null,
+          # the bridge reports `configured: false`, and the Drive card hides
+          # itself. That is the state every release has shipped in so far, and
+          # it stays valid — #1320's backup folder covers the same need with no
+          # account and no API.
+          #
+          # The client secret is not a secret for an installed app (Google says
+          # so for "Desktop app" clients, and the flow uses PKCE) — it is here
+          # so the identity can change without a code edit, not to hide it.
+          CLIENT_ID: ${{ secrets.BUDOJO_GOOGLE_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.BUDOJO_GOOGLE_CLIENT_SECRET }}
         # Inject the release version so the artifacts are named after the tag
         # (package.json stays at 0.0.0 — semantic-release owns versioning).
-        run: npm run package -- --publish never -c.publish.provider=github -c.publish.owner=Budojo -c.publish.repo=budojo -c.extraMetadata.version="${{ steps.ver.outputs.version }}"
+        run: |
+          npm run package -- --publish never \
+            -c.publish.provider=github -c.publish.owner=Budojo -c.publish.repo=budojo \
+            -c.extraMetadata.version="${{ steps.ver.outputs.version }}" \
+            -c.extraMetadata.budojoGoogleClientId="${CLIENT_ID}" \
+            -c.extraMetadata.budojoGoogleClientSecret="${CLIENT_SECRET}"
 
       - name: Verify the installer was produced
         shell: bash

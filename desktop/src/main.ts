@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, protocol, safeStorage, shell } from 'electron';
-import { createWriteStream, existsSync } from 'node:fs';
+import { createWriteStream, existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,6 +57,29 @@ const APP_SCHEME = 'app';
 const APP_ORIGIN = `${APP_SCHEME}://bundle`;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The packaged app's own `package.json` (#1331).
+ *
+ * This is where `electron-builder`'s `extraMetadata` lands — the same channel
+ * the release already uses to stamp the version, so values baked at package
+ * time travel through one mechanism rather than two.
+ *
+ * Best-effort by design: a development run has no injected values and a
+ * malformed file must not stop the app booting. Either way the caller gets an
+ * empty object and the feature that asked simply reports itself unavailable.
+ */
+function appMetadata(): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(
+      readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8'),
+    );
+
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
 
 /**
  * The Angular production build. `dist/` sits next to this file once compiled,
@@ -431,7 +454,14 @@ async function startRuntime(): Promise<{
   });
   // Drive sync (#1301). Off unless the owner connected an account, and off
   // entirely when the build carries no OAuth client.
-  const driveConfig = driveClientConfig();
+  //
+  // The environment is handed over **only** in development (#1331). In a
+  // shipped build this is an empty object, so the client can come from one
+  // place and one place only: what the packaging step baked into the
+  // artefact's own package.json. Passing `process.env` here unconditionally is
+  // how the feature spent every release reading variables that exist on no
+  // user's machine.
+  const driveConfig = driveClientConfig(appMetadata(), DEV ? process.env : {});
   const driveService =
     driveConfig === null
       ? null
