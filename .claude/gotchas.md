@@ -43,6 +43,8 @@ Format: `→` separates the symptom from the action.
 
 - `npm install` (and any resolution — `npm update`, `npm install --package-lock-only`) dies with `Cannot read properties of null (reading 'edgesOut')` on **npm 10.9.8**, the one bundled with `node:22-alpine`. It is an arborist bug in the optional-peer chain under `vitest`, not the project: `npm@12` resolves the same `package.json` silently. → the client container installs with **`npm ci`**, which reads the lockfile instead of resolving; when a dependency actually changes, resolve deliberately with `npx --yes npm@12 install --package-lock-only` (pass `--user` and `HOME`/`npm_config_cache` when running it in a throwaway container, or the lockfile lands root-owned on the bind mount). Found in #1376, fixed in #1394.
 
+- Searching for a camelCase identifier **case-sensitively misses every place it is embedded in a longer name**: `grep "trainHere"` returns **0** hits in a file that calls `cmp.setTrainHere()` four times, because camelCase capitalises the embedded word. The conclusion drawn from that zero was "this has no test coverage" — and it nearly produced a duplicate of an existing spec file (#747). → Search the **distinctive root without its first character** (`rainHere`), or pass `-i`. The same trap covers `setX` / `getX` / `onX` / `isX`, which is most of an Angular codebase. And more generally: **a search returning zero is evidence about the search, not only about the code** — confirm the term exists somewhere before concluding a feature is missing.
+
 ## Frontend — SCSS, design system & shared components
 
 ### SCSS / layout
