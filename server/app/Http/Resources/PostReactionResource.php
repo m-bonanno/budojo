@@ -43,9 +43,10 @@ class PostReactionResource extends JsonResource
                 'full_name' => trim($user->first_name . ' ' . $user->last_name),
                 'handle' => $user->handle,
                 'avatar_url' => $user->avatar_url,
-                // Athletes carry a belt via their linked row; owners
-                // don't. Null on owner reactions — SPA flair switches
-                // to the owner variant.
+                // From the reactor's athlete row in this academy — which an
+                // owner has too when they train here (#747). Null switches
+                // the SPA flair to the owner variant, and means "no athlete
+                // row", not "not a practitioner".
                 'belt' => $user->athlete?->belt?->value,
             ],
         ];
