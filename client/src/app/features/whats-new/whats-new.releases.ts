@@ -60,6 +60,119 @@ export function localised(value: Localised, lang: string): string {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: 'v2.51.0',
+    date: '2026-09-08',
+    headline: {
+      en: 'The roster, row by row.',
+      it: 'La lista atleti, riga per riga.',
+    },
+    sections: [
+      {
+        heading: { en: '🥋 The Belt column is gone', it: '🥋 Via la colonna «Cintura»' },
+        bullets: [
+          {
+            en: "Since the last release every row carries the coloured belt stripe down its left edge, so the Belt column was saying the same thing a second time — and spending the widest column on the table to do it. It is gone. Hovering the stripe now shows the belt's NAME, because a colour on its own is not a name: telling brown from black in a nine-pixel stripe is not obvious, and anyone on a screen reader does not see the colour at all. The phone card still writes it out in full.",
+            it: "Dal rilascio scorso ogni riga ha la striscia colorata a sinistra, quindi la colonna «Cintura» diceva la stessa cosa una seconda volta — e per farlo si prendeva la colonna più larga della tabella. Adesso non c'è più. Passando il mouse sulla striscia compare il nome scritto della cintura, perché un colore da solo non è un nome: distinguere marrone da nero in una striscia di nove pixel non è ovvio, e chi usa un lettore di schermo non vede il colore affatto. Sul telefono la scheda continua a scriverla per esteso.",
+          },
+          {
+            en: 'Belt sorting moved out of the table and became a button above it, next to the search. Not just a move: a column header does not exist on a phone, so for as long as sorting lived there it was a desktop-only feature. It is now in the same place on both. Three presses — ascending, descending, off.',
+            it: "L'ordinamento per cintura è uscito dalla tabella ed è diventato un pulsante sopra, accanto alla ricerca. Non è solo un trasloco: l'intestazione di una colonna sul telefono non esiste, quindi finché l'ordinamento viveva lì era una funzione da computer soltanto. Ora è nello stesso posto sui due formati. Tre pressioni: crescente, decrescente, spento.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '💰 The payment filter is a button that cycles',
+          it: '💰 Il filtro pagamento è un pulsante che gira',
+        },
+        bullets: [
+          {
+            en: 'The All / Paid / Unpaid dropdown was a popup to open in order to choose between three values with a natural order. It is one button now: press it and it moves to the next value, with the current state written in the icon — a wallet for all, a tick for paid, a cross for unpaid. One tap instead of two, and no menu to read.',
+            it: "Il menu «Tutti / Pagato / Non pagato» era una tendina da aprire per scegliere fra tre valori con un ordine naturale. Adesso è un pulsante solo: lo premi e passa al valore successivo, e lo stato attuale è scritto nell'icona — il portafoglio per tutti, la spunta per chi ha pagato, la croce per chi no. Un tocco invece di due, e niente menu da leggere.",
+          },
+          {
+            en: 'On a phone both new buttons show the icon without its label: with the words the filter bar went to three lines, which is exactly the vertical space the feedback asked to get back. All five controls now sit on one line — one fewer than before any of this started.',
+            it: "Sul telefono i due pulsanti nuovi mostrano l'icona senza etichetta: con le parole la barra dei filtri passava a tre righe, che è esattamente lo spazio verticale che i riscontri chiedevano di recuperare. Così i cinque controlli stanno su una riga sola — una in meno di prima che cominciassimo.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '🔎 The dead space after the search',
+          it: '🔎 Lo spazio morto dopo la ricerca',
+        },
+        bullets: [
+          {
+            en: 'There was a gap between the search field and the belt filter that looked like an alignment mistake. It was not: the field grew, but the text box inside it kept its own size, and the difference became empty space INSIDE the control. The box fills the field now.',
+            it: "Fra il campo di ricerca e il filtro cinture c'era un vuoto che sembrava un errore di allineamento. Non lo era: il campo si allargava, ma la casella di testo dentro restava della sua misura e la differenza diventava spazio vuoto dentro il controllo. Adesso la casella riempie il campo.",
+          },
+        ],
+      },
+      {
+        heading: { en: '💶 Icons on the payment chips', it: '💶 Le icone sui pagamenti' },
+        bullets: [
+          {
+            en: 'The payment chip said its state in a word and a colour. But that column is scanned, not read — and four of its states are the same answer written four ways: Monthly, Quarterly, Half-yearly, Annual. There is an icon in front now: a note for any subscription, a ticket for a carnet (the one that had disappeared, and that you pointed out), a cross for a month nothing covers. It does something else too: paid and unpaid were told apart by green against amber, which is the one pair a colour-blind reader cannot separate. The icon is the signal that survives when the colour does not.',
+            it: "Il pallino del pagamento diceva il suo stato con una parola e un colore. Ma quella colonna si scorre, non si legge — e quattro dei suoi stati sono la stessa risposta scritta in quattro modi: Mensile, Trimestrale, Semestrale, Annuale. Ora c'è un'icona davanti: la banconota per qualsiasi abbonamento, il biglietto per il carnet (quella che era sparita, e che ci era stato fatto notare), la croce per il mese che nessuno copre. Serve anche a un'altra cosa: pagato e non pagato si distinguevano per verde contro arancione, che è la coppia che una persona daltonica non separa. L'icona è il segnale che resta quando il colore non basta.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '📱 The social icons move up a line',
+          it: '📱 Le icone social salgono di una riga',
+        },
+        bullets: [
+          {
+            en: "Facebook and Instagram had a line of their own under the name. Two icons do not earn a line on a screen scrolled one-handed — and worse, that line appeared only for people who had filled the field in, so the height of the roster's rows depended on who happened to have a Facebook account. They sit next to the age now, on the same line as the name.",
+            it: "Facebook e Instagram avevano una riga tutta loro sotto il nome. Due icone non valgono una riga su uno schermo che si scorre con una mano — e peggio, quella riga compariva solo per chi aveva compilato il campo, quindi l'altezza delle righe della lista dipendeva da chi avesse un account Facebook. Ora stanno accanto all'età, sulla stessa riga del nome.",
+          },
+        ],
+      },
+      {
+        heading: { en: '📅 How often they actually train', it: '📅 Quante volte si è allenato' },
+        bullets: [
+          {
+            en: 'There is a new column: Sessions. Two numbers per athlete — how many times they came this month, and how many in total. Two and not one, because either alone misleads. "3 this month" says nothing until you know whether that is normal for that person. "1204 in total" says nothing about whether they still come. Together they point at the athlete worth noticing: the one with three years of sessions and a 3 this month.',
+            it: "C'è una colonna nuova: Presenze. Due numeri per ogni atleta — quante volte è venuto questo mese, e quante in tutto. Due e non uno, perché da soli ingannano entrambi. «3 questo mese» non dice niente finché non sai se per quella persona è normale. «1204 in tutto» non dice niente su se venga ancora. Insieme indicano l'atleta che vale la pena notare: quello con tre anni di presenze e un 3 questo mese.",
+          },
+          {
+            en: 'The column sorts on both numbers: pressing the header goes from most-this-month to fewest, then does the same for the all-time count. The letter beside it says which of the two is leading, the arrow says which way.',
+            it: "La colonna si ordina su entrambi i numeri: premendo l'intestazione passa da «più presenze questo mese» a «meno», poi al totale nello stesso modo. La lettera accanto dice quale dei due comanda, la freccia dice il verso.",
+          },
+          {
+            en: 'The phone card shows the month\'s number only, with a calendar icon: there is no header to press there, and a number nobody can order earns its place only by answering something on its own. "Have they been in this month?" does; "1204 since 2022" is reference material, and wants a screen with more room.',
+            it: "Sulla scheda del telefono compare solo il numero del mese, con l'icona del calendario: lì non c'è un'intestazione da premere, e un numero che nessuno può ordinare si porta dietro solo se risponde da solo a qualcosa. «È venuto questo mese?» risponde; «1204 dal 2022» è materiale da consultazione, e vuole uno schermo con più spazio.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '🖱️ The payment chip on a phone can be pressed now',
+          it: '🖱️ Il pallino del pagamento, sul telefono, ora si preme',
+        },
+        bullets: [
+          {
+            en: 'For eight releases the payment chip on the phone card was not tappable: touching "Monthly" opened the athlete instead of the payment menu. The whole card surface is a link to the athlete, and every other control on top of it — the three dots, the photo, the social icons — lifts itself to stay clickable. The payment chip did not. Recording a payment, selling a carnet and undoing a payment are the three things done from there, on the form factor this app is built for.',
+            it: "Da otto rilasci il pallino del pagamento nella scheda su telefono non era premibile: toccando «Mensile» si apriva la scheda dell'atleta invece del menu dei pagamenti. La superficie della scheda è tutta un collegamento all'atleta, e ogni altro comando sopra di essa — i tre puntini, la foto, le icone social — si solleva per restare cliccabile. Il pallino del pagamento non lo faceva. Segnare un pagamento, vendere un carnet e annullare un pagamento sono le tre cose che si fanno da lì, sul formato per cui questa app è pensata.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '🪟 The window border reaches the end',
+          it: '🪟 Il bordo della finestra arriva in fondo',
+        },
+        bullets: [
+          {
+            en: 'On the title bar, top right, the last stretch of border was being eaten by the Windows buttons. A one-pixel line: it is there now.',
+            it: "Sulla barra del titolo, in alto a destra, l'ultimo tratto di bordo veniva mangiato dai pulsanti di Windows. Una riga di un pixel: adesso c'è.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: 'v2.50.0',
     date: '2026-09-07',
     headline: {
