@@ -13,7 +13,7 @@
     <p class="whats-new__subtitle">{{ 'whatsNew.subtitle' | translate }}</p>
   </header>
 
-  @for (release of releases; track release.version) {
+  @for (release of releases(); track release.version) {
     <section class="whats-new__release" [attr.data-cy]="'whats-new-release-' + release.version">
       <header class="whats-new__release-header">
         <h2 class="whats-new__version">{{ release.version }}</h2>
@@ -31,6 +31,17 @@
         </section>
       }
     </section>
+  }
+
+  <!--
+    Ten at a time (#1464). The full history is 95 releases and growing by one
+    every few days; rendering all of it puts the thing anyone came for at the
+    top of a very long page and everything else underneath it, unread.
+  -->
+  @if (remaining() > 0) {
+    <button type="button" class="whats-new__more" (click)="showMore()" data-cy="whats-new-more">
+      {{ 'whatsNew.showMore' | translate: { count: remaining() } }}
+    </button>
   }
 
   <footer class="whats-new__footer">

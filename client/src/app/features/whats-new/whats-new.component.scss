@@ -143,3 +143,28 @@
     margin-top: 1rem;
   }
 }
+
+// Ten at a time (#1464). A quiet full-width control rather than a primary
+// button: loading more of a history is not the action this page is for.
+.whats-new__more {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: var(--p-border-radius-md);
+  background: var(--p-content-background);
+  color: var(--p-text-color);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--budojo-motion-fast) var(--budojo-motion-decelerate);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--p-content-hover-background);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+  }
+}

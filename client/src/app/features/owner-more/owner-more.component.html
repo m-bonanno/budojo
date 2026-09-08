@@ -45,11 +45,20 @@
       </a>
     </li>
     <li>
-      <a class="owner-more__row" routerLink="/dashboard/support" data-cy="owner-more-support">
-        <i class="pi pi-comment" aria-hidden="true"></i>
-        <span class="owner-more__label">{{ 'nav.support' | translate }}</span>
-        <i class="pi pi-angle-right owner-more__chevron" aria-hidden="true"></i>
-      </a>
+      <!--
+        Only where there is somewhere for a ticket to go (#1464). The form
+        writes a row and queues an email, and the desktop profile has no
+        `email` capability — so on the shipped build it answered "sent",
+        wrote to the local database, and nobody ever read it. A missing
+        way to get in touch is honest; one that swallows the message is not.
+      -->
+      @if (runtime.has()('email')) {
+        <a class="owner-more__row" routerLink="/dashboard/support" data-cy="owner-more-support">
+          <i class="pi pi-comment" aria-hidden="true"></i>
+          <span class="owner-more__label">{{ 'nav.support' | translate }}</span>
+          <i class="pi pi-angle-right owner-more__chevron" aria-hidden="true"></i>
+        </a>
+      }
     </li>
     <li>
       <a class="owner-more__row" routerLink="/dashboard/whats-new" data-cy="owner-more-whats-new">
