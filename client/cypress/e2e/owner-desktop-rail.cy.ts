@@ -66,7 +66,7 @@ describe('Owner desktop social rail (#1112)', () => {
     cy.get('[data-cy="rail-create"]').should('not.exist');
   });
 
-  it('pins What\'s new and Notifications at the foot, in that order (#1462)', () => {
+  it("pins What's new and Notifications at the foot, in that order (#1462)", () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@academy');
 
