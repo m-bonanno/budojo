@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { BrandGlyphComponent } from '../brand-glyph/brand-glyph.component';
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
@@ -45,7 +45,8 @@ export interface RailNotifications {
  * shared by the owner (`dashboard`) + athlete (`athlete-dashboard`) shells
  * (extracted from the duplicated rail chrome shipped in #1110 / #1112).
  * Presentational: the host supplies the same `tabs` it feeds the bottom-nav
- * plus a role-specific `brand` + `profile`, and reacts to `createActivated`.
+ * plus a role-specific `brand` + `profile`, and an account-side `secondary`
+ * group at its foot.
  *
  * a11y:
  * - the host element is the `role="navigation"` landmark (label via `ariaLabel`);
@@ -80,11 +81,20 @@ export class SideRailComponent {
   readonly profile = input<RailProfile | null>(null);
   /** Optional notifications entry (bell + unread badge) in the nav; `null` → omitted. */
   readonly notifications = input<RailNotifications | null>(null);
+
+  /**
+   * The account-side destinations at the foot of the rail (#1462) — What's
+   * new today, whatever else belongs beside the person tomorrow.
+   *
+   * Separate from `tabs` because the two answer different questions: `tabs`
+   * is where you go to run the academy, this is what the app has to say to
+   * YOU. Putting them in one list is what made Notifications sit between
+   * Attendance and More, which is not where anyone looks for it.
+   */
+  readonly secondary = input<BottomNavTab[]>([]);
   /** Visible label on the ➕ Create button (translated by the host). */
-  readonly createLabel = input.required<string>();
   /** The `<nav>` landmark label (translated by the host). */
   readonly ariaLabel = input.required<string>();
 
   /** Fires when the ➕ Create button is activated. */
-  readonly createActivated = output<void>();
 }

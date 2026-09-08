@@ -28,8 +28,18 @@ function setup(handle: string | null = 'senseimario') {
 describe('OwnerMoreComponent (#1111)', () => {
   it('homes the owner destinations demoted off the bottom bar', () => {
     const { el } = setup();
-    for (const cy of ['attendance', 'stats', 'activity', 'settings', 'support', 'whats-new']) {
+    for (const cy of ['activity', 'settings', 'support', 'whats-new']) {
       expect(el.querySelector(`[data-cy="owner-more-${cy}"]`), cy).not.toBeNull();
+    }
+  });
+
+  it('does not repeat what the rail already carries (#1462)', () => {
+    // Attendance was in both, which makes More a place where some things are
+    // and others are too. Stats moved up to the rail, which is where a
+    // destination belongs when there is room for it.
+    const { el } = setup();
+    for (const cy of ['attendance', 'stats']) {
+      expect(el.querySelector(`[data-cy="owner-more-${cy}"]`), cy).toBeNull();
     }
   });
 

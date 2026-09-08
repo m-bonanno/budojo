@@ -37,13 +37,12 @@
        owns navigation. -->
   <app-side-rail
     data-cy="owner-rail"
-    [tabs]="tabs()"
+    [tabs]="railTabs()"
+    [secondary]="railSecondary()"
     [brand]="railBrand()"
     [profile]="railProfile()"
     [notifications]="railNotifications()"
-    [createLabel]="createTitle()"
     [ariaLabel]="navAriaLabel()"
-    (createActivated)="onCreate()"
   />
 
   <main class="main">
