@@ -9,13 +9,6 @@
      shared one: both are reachable on a phone, and sharing would make the
      second open steal the first's anchor. -->
 <p-menu #paymentMenu [popup]="true" [model]="paymentMenuItems()" appendTo="body" />
-<!-- Mobile delete confirmation. Routed by key from confirmDeleteFromCardMenu()
-     so it doesn't compete with the desktop's anchored <p-confirmpopup>. -->
-<p-confirmDialog
-  key="athlete-delete-mobile"
-  [breakpoints]="{ '768px': '92vw' }"
-  [style]="{ width: '28rem' }"
-/>
 
 <div class="athletes-page">
   <!--
@@ -285,7 +278,7 @@
                 {{ 'athletes.list.table.payment' | translate }}
               </th>
             }
-            <th style="width: 8rem"></th>
+            <th style="width: 4rem"></th>
           </tr>
         </ng-template>
 
@@ -486,11 +479,14 @@
             <td class="athlete-actions">
               <!-- Folder icon dropped (#281) — was a redundant route into
                  the detail (default tab is Documents anyway) and broke
-                 self-evident UI per Krug. Pencil + trash kept as the
-                 fast paths to "edit" and "delete this athlete".
+                 self-evident UI per Krug. Pencil kept as the fast path to
+                 "edit"; delete moved to the danger zone on the edit page
+                 itself (#1430) — a row is one click away from eleven
+                 identical rows, and the confirmation was doing all the
+                 safety work alone.
 
                  Trashed mode (#700) collapses to a single Restore CTA —
-                 Edit / Delete don't apply to a soft-deleted athlete. -->
+                 Edit doesn't apply to a soft-deleted athlete. -->
               @if (isTrashedMode()) {
                 <p-button
                   icon="pi pi-replay"
@@ -533,23 +529,6 @@
                   tooltipPosition="left"
                   (clicked)="goToEdit(athlete)"
                   dataCy="edit-btn"
-                />
-                <app-confirm-destructive-button
-                  icon="pi pi-trash"
-                  [ariaLabel]="
-                    'athletes.list.tooltip.deleteAria'
-                      | translate: { name: athlete.first_name + ' ' + athlete.last_name }
-                  "
-                  [tooltip]="'athletes.list.tooltip.delete' | translate"
-                  tooltipPosition="left"
-                  [confirmMessage]="
-                    'athletes.list.confirm.deleteMessage'
-                      | translate: { name: athlete.first_name + ' ' + athlete.last_name }
-                  "
-                  [acceptLabel]="'athletes.list.confirm.deleteAccept' | translate"
-                  [rejectLabel]="'athletes.list.confirm.cancel' | translate"
-                  (confirmed)="delete(athlete)"
-                  dataCy="delete-btn"
                 />
               }
             </td>

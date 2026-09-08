@@ -1711,9 +1711,7 @@
         "beltSortAsc": "Sorted by belt (white → black). Click to flip.",
         "beltSortDesc": "Sorted by belt (black → white). Click to flip.",
         "edit": "Edit",
-        "delete": "Delete",
         "editAria": "Edit {{name}}",
-        "deleteAria": "Delete {{name}}",
         "openMenuAria": "Open menu for {{name}}",
         "paid": "Paid",
         "unpaid": "Unpaid",
@@ -2127,6 +2125,17 @@
         "quarterly": "Quarterly",
         "halfYearly": "Half-yearly",
         "annual": "Annual"
+      },
+      "dangerZone": {
+        "title": "Danger zone",
+        "delete": {
+          "heading": "Delete this athlete",
+          "hint": "Removes them from the roster. Their documents are permanently deleted and cannot be restored — only the athlete row itself can be undone.",
+          "button": "Delete athlete",
+          "buttonAria": "Delete {{name}}"
+        },
+        "selfNote": "This is your own row, so it can't be deleted from here. To stop training at this academy, use the toggle on your",
+        "selfNoteLink": "Profile page"
       }
     },
     "photo": {

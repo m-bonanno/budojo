@@ -1711,9 +1711,7 @@
         "beltSortAsc": "Ordinato per cintura (bianca → nera). Clicca per invertire.",
         "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per invertire.",
         "edit": "Modifica",
-        "delete": "Elimina",
         "editAria": "Modifica {{name}}",
-        "deleteAria": "Elimina {{name}}",
         "openMenuAria": "Apri il menu per {{name}}",
         "paid": "Pagato",
         "unpaid": "Non pagato",
@@ -2127,6 +2125,17 @@
         "quarterly": "Trimestrale",
         "halfYearly": "Semestrale",
         "annual": "Annuale"
+      },
+      "dangerZone": {
+        "title": "Zona pericolosa",
+        "delete": {
+          "heading": "Elimina questo atleta",
+          "hint": "Lo rimuove dalla lista. I suoi documenti vengono eliminati definitivamente e non si possono recuperare — solo la riga dell'atleta si può ripristinare.",
+          "button": "Elimina atleta",
+          "buttonAria": "Elimina {{name}}"
+        },
+        "selfNote": "Questa è la tua riga, quindi non si può eliminare da qui. Per smettere di allenarti in questa palestra usa l'interruttore nel tuo",
+        "selfNoteLink": "profilo"
       }
     },
     "photo": {

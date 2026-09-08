@@ -755,7 +755,7 @@ describe('AthletesListComponent', () => {
       } as Athlete;
     }
 
-    it('openCardMenu populates cardMenuItems with the expanded quick-actions set (#985)', () => {
+    it('openCardMenu populates cardMenuItems with the quick-actions set (#985, #1430)', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       fixture.detectChanges();
       const component = fixture.componentInstance as unknown as {
@@ -769,20 +769,14 @@ describe('AthletesListComponent', () => {
 
       const items = component.cardMenuItems();
       // No monthly_fee + no handle on the default makeAthlete fixture →
-      // 5 items: attendance, documents, promotions, edit, delete. The
-      // conditional Payments + Public profile entries are exercised in
-      // the follow-up assertions below.
-      expect(items).toHaveLength(5);
+      // 4 items: attendance, documents, promotions, edit. The conditional
+      // Payments + Public profile entries are exercised in the follow-up
+      // assertions below. Delete moved off this menu entirely (#1430) — the
+      // danger zone on the edit page is the only place it lives now.
+      expect(items).toHaveLength(4);
       const icons = items.map((it) => it.icon);
-      expect(icons).toEqual([
-        'pi pi-calendar',
-        'pi pi-file',
-        'pi pi-trophy',
-        'pi pi-pencil',
-        'pi pi-trash',
-      ]);
-      const last = items[items.length - 1];
-      expect(last?.styleClass).toBe('menu-item--danger');
+      expect(icons).toEqual(['pi pi-calendar', 'pi pi-file', 'pi pi-trophy', 'pi pi-pencil']);
+      expect(icons).not.toContain('pi pi-trash');
       expect(component.cardMenu?.toggle).toHaveBeenCalledTimes(1);
     });
 
@@ -863,39 +857,6 @@ describe('AthletesListComponent', () => {
 
         expect(root.querySelectorAll('a[href*="/dashboard/u/"]').length).toBeGreaterThan(0);
       });
-    });
-
-    it('confirmDeleteFromCardMenu routes through ConfirmationService with the mobile dialog key', () => {
-      const fixture = TestBed.createComponent(AthletesListComponent);
-      fixture.detectChanges();
-      // ConfirmationService is declared in the component's `providers: []`
-      // (component-scoped), so resolve it through the component's element
-      // injector rather than the TestBed root.
-      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
-      const confirmSpy = vi.spyOn(confirmationService, 'confirm');
-
-      const component = fixture.componentInstance as unknown as {
-        confirmDeleteFromCardMenu: (athlete: Athlete) => void;
-      };
-
-      component.confirmDeleteFromCardMenu(makeAthlete({ id: 99, first_name: 'Anna' }));
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      const config = confirmSpy.mock.calls[0]![0] as {
-        key?: string;
-        message?: string;
-        acceptButtonProps?: { severity?: string };
-        accept?: () => void;
-      };
-      expect(config.key).toBe('athlete-delete-mobile');
-      expect(config.message).toContain('Anna');
-      expect(config.acceptButtonProps?.severity).toBe('danger');
-
-      // The accept callback must reach the same delete(athlete) path the
-      // desktop popup uses; assert via the AthleteService spy.
-      const athleteService = TestBed.inject(AthleteService) as unknown as FakeAthleteService;
-      config.accept?.();
-      expect(athleteService.delete).toHaveBeenCalledTimes(1);
     });
   });
 

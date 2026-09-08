@@ -15,7 +15,7 @@ import {
   ValidatorFn,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ButtonModule } from 'primeng/button';
@@ -26,8 +26,10 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { Tooltip } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import {
+  Athlete,
   AthletePayload,
   AthleteService,
   AthleteStatus,
@@ -41,6 +43,7 @@ import { LanguageService } from '../../../core/services/language.service';
 import { localeFor } from '../../../shared/utils/locale';
 import { BudojoFormFieldComponent } from '../../../shared/components/budojo-form-field/budojo-form-field.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { ConfirmDestructiveButtonComponent } from '../../../shared/components/confirm-destructive-button/confirm-destructive-button.component';
 import {
   COUNTRY_OPTIONS,
   PROVINCE_OPTIONS,
@@ -162,6 +165,7 @@ const urlIfPresent: ValidatorFn = (control: AbstractControl) => {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     TranslatePipe,
     ButtonModule,
     DatePickerModule,
@@ -171,10 +175,12 @@ const urlIfPresent: ValidatorFn = (control: AbstractControl) => {
     SelectModule,
     ToastModule,
     Tooltip,
+    ConfirmPopupModule,
     PageHeaderComponent,
     BudojoFormFieldComponent,
+    ConfirmDestructiveButtonComponent,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   templateUrl: './athlete-form.component.html',
   styleUrl: './athlete-form.component.scss',
 })
@@ -198,6 +204,18 @@ export class AthleteFormComponent implements OnInit {
   readonly mode = computed<'create' | 'edit'>(() =>
     this.athleteId() === null ? 'create' : 'edit',
   );
+
+  /**
+   * The loaded athlete, kept around for the danger zone (#1430) — its
+   * `is_self` decides which action renders there, and its name goes into
+   * the delete confirmation. Everything else on this page reads the
+   * reactive form, not this; this signal exists ONLY for what the form
+   * doesn't already carry.
+   */
+  protected readonly loadedAthlete = signal<Athlete | null>(null);
+
+  /** True while the danger-zone delete request is in flight. */
+  protected readonly deleting = signal(false);
 
   /**
    * Belt picker options. Order = IBJJF rank (kids → adults → senior
@@ -500,6 +518,64 @@ export class AthleteFormComponent implements OnInit {
     }
   }
 
+  // ── Danger zone (#1430) ─────────────────────────────────────────────
+  //
+  // Moved here from the roster row + card menu: the confirmation was
+  // doing all the work there, one click away from eleven identical rows.
+  // Getting HERE already answers "who" — the owner chose this athlete,
+  // opened their page, and scrolled past everything about them.
+  //
+  // Self-row athletes never reach this method — the template renders no
+  // button for them (`loadedAthlete()?.is_self`), because
+  // `DeleteAthleteAction` rejects that id with a 403 (#747) and a
+  // confirm-gated button that is guaranteed to fail is worse than no
+  // button. Their equivalent action is `MyAthleteService.leave()`, which
+  // already has its own fully-reversible, no-confirm home on
+  // `/dashboard/profile` (`ProfileTrainHereComponent`) — this page just
+  // points there rather than re-implementing it with a different risk
+  // level.
+
+  /** Opens the confirmation the delete button carries; the actual DELETE fires from `deleteAthlete()`. */
+  protected deleteAthlete(): void {
+    const id = this.athleteId();
+    const athlete = this.loadedAthlete();
+    if (id === null || athlete === null || this.deleting()) {
+      return;
+    }
+
+    this.deleting.set(true);
+    this.athleteService.delete(id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('athletes.list.toast.deletedSummary'),
+          detail: this.translate.instant('athletes.list.toast.deletedDetail', {
+            name: `${athlete.first_name} ${athlete.last_name}`,
+          }),
+          life: 3000,
+        });
+        // This page refers to an athlete that no longer exists — back to
+        // the roster, not a 404 across the detail's other tabs.
+        void this.router.navigate(['/dashboard/athletes']);
+      },
+      error: () => {
+        this.deleting.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: this.translate.instant('athletes.list.toast.errorSummary'),
+          detail: this.translate.instant('athletes.list.toast.deleteErrorDetail'),
+          life: 4000,
+        });
+      },
+    });
+  }
+
+  /** For the delete confirmation's message — same interpolation the roster used. */
+  protected readonly athleteFullName = computed<string>(() => {
+    const athlete = this.loadedAthlete();
+    return athlete === null ? '' : `${athlete.first_name} ${athlete.last_name}`;
+  });
+
   // ── Inline error keys for the BudojoFormField wrapper (#1050) ──────
   // Each computed subscribes to its control's `events` stream (emits
   // TouchedChangeEvent), so markAllAsTouched() on submit re-renders the
@@ -674,6 +750,7 @@ export class AthleteFormComponent implements OnInit {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (athlete) => {
+          this.loadedAthlete.set(athlete);
           const joinedAt = fromDateString(athlete.joined_at);
           this.form.patchValue({
             first_name: athlete.first_name,

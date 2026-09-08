@@ -22,7 +22,6 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmPopup } from 'primeng/confirmpopup';
-import { ConfirmDialog } from 'primeng/confirmdialog';
 import { Menu, MenuModule } from 'primeng/menu';
 import { PaginatorModule } from 'primeng/paginator';
 import { Tooltip } from 'primeng/tooltip';
@@ -56,7 +55,6 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { ErrorStateComponent } from '../../../shared/components/error-state/error-state.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { IconButtonComponent } from '../../../shared/components/icon-button/icon-button.component';
-import { ConfirmDestructiveButtonComponent } from '../../../shared/components/confirm-destructive-button/confirm-destructive-button.component';
 import { OnboardingChecklistComponent } from '../../onboarding/onboarding-checklist.component';
 import { OnboardingService } from '../../../core/services/onboarding.service';
 import { academyChargesAFee } from '../../../shared/utils/academy-fee';
@@ -83,7 +81,6 @@ interface SelectOption<T extends string> {
     TagModule,
     ToastModule,
     ConfirmPopup,
-    ConfirmDialog,
     MenuModule,
     PaginatorModule,
     Tooltip,
@@ -101,7 +98,6 @@ interface SelectOption<T extends string> {
     ErrorStateComponent,
     EmptyStateComponent,
     IconButtonComponent,
-    ConfirmDestructiveButtonComponent,
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './athletes-list.component.html',
@@ -762,11 +758,12 @@ export class AthletesListComponent implements OnInit {
 
   // ── Mobile card 3-dot menu (#670) ──────────────────────────────────────
   //
-  // The mobile card layout collapses the inline pencil + trash buttons into
-  // a single 3-dot menu trigger (Apple-minimalist pattern). Tapping the
+  // The mobile card layout collapses the inline row of icon actions into a
+  // single 3-dot menu trigger (Apple-minimalist pattern). Tapping the
   // trigger opens a popup `<p-menu>` whose model is built per-athlete each
-  // time. Delete from the menu routes to a centered `<p-confirmDialog>`
-  // instead of the desktop confirm-popup (no good anchor on mobile).
+  // time. Delete used to route from here through a centered
+  // `<p-confirmDialog>`; it now lives in the danger zone on the edit page
+  // instead (#1430), so this menu no longer offers it.
   @ViewChild('cardMenu') protected cardMenu?: Menu;
   protected readonly cardMenuItems = signal<MenuItem[]>([]);
 
@@ -925,7 +922,9 @@ export class AthletesListComponent implements OnInit {
 
   protected openCardMenu(event: Event, athlete: Athlete): void {
     // Build the menu model conditionally:
-    //   - Attendance / Documents / Promotions / Edit / Delete: always present.
+    //   - Attendance / Documents / Promotions / Edit: always present. Delete
+    //     moved to the danger zone on the edit page (#1430) — not offered
+    //     from this menu any more.
     //   - Payments: only when the academy tracks a monthly fee AND the row
     //     isn't the owner-self row (the self row hides payments by design).
     //   - Public profile: only when the linked user has a handle.
@@ -981,19 +980,11 @@ export class AthletesListComponent implements OnInit {
       });
     }
 
-    items.push(
-      {
-        label: this.translate.instant('athletes.list.tooltip.edit'),
-        icon: 'pi pi-pencil',
-        command: () => this.goToEdit(athlete),
-      },
-      {
-        label: this.translate.instant('athletes.list.tooltip.delete'),
-        icon: 'pi pi-trash',
-        styleClass: 'menu-item--danger',
-        command: () => this.confirmDeleteFromCardMenu(athlete),
-      },
-    );
+    items.push({
+      label: this.translate.instant('athletes.list.tooltip.edit'),
+      icon: 'pi pi-pencil',
+      command: () => this.goToEdit(athlete),
+    });
 
     this.cardMenuItems.set(items);
     this.cardMenu?.toggle(event);
@@ -1043,27 +1034,6 @@ export class AthletesListComponent implements OnInit {
     if (athlete.user_handle) {
       void this.router.navigate(['/dashboard/u', athlete.user_handle]);
     }
-  }
-
-  /**
-   * Mobile-card delete confirmation. Routes through the same
-   * `delete(athlete)` handler as the desktop popup-anchored flow, but
-   * uses a centered `<p-confirmDialog>` (keyed `athlete-delete-mobile`)
-   * instead of `<p-confirmpopup>` because the menu item that triggers
-   * this has no good anchor on a phone — the popup would render
-   * offscreen or clipped.
-   */
-  protected confirmDeleteFromCardMenu(athlete: Athlete): void {
-    this.confirmationService.confirm({
-      key: 'athlete-delete-mobile',
-      message: this.translate.instant('athletes.list.confirm.deleteMessage', {
-        name: `${athlete.first_name} ${athlete.last_name}`,
-      }),
-      acceptLabel: this.translate.instant('athletes.list.confirm.deleteAccept'),
-      rejectLabel: this.translate.instant('athletes.list.confirm.cancel'),
-      acceptButtonProps: { severity: 'danger' },
-      accept: () => this.delete(athlete),
-    });
   }
 
   /**
@@ -1278,28 +1248,6 @@ export class AthletesListComponent implements OnInit {
       });
   }
 
-  protected delete(athlete: Athlete): void {
-    this.athleteService.delete(athlete.id).subscribe({
-      next: () => {
-        this.athletes.update((list) => list.filter((a) => a.id !== athlete.id));
-        this.totalRecords.update((n) => n - 1);
-        this.messageService.add({
-          severity: 'success',
-          summary: this.translate.instant('athletes.list.toast.deletedSummary'),
-          detail: this.translate.instant('athletes.list.toast.deletedDetail', {
-            name: `${athlete.first_name} ${athlete.last_name}`,
-          }),
-          life: 3000,
-        });
-      },
-      error: () => {
-        this.messageService.add({
-          severity: 'error',
-          summary: this.translate.instant('athletes.list.toast.errorSummary'),
-          detail: this.translate.instant('athletes.list.toast.deleteErrorDetail'),
-          life: 4000,
-        });
-      },
-    });
-  }
+  // delete(athlete) moved to the danger zone on the edit page (#1430) — the
+  // roster no longer offers it, on either surface.
 }
