@@ -31,6 +31,7 @@ import {
   Belt,
 } from '../../../core/services/athlete.service';
 import { AttendanceService } from '../../../core/services/attendance.service';
+import { AthleteIdentityComponent } from '../../../shared/components/athlete-identity/athlete-identity.component';
 import { BeltBadgeComponent } from '../../../shared/components/belt-badge/belt-badge.component';
 import { FilterSheetComponent } from '../../../shared/components/filter-sheet/filter-sheet.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -72,6 +73,7 @@ function toLocalDateString(d: Date): string {
     RouterLink,
     TranslatePipe,
     BeltBadgeComponent,
+    AthleteIdentityComponent,
     FilterSheetComponent,
     PageHeaderComponent,
   ],

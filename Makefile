@@ -114,7 +114,7 @@ test-desktop: ## Desktop gates: tsc + vitest
 e2e: ## Cypress against the dev server, waiting out the ng-serve rebuild (SPEC=athletes-sort)
 	$(SCRIPTS)/e2e.sh $(SPEC)
 
-shot: ## Screenshot a route at 1280 and 375 against the dev backend (PAGE=/dashboard/athletes)
+shot: ## Screenshot a route's chrome at 1280 and 375, empty-state (PAGE=/dashboard/athletes)
 	$(SCRIPTS)/shot.sh $(PAGE)
 
 quick: ## Same gates, skipping the --write formatters (re-runs mid-session)

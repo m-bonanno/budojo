@@ -141,11 +141,14 @@
     >
       <ng-template pTemplate="header">
         <tr>
+          <!--
+            One column for the athlete, one for the answer (#1458). The Belt
+            column went the way the roster's did in #1443 — the spine in the
+            identity block says it, and saying it twice cost the widest column
+            on a table with three.
+          -->
           <th pSortableColumn="last_name" data-cy="attendance-th-name">
             {{ 'attendance.daily.table.fullName' | translate }} <p-sortIcon field="last_name" />
-          </th>
-          <th pSortableColumn="belt" data-cy="attendance-th-belt">
-            {{ 'attendance.daily.table.belt' | translate }} <p-sortIcon field="belt" />
           </th>
           <th
             class="attendance-cell-indicator"
@@ -175,19 +178,24 @@
           [attr.data-cy]="'attendance-row-' + athlete.id"
         >
           <td class="attendance-cell-name">
-            {{ athlete.first_name }} {{ athlete.last_name }}
-            @if (isSelfMarked(athlete.id)) {
-              <span
-                class="attendance-self-badge"
-                [attr.title]="'attendance.daily.selfBadge.title' | translate"
-                data-cy="attendance-self-badge"
-              >
-                {{ 'attendance.daily.selfBadge.label' | translate }}
-              </span>
-            }
-          </td>
-          <td>
-            <app-belt-badge [belt]="athlete.belt" [stripes]="athlete.stripes" />
+            <!--
+              The same identity block the roster draws (#1458). `linkToDetail`
+              is off because this whole row is the toggle: a link inside it
+              would be a second target with a different meaning in the same
+              rectangle, and tapping slightly left of centre would navigate
+              away instead of marking someone present.
+            -->
+            <app-athlete-identity [athlete]="athlete">
+              @if (isSelfMarked(athlete.id)) {
+                <span
+                  class="attendance-self-badge"
+                  [attr.title]="'attendance.daily.selfBadge.title' | translate"
+                  data-cy="attendance-self-badge"
+                >
+                  {{ 'attendance.daily.selfBadge.label' | translate }}
+                </span>
+              }
+            </app-athlete-identity>
           </td>
           <td class="attendance-cell-indicator" aria-hidden="true">
             @if (isPresent(athlete.id)) {

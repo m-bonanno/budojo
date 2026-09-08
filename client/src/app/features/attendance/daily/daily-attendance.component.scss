@@ -422,3 +422,9 @@ $attendance-mobile-breakpoint: 768px;
     outline-offset: 2px;
   }
 }
+
+// The identity block's spine is absolutely positioned, so the cell has to be
+// its containing block — same arrangement as the roster's name cell (#1458).
+.attendance-cell-name {
+  position: relative;
+}

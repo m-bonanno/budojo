@@ -1,0 +1,65 @@
+<!--
+  Rank down the left edge (#1429). A child of the host, which the consuming
+  cell makes the containing block, so it spans the row's full height — a bar
+  the height of the row reads as "this row is a blue belt"; one the height of
+  an avatar reads as a mark beside the avatar.
+
+  It is the only place a desktop row carries the belt since #1443 removed the
+  column, so the words have to be reachable from here rather than merely
+  nearby: the `aria-label` the spine has always had, and the tooltip below for
+  a sighted reader who cannot tell brown from black in a 9px stripe.
+-->
+<app-belt-badge
+  class="athlete-identity__spine"
+  appearance="spine"
+  [belt]="athlete().belt"
+  [stripes]="athlete().stripes"
+  [pTooltip]="beltName()"
+  tooltipPosition="right"
+/>
+
+<div class="athlete-identity__body">
+  @if (avatarHandle(); as handle) {
+    <a
+      class="athlete-identity__avatar"
+      [routerLink]="[PUBLIC_PROFILE_BASE, handle]"
+      [attr.aria-label]="fullName()"
+      [attr.data-cy]="'athlete-avatar-' + athlete().id"
+    >
+      <app-user-avatar [url]="avatarUrl()" [name]="fullName()" size="chip" />
+    </a>
+  } @else {
+    <!--
+      Same circle, no tap target. An avatar that looks clickable and is not is
+      worse than one that never claimed to be, so the inert variant keeps the
+      row's rhythm without the affordance.
+    -->
+    <span
+      class="athlete-identity__avatar athlete-identity__avatar--inert"
+      aria-hidden="true"
+      [attr.data-cy]="'athlete-avatar-inert-' + athlete().id"
+    >
+      <app-user-avatar [url]="avatarUrl()" [name]="fullName()" size="chip" />
+    </span>
+  }
+
+  @if (linkToDetail()) {
+    <a
+      class="athlete-identity__name"
+      [routerLink]="['/dashboard/athletes', athlete().id]"
+      data-cy="athlete-name-link"
+      >{{ fullName() }}</a
+    >
+  } @else {
+    <span
+      class="athlete-identity__name athlete-identity__name--plain"
+      data-cy="athlete-name-text"
+      >{{ fullName() }}</span
+    >
+  }
+
+  <app-age-badge [dateOfBirth]="athlete().date_of_birth" />
+
+  <!-- Whatever else this page has decided is worth saying about the row. -->
+  <ng-content />
+</div>

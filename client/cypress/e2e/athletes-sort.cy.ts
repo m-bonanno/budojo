@@ -100,7 +100,7 @@ describe('athletes table — column sorting', () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@athletes');
 
-    cy.get('.athlete-row__spine').first().trigger('mouseenter');
+    cy.get('.athlete-identity__spine').first().trigger('mouseenter');
     cy.get('.p-tooltip').should('be.visible').and('contain.text', 'Brown');
   });
 

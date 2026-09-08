@@ -102,67 +102,14 @@
 
 // ── Table cells ────────────────────────────────────────────────────────────────
 
-// Type only. The column layout that used to live here was stacking the name
-// line above the socials line; #1445 put them on one line, so there is one
-// child left and nothing to lay out — see `__primary` below, which is where
-// the row's arrangement actually happens now.
+// What is left of the roster's own name styling after #1458.
+//
+// The spine, the avatar, the name and the age moved into
+// `app-athlete-identity`, which the attendance list draws too. These two
+// rules stay because they belong to what the ROSTER projects into it — the
+// social links are this page's editorial choice, not part of who an athlete
+// is, and attendance has no use for them.
 .athlete-name {
-  font-weight: 500;
-  color: var(--p-surface-900);
-
-  // The row's one line: avatar, name, age, socials, and whichever of the
-  // owner chip and the status actually apply.
-  //
-  // It used to be a stack — this line, plus a socials line under it — with a
-  // `__body` column wrapper holding the two together. #1445 moved the socials
-  // up here, which left that wrapper holding a single child, so it is gone
-  // and its `min-width: 0` moved onto this rule. Wrapping matters now that
-  // the line can carry six things: a long name next to an owner chip and two
-  // social icons has to fall to a second line rather than push the cell wide.
-  &__primary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-  }
-
-  // Avatar affordance on the desktop table (#983). Same affordance
-  // rules as the mobile card: <a> when handle is set, <span> when
-  // not. The inert variant keeps the visual rhythm without claiming
-  // a tap target.
-  &__avatar-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border-radius: 50%;
-    transition: opacity var(--budojo-motion-fast) var(--budojo-motion-decelerate);
-
-    &:hover {
-      opacity: 0.85;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--p-primary-400);
-      outline-offset: 2px;
-    }
-
-    &--inert {
-      cursor: default;
-
-      &:hover {
-        opacity: 1;
-      }
-    }
-  }
-
-  // The socials, as a group ON the name line since #1445 — they used to be
-  // a row of their own beneath it. Conditional render in template (no empty
-  // placeholder for athletes without socials). Mirrors academy-detail's
-  // contactLinks pattern. Per audit § 5, icon size pinned to 14px (PrimeNG
-  // SVG icon canonical "sm" step) — pre-empts the eventual icon-scale
-  // tokens.
   &__socials {
     display: flex;
     align-items: center;
@@ -189,43 +136,10 @@
     }
 
     i.pi {
-      // Canonical icon "sm" step (audit § 5, shipped via #498 design
-      // tokens). Was hardcoded to `0.875rem` when the social icons
-      // first landed because the tokens didn't exist yet on the same
-      // PR; consumed properly via the token now that #498 has
-      // shipped to develop.
+      // Canonical icon "sm" step (audit § 5, shipped via #498 design tokens).
       font-size: var(--budojo-icon-sm);
       line-height: 1;
     }
-  }
-
-  // Name is the canonical "open this athlete's detail" affordance
-  // (#281). Visually a link by intent (Norman § signifier — looks
-  // like what it does), but kept low-chrome: text-decoration only
-  // on hover/focus so the row at rest reads as a roster line, not
-  // a wall of links. Matches the row-link pattern used elsewhere
-  // in the SPA (academy-detail row links).
-  &__text {
-    color: inherit;
-    text-decoration: none;
-    cursor: pointer;
-    transition: color var(--budojo-motion-fast) var(--budojo-motion-decelerate);
-
-    &:hover,
-    &:focus-visible {
-      color: var(--p-primary-color);
-      text-decoration: underline;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--p-primary-color);
-      outline-offset: 2px;
-      border-radius: var(--p-border-radius-sm);
-    }
-  }
-
-  &__text {
-    flex: 0 1 auto;
   }
 }
 
@@ -879,28 +793,6 @@ $athletes-mobile-breakpoint: 768px;
 // box, which is exactly the row's height.
 .athlete-name-cell {
   position: relative;
-}
-
-// The spine widened to 9px and sits close to the cell's own padding edge;
-// this reserves visible daylight before the avatar starts, independent of
-// whatever the table's native cell padding happens to be (#1429 review).
-.athlete-name {
-  margin-left: 0.5rem;
-}
-
-.athlete-row__spine {
-  position: absolute;
-  left: 0.375rem;
-  top: 0.5rem;
-  bottom: 0.5rem;
-  display: flex;
-  // Hoverable on purpose (#1443). It was `pointer-events: none` while the
-  // spine was decoration sitting beside a Belt column that said the same
-  // thing in words. That column is gone, so the tooltip on this element is
-  // now how a sighted reader gets the belt's NAME — and a tooltip on a host
-  // that cannot receive `mouseenter` never opens. It sits over the cell's
-  // own left padding, where there is nothing else to click.
-  pointer-events: auto;
 }
 
 // The spine on the mobile card (#1429). The card already carries
