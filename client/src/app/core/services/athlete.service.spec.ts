@@ -5,6 +5,7 @@ import {
   Athlete,
   AthleteInvitation,
   AthletePayload,
+  AthletePromotion,
   AthleteService,
   AthleteUpdatePayload,
 } from './athlete.service';
@@ -179,6 +180,31 @@ describe('AthleteService', () => {
       const req = httpMock.expectOne('/api/v1/athletes/7/invitations/99');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
+    });
+  });
+
+  describe('updatePromotionRecordedAt (#1431 PR 1 of 2)', () => {
+    it('PATCHes /api/v1/athletes/:athleteId/promotions/:promotionId with the new date and unwraps the data envelope', () => {
+      const updated: AthletePromotion = {
+        id: 12,
+        kind: 'stripe',
+        from_belt: null,
+        to_belt: null,
+        from_stripes: 1,
+        to_stripes: 2,
+        belt_at_event: 'blue',
+        recorded_at: '2026-03-15T00:00:00+00:00',
+        recorded_by: { id: 1, full_name: 'Owner User' },
+      };
+      let result: AthletePromotion | null = null;
+      service.updatePromotionRecordedAt(7, 12, '2026-03-15').subscribe((p) => (result = p));
+
+      const req = httpMock.expectOne('/api/v1/athletes/7/promotions/12');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ recorded_at: '2026-03-15' });
+      req.flush({ data: updated });
+
+      expect(result).toEqual(updated);
     });
   });
 });

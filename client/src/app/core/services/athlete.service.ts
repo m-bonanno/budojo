@@ -544,6 +544,25 @@ export class AthleteService {
     const params = new HttpParams().set('page', page.toString());
     return this.http.get<AthletePromotionPage>(`${this.base}/${athleteId}/promotions`, { params });
   }
+
+  /**
+   * Corrects when a promotion actually happened, not when it was typed
+   * into Budojo (#1431 PR 1 of 2). `recordedAt` is date-only (YYYY-MM-DD),
+   * matching the timeline's display precision — the server rejects a
+   * future date. Only the date moves; the belt/stripe transition the row
+   * describes and who recorded it are untouched.
+   */
+  updatePromotionRecordedAt(
+    athleteId: number,
+    promotionId: number,
+    recordedAt: string,
+  ): Observable<AthletePromotion> {
+    return this.http
+      .patch<{ data: AthletePromotion }>(`${this.base}/${athleteId}/promotions/${promotionId}`, {
+        recorded_at: recordedAt,
+      })
+      .pipe(map((res) => res.data));
+  }
 }
 
 export interface AthletePromotion {

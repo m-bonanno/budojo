@@ -1933,7 +1933,22 @@
         "stripes": "striscette",
         "recordedBy": "Registrato da {{name}}",
         "prevPage": "Pagina precedente",
-        "nextPage": "Pagina successiva"
+        "nextPage": "Pagina successiva",
+        "editDate": "Correggi la data",
+        "editDateAria": "Correggi la data registrata",
+        "editDialog": {
+          "title": "Correggi la data",
+          "body": "Cambia solo la data. Cosa è stato promosso e chi l'ha registrato restano invariati.",
+          "label": "Registrata il",
+          "confirm": "Salva",
+          "cancel": "Annulla"
+        },
+        "toast": {
+          "updatedSummary": "Data aggiornata",
+          "updatedDetail": "Lo storico promozioni è stato corretto.",
+          "errorSummary": "Qualcosa è andato storto",
+          "errorGeneric": "Impossibile aggiornare la data. Riprova."
+        }
       },
       "attendance": {
         "eyebrow": "Presenze",

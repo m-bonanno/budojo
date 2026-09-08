@@ -41,8 +41,9 @@ Before this table, only **belt** changes left a trace (as a `belt_promotion` `Co
 
 ## Business rules
 
-- **Append-only.** No update or delete API — once recorded, a row is the truth of what happened. A typo correction would require a follow-up row, not an edit.
-- **Owner-side surface only.** Athletes don't see each other's promotion history; the endpoint (`GET /api/v1/athletes/{athlete}/promotions`) is owner-academy gated. The athlete portal carries no equivalent view in V1.
+- **`recorded_at` is editable; the transition it describes is not.** #1431 ("devo poter riscrivere la storia di un atleta") added `PATCH /api/v1/athletes/{athlete}/promotions/{promotion}` to fix the common case: a promotion entered after the fact carries the timestamp of when it was *typed*, not when it *happened*. Only `recorded_at` moves — `kind`, `from_belt`/`to_belt`, `from_stripes`/`to_stripes`, `belt_at_event`, and `recorded_by_user_id` describe the event itself and stay put. The write goes straight to the `AthletePromotion` row through a dedicated Action, never through `Athlete::$belt` / `Athlete::$stripes` — so it cannot trigger `AthleteObserver` and cannot drag the athlete's *current* belt or stripes around by editing history. `recorded_at` may not be set in the future.
+- **Creating and deleting rows is PR 2 of #1431** — still not implemented. The open questions from the issue (does a backfilled belt row respect ordering against existing rows, who is `recorded_by_user_id` on a transcribed event, does a bulk backfill flood the community feed) are unresolved until that PR lands.
+- **Owner-side surface only.** Athletes don't see each other's promotion history; both endpoints (`GET`/`PATCH /api/v1/athletes/{athlete}/promotions...`) are owner-academy gated. The athlete portal carries no equivalent view in V1.
 - **Observer-driven.** `AthleteObserver::updated()` writes a row whenever `belt` or `stripes` changes via `wasChanged()`. Console / seeder context skips entirely (no `Auth::id()` to attribute to), so `recorded_by_user_id` is non-nullable.
 - **Stripes are 0–6 globally with a per-belt sub-cap.** The global ceiling lives on `Athlete::stripes` (`max:6` on Store/Update FormRequest); the sub-cap (black 0–6, others 0–4) is enforced in the FormRequests via the `ValidatesStripesAgainstBelt` trait. The promotion table mirrors the global ceiling — the per-belt cap is a request-time concern, not a stored-data concern.
 - **Cascade with the athlete, restrict with the user.** Athlete-side cascade keeps storage clean when an athlete is hard-deleted; user-side restrict prevents a foot-gun where deleting an owner-user silently invalidates every history row they recorded.
@@ -50,10 +51,12 @@ Before this table, only **belt** changes left a trace (as a `belt_promotion` `Co
 ## Related endpoints
 
 - `GET /api/v1/athletes/{athlete}/promotions` — paginated 20/page, owner-academy gated, ordered by `recorded_at DESC, id DESC`. Read-only.
-- `AthleteObserver` — internal: writes rows on `belt` / `stripes` change; also emits the `belt_promotion` or `stripe_promotion` feed post for the celebration UX.
+- `PATCH /api/v1/athletes/{athlete}/promotions/{promotion}` — #1431 PR 1 of 2. Body: `{ "recorded_at": "YYYY-MM-DD" }`. 422 when missing, malformed, or in the future; 403 when the promotion doesn't belong to the athlete in the path (mirrors the carnet double-check) or the caller lacks `athletes_create_update` in the athlete's academy.
+- `AthleteObserver` — internal: writes rows on `belt` / `stripes` change; also emits the `belt_promotion` or `stripe_promotion` feed post for the celebration UX. Never runs on a `recorded_at` edit — that write bypasses the athlete model entirely.
 
 ## Future / TODO
 
+- **Create + delete historical rows (#1431 PR 2 of 2).** Lets an academy transcribe a paper register — promotions that happened before Budojo existed — for both belts and stripes. Open questions per the issue: whether an out-of-order backfill (e.g. a 2019 blue-belt row inserted after a black-belt row) is refused, warned, or allowed; who `recorded_by_user_id` is on a transcribed event (the person typing it now, not who promoted them in 2019); and how a bulk backfill avoids flooding the community feed with celebrations for things that happened years ago.
 - **Bulk record on athlete onboarding.** A new athlete imported with an existing belt won't have any history. A migration / Action could backfill a single `kind=belt, from_belt=null, to_belt={belt}` row on the import path so the timeline doesn't show "blank → today" gaps.
 - **Per-athlete promotion analytics.** Aggregate read (average time-to-blue, days-per-stripe) would surface in a future "academy insights" view.
 - **Athlete-side visibility.** A future opt-in toggle could let the athlete portal carry "my promotion history" — gated by an owner setting (PRD open question).

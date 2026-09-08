@@ -515,6 +515,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
         // specific athlete (post-v2.9.0). Same academy-scope gate as
         // documents; lives in the controller's first line.
         Route::get('/athletes/{athlete}/promotions', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'index']);
+        // Editing recorded_at (#1431 PR 1 of 2) — corrects a promotion
+        // entered late without touching the belt/stripe transition it
+        // describes. 403 when the promotion doesn't belong to the
+        // athlete in the path, same double-check as carnets below.
+        Route::patch('/athletes/{athlete}/promotions/{promotion}', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'update']);
         // Documents — flat routes for operations that target a single document.
         // `/expiring` must come before `/{document}` routes or Laravel tries to
         // bind the literal "expiring" as a document id.

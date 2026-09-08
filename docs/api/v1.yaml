@@ -4501,6 +4501,62 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorMessage' }
               example: { message: Forbidden. }
 
+  /athletes/{athlete}/promotions/{promotion}:
+    patch:
+      tags: [athletes]
+      summary: Correct when a promotion actually happened (#1431 PR 1 of 2)
+      description: |
+        The only editable field on a promotion row: `kind`, the belt/stripe
+        transition, and who recorded it describe the event itself and stay
+        put. Fixes the common case where a promotion was entered after the
+        fact — the row carries the date it was *typed*, not the date it
+        *happened*.
+
+        Writes straight to the row; never touches the athlete's current
+        `belt` or `stripes`, so it cannot fire the `AthleteObserver` or spawn
+        another promotion row. `recorded_at` may not be set in the future.
+
+        403 when the promotion does not belong to the athlete in the path.
+      operationId: athletePromotionUpdateRecordedAt
+      parameters:
+        - name: athlete
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: promotion
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AthletePromotionRecordedAtUpdateRequest'
+      responses:
+        '200':
+          description: The updated promotion row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AthletePromotion'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: Athlete is not in the authenticated academy, or the promotion does not belong to it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorMessage' }
+              example: { message: Forbidden. }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /athletes/{athlete}/attendance:
     get:
       tags: [attendance]
@@ -7508,6 +7564,17 @@ components:
           description: |
             The new validity start. The expiry moves with it and the ledger is
             rebuilt: sessions are claimed or released at either end.
+
+    AthletePromotionRecordedAtUpdateRequest:
+      type: object
+      required: [recorded_at]
+      properties:
+        recorded_at:
+          type: string
+          format: date
+          description: |
+            Date-only, matching the timeline's display precision. Must not be
+            in the future — a promotion can't be recorded ahead of today.
 
     AthleteEnvelope:
       type: object
