@@ -50,28 +50,32 @@ describe('Owner desktop social rail (#1112)', () => {
     cy.intercept('GET', '/api/v1/auth/me*', OWNER_ME);
   });
 
-  it('renders the rail with the bottom-nav destinations + a prominent Create', () => {
+  it('renders the destinations, with Stats among them and no Create (#1462)', () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@academy');
     cy.get('[data-cy="owner-rail"]').should('be.visible');
     cy.get('[data-cy="owner-rail"] a.rail__item[href="/dashboard/academy"]').should('be.visible');
     cy.get('[data-cy="owner-rail"] a.rail__item[href="/dashboard/athletes"]').should('be.visible');
     cy.get('[data-cy="owner-rail"] a.rail__item[href="/dashboard/community"]').should('be.visible');
+    // Stats came up from the More hub: it was down there because the phone's
+    // bottom bar had no room, which is not the rail's constraint.
+    cy.get('[data-cy="owner-rail"] a.rail__item[href="/dashboard/stats"]').should('be.visible');
     cy.get('[data-cy="owner-rail"] a.rail__item[href="/dashboard/more"]').should('be.visible');
-    cy.get('[data-cy="rail-create"]').should('be.visible');
+    // The ➕ promised to make something, and half of what it offered was a
+    // destination. It is gone; the phone's centre button keeps it.
+    cy.get('[data-cy="rail-create"]').should('not.exist');
   });
 
-  it('opens the ➕ create sheet from the rail and dismisses it', () => {
+  it("pins What's new and Notifications at the foot, in that order (#1462)", () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@academy');
-    cy.get('[role="dialog"]').should('not.exist');
 
-    cy.get('[data-cy="rail-create"]').click();
-    cy.get('[role="dialog"]').should('exist');
-    cy.get('[data-cy="create-attendance"]').should('be.visible');
-
-    cy.get('body').type('{esc}');
-    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('.rail__foot [data-cy="rail-whats-new"]').should('be.visible');
+    cy.get('.rail__foot [data-cy="rail-notifications"]').should('be.visible');
+    cy.get('.rail__foot a').then(($links) => {
+      const order = [...$links].map((el) => el.getAttribute('data-cy'));
+      expect(order.indexOf('rail-whats-new')).to.be.lessThan(order.indexOf('rail-notifications'));
+    });
   });
 
   // The chip linked to the More hub until #1351. It shows your avatar, your

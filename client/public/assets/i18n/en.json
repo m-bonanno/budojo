@@ -528,7 +528,8 @@
     "eyebrow": "What's new",
     "title": "Recent updates",
     "subtitle": "What's changed in Budojo lately, in plain language. Newest at the top.",
-    "back": "Back to dashboard"
+    "back": "Back to dashboard",
+    "showMore": "Show {{count}} more releases"
   },
   "notificationOnboarding": {
     "title": "Stay in the loop",
@@ -1622,7 +1623,6 @@
       "beltPlaceholder": "Belt",
       "table": {
         "fullName": "Full name",
-        "belt": "Belt",
         "presentAria": "Present"
       },
       "selfBadge": {
@@ -1664,13 +1664,6 @@
         "athlete": "Athlete",
         "days": "Days"
       }
-    },
-    "summaryWidget": {
-      "eyebrowPrefix": "Attendance",
-      "errorTitle": "Couldn't check",
-      "athletesPerSession": "athletes / session",
-      "viewAll": "View all →",
-      "empty": "No attendance recorded yet this month."
     }
   },
   "statuses": {
@@ -1818,10 +1811,8 @@
       },
       "alerts": {
         "button": "Alerts",
-        "none": "Nothing needs attention",
         "missingCertificate": "no medical certificate",
-        "expiringCertificate": "certificate expiring within 30 days",
-        "unpaid": "unpaid this month"
+        "expiringCertificate": "certificate expiring within 30 days"
       }
     },
     "invitation": {

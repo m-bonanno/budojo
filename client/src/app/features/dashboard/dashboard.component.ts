@@ -175,6 +175,45 @@ export class DashboardComponent implements OnInit {
     ];
   });
 
+  /**
+   * The rail's own destinations (#1462) — the bottom-nav tabs plus Stats.
+   *
+   * A separate list rather than one shared with `tabs` above, because the
+   * two surfaces have different room. A phone's bottom bar holds five items
+   * beside the ➕ and is already at five; the rail has a column. Stats was
+   * living under More for that reason and is a destination, not a setting.
+   */
+  protected readonly railTabs = computed<BottomNavTab[]>(() => {
+    this.languageService.currentLang();
+    return [
+      ...this.tabs().filter((t) => t.routerLink !== '/dashboard/more'),
+      {
+        icon: 'pi pi-chart-bar',
+        label: this.translate.instant('nav.stats'),
+        routerLink: '/dashboard/stats',
+        dataCy: 'rail-stats',
+      },
+      ...this.tabs().filter((t) => t.routerLink === '/dashboard/more'),
+    ];
+  });
+
+  /**
+   * The account-side foot of the rail (#1462). What's new sits directly above
+   * Notifications, both of them about what the app has to say to the reader
+   * rather than about the academy they run.
+   */
+  protected readonly railSecondary = computed<BottomNavTab[]>(() => {
+    this.languageService.currentLang();
+    return [
+      {
+        icon: 'pi pi-sparkles',
+        label: this.translate.instant('nav.whatsNew'),
+        routerLink: '/dashboard/whats-new',
+        dataCy: 'rail-whats-new',
+      },
+    ];
+  });
+
   protected readonly createTitle = computed<string>(() => {
     this.languageService.currentLang();
     return this.translate.instant('nav.create.title');

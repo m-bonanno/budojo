@@ -117,6 +117,9 @@ e2e: ## Cypress against the dev server, waiting out the ng-serve rebuild (SPEC=a
 shot: ## Screenshot a route's chrome at 1280 and 375, empty-state (PAGE=/dashboard/athletes)
 	$(SCRIPTS)/shot.sh $(PAGE)
 
+dead-styles: ## Classes with no rule, and rules with no element (FILTER=athletes)
+	node $(SCRIPTS)/dead-styles.mjs $(FILTER)
+
 quick: ## Same gates, skipping the --write formatters (re-runs mid-session)
 	$(SCRIPTS)/test-server.sh quick
 	$(SCRIPTS)/test-client.sh quick

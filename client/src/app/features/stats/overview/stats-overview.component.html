@@ -1,32 +1,40 @@
 <div class="stats-page">
   <app-page-header [title]="'stats.title' | translate" [subtitle]="'stats.subtitle' | translate" />
 
-  @if (errored()) {
-    <app-error-state [title]="'stats.loadError' | translate" dataCy="stats-error" />
-  } @else if (loading()) {
-    <div class="stats-page__skeleton" data-cy="stats-skeleton">
-      <p-skeleton width="100%" height="20rem" />
-    </div>
-  } @else if (totalAthletes() === 0) {
-    <app-empty-state
-      icon="pi pi-chart-bar"
-      [title]="'stats.emptyTitle' | translate"
-      [hint]="'stats.emptyHint' | translate"
-      dataCy="stats-empty"
-    />
-  } @else {
-    <div class="stats-page__total" data-cy="stats-total">
-      {{ 'stats.total' | translate: { count: totalAthletes() } }}
-    </div>
-    <section class="stats-card" data-cy="stats-belt-chart">
-      <h2 class="stats-card__title">{{ 'stats.belt.title' | translate }}</h2>
-      <p class="stats-card__hint">{{ 'stats.belt.hint' | translate }}</p>
-      <div class="stats-card__chart">
-        <p-chart type="doughnut" [data]="beltChartData()" [options]="chartOptions" />
+  <!--
+       The wrapper that carries this page's vertical rhythm (#1473).
+       #1126 moved `display:flex; gap:1.5rem` off the page root and into
+       `stats-page__body`, and never added the element — so every block on
+       this page has rendered flush against the next ever since.
+  -->
+  <div class="stats-page__body">
+    @if (errored()) {
+      <app-error-state [title]="'stats.loadError' | translate" dataCy="stats-error" />
+    } @else if (loading()) {
+      <div class="stats-page__skeleton" data-cy="stats-skeleton">
+        <p-skeleton width="100%" height="20rem" />
       </div>
-    </section>
+    } @else if (totalAthletes() === 0) {
+      <app-empty-state
+        icon="pi pi-chart-bar"
+        [title]="'stats.emptyTitle' | translate"
+        [hint]="'stats.emptyHint' | translate"
+        dataCy="stats-empty"
+      />
+    } @else {
+      <div class="stats-page__total" data-cy="stats-total">
+        {{ 'stats.total' | translate: { count: totalAthletes() } }}
+      </div>
+      <section class="stats-card" data-cy="stats-belt-chart">
+        <h2 class="stats-card__title">{{ 'stats.belt.title' | translate }}</h2>
+        <p class="stats-card__hint">{{ 'stats.belt.hint' | translate }}</p>
+        <div class="stats-card__chart">
+          <p-chart type="doughnut" [data]="beltChartData()" [options]="chartOptions" />
+        </div>
+      </section>
 
-    <!-- Monthly mat-hours leaderboard (#962). Auto-fetches on mount. -->
-    <app-leaderboard-card />
-  }
+      <!-- Monthly mat-hours leaderboard (#962). Auto-fetches on mount. -->
+      <app-leaderboard-card />
+    }
+  </div>
 </div>

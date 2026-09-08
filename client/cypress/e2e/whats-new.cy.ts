@@ -45,6 +45,20 @@ describe("What's new page (#254)", () => {
   it('renders the title and every shipped release card', () => {
     cy.get('.whats-new__title').should('contain.text', 'Recent updates');
 
+    // The page opens on ten releases since #1464 — the older cards asserted
+    // below are behind the "show more" button now. Press it until it goes,
+    // which is also a check that it eventually does: a paging control that
+    // never exhausts the list is a page you cannot reach the bottom of.
+    const expandFully = () => {
+      cy.get('body').then(($body) => {
+        if ($body.find('[data-cy="whats-new-more"]').length === 0) return;
+        cy.get('[data-cy="whats-new-more"]').click({ force: true });
+        expandFully();
+      });
+    };
+    expandFully();
+    cy.get('[data-cy="whats-new-more"]').should('not.exist');
+
     // The latest release sits at the top — assert it's actually
     // visible without scrolling (the user sees it on landing).
     // Version-agnostic on purpose: pinning a specific version here goes

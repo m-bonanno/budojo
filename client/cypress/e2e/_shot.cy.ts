@@ -63,6 +63,21 @@ const slug =
     .replace(/[^a-z0-9]+/gi, '-')
     .replace(/^-|-$/g, '') || 'page';
 
+/**
+ * Refuse to shoot through the dev server's compile-error overlay.
+ *
+ * It has happened twice: the page renders correctly underneath, the shot
+ * looks like a red banner over the real thing, and the reflex is to read the
+ * banner as the current state of the code — when it is usually a stale error
+ * from an intermediate save that the running bundle has already moved past.
+ * Failing here says "rebuild and try again" instead of leaving a misleading
+ * image on disk.
+ */
+function noBuildOverlay(): void {
+  cy.get('vite-error-overlay, .vite-error-overlay, ng-component-overlay').should('not.exist');
+  cy.contains(/^NG\d{4}:/).should('not.exist');
+}
+
 describe(`shot ${route}`, () => {
   it('desktop 1280', () => {
     cy.viewport(1280, 800);
@@ -72,6 +87,7 @@ describe(`shot ${route}`, () => {
     // is a screenshot of nothing.
     cy.get('body').should('be.visible');
     cy.wait(1200);
+    noBuildOverlay();
     cy.screenshot(`${slug}-1280`, { overwrite: true, capture: 'viewport' });
   });
 
@@ -81,6 +97,7 @@ describe(`shot ${route}`, () => {
     cy.visitAuthenticated(route);
     cy.get('body').should('be.visible');
     cy.wait(1200);
+    noBuildOverlay();
     cy.screenshot(`${slug}-375`, { overwrite: true, capture: 'viewport' });
   });
 });

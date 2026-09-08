@@ -111,10 +111,7 @@
             />
             <span class="profile__hint">{{ 'athletePortal.profile.handleHint' | translate }}</span>
             @if (currentUser.handle) {
-              <span
-                class="profile__hint profile__hint--clear"
-                data-cy="me-profile-handle-clear-hint"
-              >
+              <span class="profile__hint" data-cy="me-profile-handle-clear-hint">
                 {{ 'athletePortal.profile.handleClearHint' | translate }}
               </span>
             }

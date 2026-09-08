@@ -62,6 +62,25 @@
   flex-wrap: wrap;
 }
 
+// The search takes the slack the belt filter does not need (#1473).
+//
+// Its rule was deleted in #488 when the global `.p-iconfield` composite took
+// over the icon inset, and the layout half went with it — so the field has
+// been sitting at its intrinsic width ever since. Same shape as the roster's,
+// which is the strip this one was copied from.
+.attendance__search {
+  flex: 1 1 auto;
+  min-width: 0;
+
+  @media (min-width: 768px) {
+    max-width: 22rem;
+  }
+
+  input {
+    width: 100%;
+  }
+}
+
 .attendance__filters-inline {
   display: flex;
   flex: 1 1 auto;

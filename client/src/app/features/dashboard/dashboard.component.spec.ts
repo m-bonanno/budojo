@@ -340,20 +340,23 @@ describe('DashboardComponent', () => {
       expect(brand!.getAttribute('href')).toBe('/dashboard/academy');
     });
 
-    it('opens the create sheet with the owner quick actions from the rail ➕ Create', () => {
+    it('has no Create button, and still opens the sheet from the bar (#1462)', () => {
+      // The rail's ➕ promised to make something and half of what it offered
+      // was a destination. Each one is reachable from its own section now.
+      // The phone's centre button keeps it: a bottom bar has no sections.
       const fixture = TestBed.createComponent(DashboardComponent);
       fixture.detectChanges();
 
       const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-cy="rail-create"]')).toBeNull();
       expect(el.querySelector('[role="dialog"]')).toBeNull();
 
-      (el.querySelector('[data-cy="rail-create"]') as HTMLElement).click();
+      (el.querySelector('[data-cy="bottomnav-create"]') as HTMLElement).click();
       fixture.detectChanges();
 
       expect(el.querySelector('[role="dialog"]')).not.toBeNull();
       expect(el.querySelector('[data-cy="create-attendance"]')).not.toBeNull();
       expect(el.querySelector('[data-cy="create-athlete"]')).not.toBeNull();
-      expect(el.querySelector('[data-cy="create-post"]')).not.toBeNull();
     });
 
     // #1351 — it linked to the More hub until now. The chip shows your avatar,
@@ -390,13 +393,36 @@ describe('DashboardComponent', () => {
       expect(tab!.getAttribute('href')).toBe('/dashboard/attendance');
     });
 
-    it('demotes stats / settings off the rail (they live on the More hub)', () => {
+    it('carries Stats on the rail and settings on the More hub (#1462)', () => {
+      // Stats is a destination — where you go to look at something — and it
+      // was living under More because the bottom bar had no room for it. The
+      // rail has a column, so the phone's constraint stops being the
+      // desktop's. Settings stays on More: it is a place you go to change
+      // something, once.
       const fixture = TestBed.createComponent(DashboardComponent);
       fixture.detectChanges();
 
       const rail = fixture.nativeElement.querySelector('[data-cy="owner-rail"]') as HTMLElement;
-      expect(rail.querySelector('a[href="/dashboard/stats"]')).toBeNull();
+      expect(rail.querySelector('a[href="/dashboard/stats"]')).not.toBeNull();
       expect(rail.querySelector('a[href="/dashboard/profile"]')).toBeNull();
+    });
+
+    it("puts What's new and Notifications at the foot, next to the profile (#1462)", () => {
+      // They are about what the app has to say to YOU, not about the academy
+      // you run — so they sit with the person rather than in the run of
+      // destinations, which is where every app the reader already uses has
+      // trained them to look.
+      const fixture = TestBed.createComponent(DashboardComponent);
+      fixture.detectChanges();
+
+      const foot = fixture.nativeElement.querySelector('.rail__foot') as HTMLElement;
+      expect(foot).not.toBeNull();
+      expect(foot.querySelector('[data-cy="rail-whats-new"]')).not.toBeNull();
+      expect(foot.querySelector('[data-cy="rail-notifications"]')).not.toBeNull();
+
+      // Order within the foot: What's new above Notifications.
+      const links = [...foot.querySelectorAll('a')].map((a) => a.getAttribute('data-cy'));
+      expect(links.indexOf('rail-whats-new')).toBeLessThan(links.indexOf('rail-notifications'));
     });
   });
 });

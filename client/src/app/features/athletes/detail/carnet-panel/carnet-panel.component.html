@@ -16,7 +16,7 @@
     </header>
 
     @if (loading()) {
-      <p-skeleton height="6rem" styleClass="carnets__skeleton" />
+      <p-skeleton height="6rem" />
     } @else if (activeCarnet(); as active) {
       <article
         class="carnets__card"
@@ -201,7 +201,6 @@
         [showIcon]="true"
         dateFormat="dd/mm/yy"
         appendTo="body"
-        styleClass="carnets__dialog-picker"
         data-cy="carnet-purchased-at"
       />
       <small class="carnets__dialog-hint">

@@ -111,13 +111,43 @@ describe('WhatsNewComponent (#254)', () => {
     // version we've shipped; when we ship a new version and forget
     // to prepend instead of append, this fails.
     const firstRelease = root.querySelector('.whats-new__release');
-    expect(firstRelease?.querySelector('.whats-new__version')?.textContent?.trim()).toBe('v2.52.0');
+    expect(firstRelease?.querySelector('.whats-new__version')?.textContent?.trim()).toBe('v2.53.0');
+  });
+
+  it('opens on ten releases, with the rest a press away (#1464)', () => {
+    // 95 cards at once buried the entry anyone came for under everything
+    // that came before it.
+    const { fixture } = setup();
+    const root: HTMLElement = fixture.nativeElement;
+
+    expect(root.querySelectorAll('.whats-new__release').length).toBe(10);
+
+    const more = root.querySelector('[data-cy="whats-new-more"]') as HTMLButtonElement;
+    expect(more).not.toBeNull();
+    expect(more.textContent).toContain('86');
+
+    more.click();
+    fixture.detectChanges();
+    expect(root.querySelectorAll('.whats-new__release').length).toBe(20);
   });
 
   it('renders every shipped release in newest-first order', () => {
     const { fixture } = setup();
+    const root: HTMLElement = fixture.nativeElement;
+
+    // Expand fully first — the trip-wire is about ORDER and COUNT across the
+    // whole history, and #1464 made the page open on ten. Pressing until the
+    // button goes keeps the guarantee this test has always given.
+    for (let i = 0; i < 20; i++) {
+      const more = root.querySelector('[data-cy="whats-new-more"]') as HTMLButtonElement | null;
+      if (!more) break;
+      more.click();
+      fixture.detectChanges();
+    }
+    expect(root.querySelector('[data-cy="whats-new-more"]')).toBeNull();
+
     const cards = fixture.nativeElement.querySelectorAll('.whats-new__release');
-    expect(cards.length).toBe(95);
+    expect(cards.length).toBe(96);
 
     // Pin every version in the order we ship them so a refactor that
     // accidentally reverses the array (e.g. a sort that reads ids
@@ -126,6 +156,7 @@ describe('WhatsNewComponent (#254)', () => {
       (el as HTMLElement).querySelector('.whats-new__version')?.textContent?.trim(),
     );
     expect(versions).toEqual([
+      'v2.53.0',
       'v2.52.0',
       'v2.51.0',
       'v2.50.0',
@@ -226,6 +257,17 @@ describe('WhatsNewComponent (#254)', () => {
 
   it('the v1.6.0 card carries the four advertised sections', () => {
     const { fixture } = setup();
+    const root: HTMLElement = fixture.nativeElement;
+
+    // v1.6.0 is far down the history, and the page opens on ten (#1464), so
+    // it has to be revealed before it can be inspected.
+    for (let i = 0; i < 20; i++) {
+      const more = root.querySelector('[data-cy="whats-new-more"]') as HTMLButtonElement | null;
+      if (!more) break;
+      more.click();
+      fixture.detectChanges();
+    }
+
     const v160 = fixture.nativeElement.querySelector(
       '[data-cy="whats-new-release-v1.6.0"]',
     ) as HTMLElement | null;

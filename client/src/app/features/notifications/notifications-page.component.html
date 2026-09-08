@@ -67,7 +67,7 @@
       </div>
     } @else {
       @for (group of groups(); track group.key) {
-        <section class="notifications__group" [attr.data-cy]="'notifications-group-' + group.key">
+        <section [attr.data-cy]="'notifications-group-' + group.key">
           <h2 class="notifications__group-label">
             {{ 'notifications.group.' + group.key | translate }}
           </h2>

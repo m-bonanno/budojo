@@ -17,9 +17,7 @@ import { BottomNavTab } from '../bottom-nav/bottom-nav.component';
     [brand]="brand"
     [profile]="profile"
     [notifications]="notifications"
-    [createLabel]="'Create'"
     [ariaLabel]="'Primary'"
-    (createActivated)="created = created + 1"
   />`,
 })
 class HostComponent {
@@ -35,7 +33,6 @@ class HostComponent {
     routerLink: '/dashboard/me/more',
   };
   notifications: RailNotifications | null = null;
-  created = 0;
 }
 
 function setup(
@@ -71,10 +68,12 @@ describe('SideRailComponent (#1120)', () => {
     expect(el.querySelector('a.rail__item[href="/dashboard/me/academy"]')).not.toBeNull();
   });
 
-  it('emits createActivated when the ➕ Create button is clicked', () => {
-    const { el, host } = setup();
-    (el.querySelector('[data-cy="rail-create"]') as HTMLElement).click();
-    expect(host.created).toBe(1);
+  it('has no Create button — everything behind it lives in its own section (#1462)', () => {
+    // It promised to make something, and half of what it offered was a
+    // destination. Each of those is reachable from the section it belongs
+    // to, where the context for it already is.
+    const { el } = setup();
+    expect(el.querySelector('[data-cy="rail-create"]')).toBeNull();
   });
 
   it('renders the profile chip with the handle when a profile is provided', () => {
