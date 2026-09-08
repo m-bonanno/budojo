@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { of, throwError } from 'rxjs';
 import { provideI18nTesting } from '../../../../../test-utils/i18n-test';
 import { type AthletePromotion, AthleteService } from '../../../../core/services/athlete.service';
@@ -28,6 +28,20 @@ class FakeAthleteService {
       recorded_by: null,
     } as AthletePromotion),
   );
+  readonly createPromotion = vi.fn(() =>
+    of({
+      id: 99,
+      kind: 'belt',
+      from_belt: 'white',
+      to_belt: 'blue',
+      from_stripes: null,
+      to_stripes: null,
+      belt_at_event: 'blue',
+      recorded_at: '2019-03-15T00:00:00Z',
+      recorded_by: null,
+    } as AthletePromotion),
+  );
+  readonly deletePromotion = vi.fn(() => of(undefined));
 }
 
 function setup(opts: { athleteId?: string } = {}): {
@@ -274,6 +288,192 @@ describe('PromotionsListComponent (#799)', () => {
         expect.objectContaining({
           severity: 'error',
           detail: "Couldn't update the date. Try again.",
+        }),
+      );
+    });
+  });
+
+  describe('backfilling a historical promotion (#1431 PR 2 of 2)', () => {
+    it('opens the create dialog defaulting to kind=belt on "add a past promotion"', () => {
+      const { fixture, component, el, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({ data: [], meta: { current_page: 1, per_page: 20, total: 0, last_page: 1 } }),
+      );
+      fixture.detectChanges();
+      const dialogOpen = component as unknown as { createDialogOpen: () => boolean };
+
+      expect(dialogOpen.createDialogOpen()).toBe(false);
+      (el.querySelector('[data-cy="promotions-add"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(dialogOpen.createDialogOpen()).toBe(true);
+      expect(
+        (component as unknown as { createForm: { controls: { kind: { value: string } } } })
+          .createForm.controls.kind.value,
+      ).toBe('belt');
+    });
+
+    it('submits a belt payload with the composed from/to fields', () => {
+      const { fixture, component, svc } = setup({ athleteId: '7' });
+      svc.promotions.mockReturnValue(
+        of({ data: [], meta: { current_page: 1, per_page: 20, total: 0, last_page: 1 } }),
+      );
+      fixture.detectChanges();
+      svc.promotions.mockClear();
+
+      const c = component as unknown as {
+        openCreateDialog: () => void;
+        confirmCreate: () => void;
+        createForm: { patchValue: (v: Record<string, unknown>) => void };
+      };
+      c.openCreateDialog();
+      c.createForm.patchValue({
+        kind: 'belt',
+        recorded_at: new Date(2019, 2, 15),
+        from_belt: 'white',
+        to_belt: 'blue',
+      });
+      c.confirmCreate();
+
+      expect(svc.createPromotion).toHaveBeenCalledWith(7, {
+        kind: 'belt',
+        recorded_at: '2019-03-15',
+        from_belt: 'white',
+        to_belt: 'blue',
+      });
+      // Stays on the page it was on rather than jumping to page 1 — a
+      // backfill usually lands far from whatever the owner was reading.
+      expect(svc.promotions).toHaveBeenCalledWith(7, 1);
+    });
+
+    it('submits a stripe payload with the composed belt_at_event + from/to stripes', () => {
+      const { fixture, component, svc } = setup({ athleteId: '7' });
+      svc.promotions.mockReturnValue(
+        of({ data: [], meta: { current_page: 1, per_page: 20, total: 0, last_page: 1 } }),
+      );
+      fixture.detectChanges();
+
+      const c = component as unknown as {
+        openCreateDialog: () => void;
+        confirmCreate: () => void;
+        createForm: { patchValue: (v: Record<string, unknown>) => void };
+      };
+      c.openCreateDialog();
+      c.createForm.patchValue({
+        kind: 'stripe',
+        recorded_at: new Date(2020, 5, 1),
+        belt_at_event: 'blue',
+        from_stripes: '1',
+        to_stripes: '2',
+      });
+      c.confirmCreate();
+
+      expect(svc.createPromotion).toHaveBeenCalledWith(7, {
+        kind: 'stripe',
+        recorded_at: '2020-06-01',
+        belt_at_event: 'blue',
+        from_stripes: 1,
+        to_stripes: 2,
+      });
+    });
+
+    it('surfaces a chain-consistency 422 inline rather than a generic toast', () => {
+      const { fixture, component, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({ data: [], meta: { current_page: 1, per_page: 20, total: 0, last_page: 1 } }),
+      );
+      svc.createPromotion.mockReturnValue(
+        throwError(() => ({
+          status: 422,
+          error: {
+            errors: { from_belt: ["Doesn't match the belt after the previous promotion."] },
+          },
+        })),
+      );
+      fixture.detectChanges();
+
+      const c = component as unknown as {
+        openCreateDialog: () => void;
+        confirmCreate: () => void;
+        createForm: { patchValue: (v: Record<string, unknown>) => void };
+        createError: () => string | null;
+      };
+      c.openCreateDialog();
+      c.createForm.patchValue({
+        kind: 'belt',
+        recorded_at: new Date(2019, 2, 15),
+        from_belt: 'white',
+        to_belt: 'blue',
+      });
+      c.confirmCreate();
+
+      expect(c.createError()).toBe("Doesn't match the belt after the previous promotion.");
+    });
+
+    it('cancel closes the create dialog without calling the service', () => {
+      const { fixture, component, el, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({ data: [], meta: { current_page: 1, per_page: 20, total: 0, last_page: 1 } }),
+      );
+      fixture.detectChanges();
+      const dialogOpen = component as unknown as { createDialogOpen: () => boolean };
+
+      (el.querySelector('[data-cy="promotions-add"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (el.querySelector('[data-cy="promotion-create-cancel"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(dialogOpen.createDialogOpen()).toBe(false);
+      expect(svc.createPromotion).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleting a promotion (#1431 PR 2 of 2)', () => {
+    it('deletes on confirm, reloads the current page, and toasts', () => {
+      const { fixture, el, svc } = setup({ athleteId: '7' });
+      svc.promotions.mockReturnValue(
+        of({
+          data: [makePromotion({ id: 5 })],
+          meta: { current_page: 2, per_page: 20, total: 25, last_page: 2 },
+        }),
+      );
+      fixture.detectChanges();
+      svc.promotions.mockClear();
+      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
+      const confirmSpy = vi.spyOn(confirmationService, 'confirm');
+      const add = vi.spyOn(fixture.componentRef.injector.get(MessageService), 'add');
+
+      (el.querySelector('[data-cy="promotion-delete-5"] button') as HTMLButtonElement).click();
+      const config = confirmSpy.mock.calls[0]![0] as { accept?: () => void };
+      config.accept?.();
+
+      expect(svc.deletePromotion).toHaveBeenCalledWith(7, 5);
+      expect(svc.promotions).toHaveBeenCalledWith(7, 2);
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success' }));
+    });
+
+    it('toasts an error when the delete fails', () => {
+      const { fixture, el, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({
+          data: [makePromotion({ id: 5 })],
+          meta: { current_page: 1, per_page: 20, total: 1, last_page: 1 },
+        }),
+      );
+      svc.deletePromotion.mockReturnValue(throwError(() => new Error('boom')));
+      fixture.detectChanges();
+      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
+      const confirmSpy = vi.spyOn(confirmationService, 'confirm');
+      const add = vi.spyOn(fixture.componentRef.injector.get(MessageService), 'add');
+
+      (el.querySelector('[data-cy="promotion-delete-5"] button') as HTMLButtonElement).click();
+      const config = confirmSpy.mock.calls[0]![0] as { accept?: () => void };
+      config.accept?.();
+
+      expect(add).toHaveBeenCalledWith(
+        expect.objectContaining({
+          severity: 'error',
+          detail: "Couldn't delete this promotion. Try again.",
         }),
       );
     });

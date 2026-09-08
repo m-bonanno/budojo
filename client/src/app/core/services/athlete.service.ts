@@ -563,6 +563,30 @@ export class AthleteService {
       })
       .pipe(map((res) => res.data));
   }
+
+  /**
+   * Backfills a historical promotion (#1431 PR 2 of 2) — transcribing a
+   * paper register for a promotion that happened before Budojo existed.
+   * The server refuses (422) a row that contradicts a same-kind
+   * neighbour already on the timeline; the caller surfaces that message
+   * rather than a generic failure, since it names exactly what to fix.
+   */
+  createPromotion(
+    athleteId: number,
+    payload: AthletePromotionCreatePayload,
+  ): Observable<AthletePromotion> {
+    return this.http
+      .post<{ data: AthletePromotion }>(`${this.base}/${athleteId}/promotions`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  /**
+   * Undoes a promotion entered by mistake (#1431 PR 2 of 2). Hard delete
+   * — no restore, matching the server side.
+   */
+  deletePromotion(athleteId: number, promotionId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${athleteId}/promotions/${promotionId}`);
+  }
 }
 
 export interface AthletePromotion {
@@ -591,6 +615,28 @@ export interface AthletePromotionPage {
     readonly last_page: number;
   };
 }
+
+/**
+ * Body for `createPromotion` (#1431 PR 2 of 2). Mirrors
+ * `AthletePromotionCreateRequest` in docs/api/v1.yaml: belt fields only
+ * for `kind=belt`, stripe fields only for `kind=stripe` — the server
+ * enforces the split; this type just keeps the caller from mixing them
+ * up by construction.
+ */
+export type AthletePromotionCreatePayload =
+  | {
+      readonly kind: 'belt';
+      readonly recorded_at: string;
+      readonly from_belt: Belt | null;
+      readonly to_belt: Belt;
+    }
+  | {
+      readonly kind: 'stripe';
+      readonly recorded_at: string;
+      readonly from_stripes: number;
+      readonly to_stripes: number;
+      readonly belt_at_event: Belt;
+    };
 
 /**
  * State discriminator returned from `POST /athletes/{id}/email` (#476).
