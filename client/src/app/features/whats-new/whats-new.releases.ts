@@ -60,6 +60,85 @@ export function localised(value: Localised, lang: string): string {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: 'v2.53.0',
+    date: '2026-09-08',
+    headline: {
+      en: 'The sidebar, and five things that were not working.',
+      it: 'La barra laterale, e cinque cose che non funzionavano.',
+    },
+    sections: [
+      {
+        heading: {
+          en: '🧭 The left rail, reordered',
+          it: '🧭 La barra a sinistra, rimessa in ordine',
+        },
+        bullets: [
+          {
+            en: 'The Create button is gone. It promised to make something, and half of what it offered was a place to go — marking attendance is not a thing you create. Everything behind it is reachable from the section it belongs to, where the context already is. The phone keeps its ➕: a bottom bar has no sections to start from.',
+            it: "Via il bottone «Crea». Prometteva di creare qualcosa, e metà di quello che offriva era un posto dove andare — segnare le presenze non è una cosa che crei. Tutto quello che c'era dietro si raggiunge dalla sezione a cui appartiene, dove il contesto ce l'hai già. Sul telefono il ➕ resta: lì non ci sono sezioni da cui partire.",
+          },
+          {
+            en: 'Stats moves up into the rail — it was under More because the phone bar holds five items beside the ➕ and was already at five, a phone constraint applied to a column that has the room. Attendance was in the rail AND under More; one is enough.',
+            it: 'Stats sale nella barra: stava sotto «Altro» perché la barra del telefono tiene cinque voci più il ➕ ed era già a cinque, un vincolo del telefono applicato a una colonna che di spazio ne ha. Presenze era nella barra e sotto «Altro»: uno basta.',
+          },
+          {
+            en: "What's new and Notifications move to the bottom, just above your photo. They are about what the app has to say to YOU, not about the gym you run — they belong next to the person, which is where every app you use has trained you to look. Notifications was sitting between Attendance and More.",
+            it: "Novità e Notifiche scendono in fondo, subito sopra la tua foto. Parlano di quello che l'app ha da dire a te, non della palestra che gestisci: stanno vicino alla persona, che è dove ogni app che usi ti ha abituato a cercarle. Le notifiche stavano fra «Presenze» e «Altro».",
+          },
+          {
+            en: "The gym's logo no longer arrives squashed. It was a 28px image with no cropping, so any logo that was not square got distorted — and gym logos are almost always wide.",
+            it: "Il logo della palestra non si deforma più. Era un'immagine da 28px senza ritaglio, quindi qualsiasi logo non quadrato arrivava schiacciato — e i loghi delle palestre sono quasi sempre larghi.",
+          },
+        ],
+      },
+      {
+        heading: { en: '📰 Ten releases at a time', it: '📰 Le novità, dieci per volta' },
+        bullets: [
+          {
+            en: 'This page showed all 95 releases at once, and a new one arrives every few days. What you came to read ended up at the top of a very long page with everything else underneath it. It opens on ten now, with a button that loads ten more and goes away when the history runs out.',
+            it: 'Questa pagina mostrava tutti i 95 rilasci in una volta, e ne arriva uno ogni pochi giorni. Quello che eri venuto a leggere finiva in cima a una pagina lunghissima con tutto il resto sotto. Adesso si apre su dieci, con un pulsante che ne carica altri dieci e sparisce quando la storia finisce.',
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '🩹 Five things that were not working',
+          it: '🩹 Cinque cose che non funzionavano',
+        },
+        bullets: [
+          {
+            en: 'A new check compares every screen against its stylesheet and finds two opposite mistakes: a class no rule draws, and a rule no element wears. Neither shows up in a test — the page is there, it just is not what it should be. It found five real ones.',
+            it: 'Un controllo nuovo confronta ogni schermata con il suo foglio di stile e trova due errori opposti: una classe che nessuna regola disegna, e una regola che nessun elemento indossa. Nessuno dei due si vede in un test — la pagina esiste, semplicemente non è come dovrebbe. Ne ha trovate cinque vere.',
+          },
+          {
+            en: 'On the Backup page, text meant only for screen-reader users was VISIBLE — it appeared in plain sight next to the icon it was describing.',
+            it: "Nella pagina Backup, il testo pensato per chi usa un lettore di schermo era VISIBILE: compariva in chiaro accanto all'icona che doveva descrivere.",
+          },
+          {
+            en: 'Academy and Statistics had no spacing between their blocks. In May the vertical rhythm of those two pages was moved into a container that was never added to the page itself, so every card has sat flush against the next since.',
+            it: 'Academy e Statistiche non avevano spaziatura fra i blocchi. A maggio il ritmo verticale di quelle due pagine era stato spostato in un contenitore che nella pagina non è mai stato aggiunto: da allora ogni riquadro stava attaccato al successivo.',
+          },
+          {
+            en: 'In Attendance the search field did not grow — it stayed at its minimum width instead of taking the free space. And in two-factor verification, error messages were plain text instead of red.',
+            it: 'Nelle Presenze il campo di ricerca non si allargava: restava della sua misura minima invece di prendere lo spazio libero. E nella verifica in due passaggi, i messaggi di errore erano testo normale invece che rossi.',
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '📬 The support form, where it could not work',
+          it: '📬 Il modulo di assistenza, dove non poteva funzionare',
+        },
+        bullets: [
+          {
+            en: 'The "Contact support" form accepted your message, wrote it to the local database, queued an email this build cannot send, and told you it was sent. Nobody was ever going to read it. It is hidden for now — having no way to write to us is honest, having one that swallows the message is not. The right channel comes in a future release.',
+            it: "Il form «Contatta l'assistenza» accettava il messaggio, lo scriveva nel database locale, metteva in coda una mail che questa versione non può spedire, e ti diceva «inviato». Nessuno l'avrebbe mai letto. Per ora è nascosto: non avere un modo per scriverci è onesto, averne uno che si mangia il messaggio no. Il canale giusto arriva in un prossimo rilascio.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: 'v2.52.0',
     date: '2026-09-08',
     headline: {
