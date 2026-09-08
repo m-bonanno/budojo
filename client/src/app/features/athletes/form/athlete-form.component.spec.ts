@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
+import { ConfirmationService } from 'primeng/api';
 import { provideI18nTesting } from '../../../../test-utils/i18n-test';
 import { AthleteFormComponent } from './athlete-form.component';
 import { Athlete } from '../../../core/services/athlete.service';
@@ -511,6 +512,155 @@ describe('AthleteFormComponent', () => {
         flushFeeTiers(httpMock);
         httpMock.verify();
       });
+    });
+  });
+
+  describe('danger zone (#1430)', () => {
+    beforeEach(() => setupTestBed('42'));
+
+    it('does not render in create mode — there is nothing to delete yet', () => {
+      setupTestBed(null);
+      const fixture = TestBed.createComponent(AthleteFormComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-cy="athlete-danger-zone"]')).toBeNull();
+    });
+
+    it('renders the delete button for an ordinary athlete', () => {
+      const fixture = TestBed.createComponent(AthleteFormComponent);
+      const httpMock = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      httpMock
+        .expectOne('/api/v1/athletes/42')
+        .flush({ data: makeAthlete({ id: 42, is_self: false }) });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-cy="athlete-danger-zone"]')).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-cy="danger-zone-delete-btn"]'),
+      ).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-cy="danger-zone-self-note"]')).toBeNull();
+      flushFeeTiers(httpMock);
+    });
+
+    it('deletes on confirm, toasts, and returns to the roster', () => {
+      const fixture = TestBed.createComponent(AthleteFormComponent);
+      const httpMock = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      httpMock
+        .expectOne('/api/v1/athletes/42')
+        .flush({ data: makeAthlete({ id: 42, first_name: 'Mario', last_name: 'Rossi' }) });
+      fixture.detectChanges();
+      flushFeeTiers(httpMock);
+
+      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
+      const confirmSpy = vi.spyOn(confirmationService, 'confirm');
+
+      (
+        fixture.nativeElement.querySelector(
+          '[data-cy="danger-zone-delete-btn"] button',
+        ) as HTMLButtonElement
+      ).click();
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      const config = confirmSpy.mock.calls[0]![0] as {
+        message?: string;
+        acceptButtonProps?: { severity?: string };
+        accept?: () => void;
+      };
+      // The exact warning about the document cascade (AthleteObserver,
+      // GDPR policy) — not a generic "are you sure?". Reusing the copy the
+      // roster's own delete used, because the fact it states did not change
+      // when the button moved.
+      expect(config.message).toContain('Mario Rossi');
+      expect(config.message).toContain('documents');
+      expect(config.acceptButtonProps?.severity).toBe('danger');
+
+      config.accept?.();
+
+      const deleteReq = httpMock.expectOne('/api/v1/athletes/42');
+      expect(deleteReq.request.method).toBe('DELETE');
+      deleteReq.flush(null);
+
+      const router = TestBed.inject(Router);
+      // The page the caller is standing on refers to an athlete that no
+      // longer exists — back to the roster, not to a 404 in the detail tabs.
+      expect(router.navigate).toHaveBeenCalledWith(['/dashboard/athletes']);
+    });
+
+    it('does not delete when the confirm popup is rejected — the accept callback is what fires it', () => {
+      const fixture = TestBed.createComponent(AthleteFormComponent);
+      const httpMock = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      httpMock.expectOne('/api/v1/athletes/42').flush({ data: makeAthlete({ id: 42 }) });
+      fixture.detectChanges();
+      flushFeeTiers(httpMock);
+
+      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
+      vi.spyOn(confirmationService, 'confirm');
+      // Never invoking the returned config's `accept` callback is the
+      // reject path — `ConfirmDestructiveButtonComponent` only wires
+      // `accept`, so nothing on this component's side even has a reject
+      // handler to call by mistake.
+
+      (
+        fixture.nativeElement.querySelector(
+          '[data-cy="danger-zone-delete-btn"] button',
+        ) as HTMLButtonElement
+      ).click();
+
+      httpMock.expectNone('/api/v1/athletes/42');
+    });
+
+    it('surfaces an error toast and stays put when the delete fails', () => {
+      const fixture = TestBed.createComponent(AthleteFormComponent);
+      const httpMock = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      httpMock.expectOne('/api/v1/athletes/42').flush({ data: makeAthlete({ id: 42 }) });
+      fixture.detectChanges();
+      flushFeeTiers(httpMock);
+
+      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
+      const confirmSpy = vi.spyOn(confirmationService, 'confirm');
+      (
+        fixture.nativeElement.querySelector(
+          '[data-cy="danger-zone-delete-btn"] button',
+        ) as HTMLButtonElement
+      ).click();
+      const config = confirmSpy.mock.calls[0]![0] as { accept?: () => void };
+      config.accept?.();
+
+      httpMock
+        .expectOne('/api/v1/athletes/42')
+        .flush(null, { status: 500, statusText: 'Server Error' });
+
+      const router = TestBed.inject(Router);
+      expect(router.navigate).not.toHaveBeenCalledWith(['/dashboard/athletes']);
+    });
+
+    it('hides the destructive button on the owner’s own self-row (#747 — DeleteAthleteAction rejects it with 403)', () => {
+      const fixture = TestBed.createComponent(AthleteFormComponent);
+      const httpMock = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+      httpMock
+        .expectOne('/api/v1/athletes/42')
+        .flush({ data: makeAthlete({ id: 42, is_self: true }) });
+      fixture.detectChanges();
+      flushFeeTiers(httpMock);
+
+      // A confirm-gated destructive button that is GUARANTEED to 403 is
+      // exactly what this issue says not to render.
+      expect(fixture.nativeElement.querySelector('[data-cy="danger-zone-delete-btn"]')).toBeNull();
+      // The zone still says something, rather than sitting there empty —
+      // and it names the actual reversible path (#750's Profile toggle),
+      // not a re-implementation of it. `MyAthleteService.leave()` already
+      // has its own no-confirm, fully-reversible UI on /dashboard/profile
+      // (ProfileTrainHereComponent) — wrapping the same call in a red
+      // confirm-gated button HERE would teach two different risk levels
+      // for one identical DELETE /me/athlete call.
+      const note = fixture.nativeElement.querySelector('[data-cy="danger-zone-self-note"]');
+      expect(note).not.toBeNull();
+      expect(note?.textContent?.toLowerCase()).toContain('profile');
     });
   });
 
