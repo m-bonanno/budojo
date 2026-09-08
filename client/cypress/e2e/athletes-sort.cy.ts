@@ -136,9 +136,20 @@ describe('athletes table — column sorting', () => {
 
   it('drops the Attendance column when the payload has no counts (#1447)', () => {
     // A pre-#1447 server. Showing zeroes would say nobody has ever trained.
+    //
+    // The rows have to be REAL rows without counts: falling through to the
+    // beforeEach intercept returns an empty page, and the column is then
+    // absent because there is nothing to render at all — a test that passes
+    // for the wrong reason and would keep passing if the gate were deleted.
+    const noCounts = structuredClone(ONE_BROWN_BELT);
+    delete noCounts.body.data[0].attendance_month_count;
+    delete noCounts.body.data[0].attendance_total_count;
+    cy.intercept('GET', '/api/v1/athletes*', noCounts).as('athletes');
+
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@athletes');
 
+    cy.contains('tbody tr', 'Rossi').should('be.visible');
     cy.get('[data-cy="athletes-th-attendance"]').should('not.exist');
   });
 

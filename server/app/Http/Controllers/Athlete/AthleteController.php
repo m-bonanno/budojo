@@ -90,13 +90,20 @@ class AthleteController extends Controller
         // would report that athlete unpaid all quarter.
         $currentMonthScope = fn ($q) => $q->covering($currentYear, $currentMonth);
 
-        // The roster's attendance column (#1447). `whereYear` + `whereMonth`
-        // rather than a `between` on two computed dates: `attended_on` is a
-        // DATE, the comparison is calendar-month membership, and expressing it
-        // as a range is how an off-by-one at a month boundary gets in.
-        $currentMonthAttendanceScope = fn ($q) => $q
-            ->whereYear('attended_on', $currentYear)
-            ->whereMonth('attended_on', $currentMonth);
+        // The roster's attendance column (#1447). A plain date range, matching
+        // GetMonthlyAttendanceSummaryAction, which asks this same question and
+        // documents why the range is both exact and the faster shape: the
+        // `date:Y-m-d` cast plus the DATE column keep the stored value
+        // date-only on either engine, and leaving the column unwrapped keeps
+        // the predicate sargable, so `(athlete_id, attended_on)` can range-scan
+        // it. `whereYear` + `whereMonth` wrap the column in a function and give
+        // that index up for nothing.
+        $monthStart = CarbonImmutable::create($currentYear, $currentMonth, 1);
+        \assert($monthStart !== null);
+        $currentMonthAttendanceScope = fn ($q) => $q->whereBetween('attended_on', [
+            $monthStart->toDateString(),
+            $monthStart->endOfMonth()->toDateString(),
+        ]);
 
         $paid = $request->input('paid');
 

@@ -726,21 +726,28 @@ export class AthletesListComponent implements OnInit {
   });
 
   /**
-   * Whether the roster has attendance numbers to show at all.
+   * Whether this server sends attendance numbers at all.
    *
    * `null`/absent means the payload never carried them — a pre-#1447 server,
    * or any endpoint other than the index. Rendering "0" in that case would
    * report that nobody has ever trained, which is a different and much worse
    * lie than showing nothing.
+   *
+   * **Latched, not derived from the current page.** Reading `athletes()` on
+   * every render made the column a property of the rows on screen rather than
+   * of the server: it vanished whenever a search or a filter came back empty
+   * — including while an attendance sort was active, which left the sort
+   * running with no control to turn it off — and again on every skeleton
+   * render, so the table shifted sideways each time the roster reloaded.
+   * Once a payload proves the server sends the counts, that stays true.
    */
-  readonly hasAttendanceCounts = computed<boolean>(() =>
-    this.athletes().some((a) => this.hasAttendance(a)),
-  );
+  private readonly attendanceCountsSeen = signal(false);
+  readonly hasAttendanceCounts = this.attendanceCountsSeen.asReadonly();
 
   /**
-   * Whether THIS athlete's row carries counts. Separate from
-   * `hasAttendanceCounts` above, which asks the same of the page: the column
-   * appears once for the whole table, but a card renders per athlete.
+   * Whether THIS athlete's row carries counts. A different question from
+   * `hasAttendanceCounts` above, which asks it of the server once: the
+   * column is decided for the whole table, but a card renders per athlete.
    *
    * A method rather than `!= null` in the template — the template lint rule
    * forbids loose equality, and spelling out both halves at the call site
@@ -750,12 +757,30 @@ export class AthletesListComponent implements OnInit {
     return athlete.attendance_month_count !== null && athlete.attendance_month_count !== undefined;
   }
 
-  /** "6 · 214", read out in full for anyone who cannot see the layout. */
+  /**
+   * The table cell's "6 · 214", read out in full — the separator between the
+   * two numbers is `aria-hidden`, so without this a screen reader announces
+   * "6 214" and leaves the listener to guess which is which.
+   */
   protected attendanceAria(athlete: Athlete): string {
     this.languageService.currentLang();
     return this.translate.instant('athletes.list.attendance.aria', {
       month: athlete.attendance_month_count ?? 0,
       total: athlete.attendance_total_count ?? 0,
+    });
+  }
+
+  /**
+   * The card's label, which says the month and stops there.
+   *
+   * A separate string rather than the one above: the card deliberately does
+   * not show the all-time count, and announcing a number that is not on the
+   * card describes a different screen to the person who cannot see this one.
+   */
+  protected attendanceAriaMonth(athlete: Athlete): string {
+    this.languageService.currentLang();
+    return this.translate.instant('athletes.list.attendance.ariaMonth', {
+      month: athlete.attendance_month_count ?? 0,
     });
   }
 
@@ -1396,6 +1421,12 @@ export class AthletesListComponent implements OnInit {
         next: (res) => {
           this.athletes.set(res.data);
           this.totalRecords.set(res.meta.total);
+          // One-way latch — see `attendanceCountsSeen`. An empty page proves
+          // nothing about the server, so it must not un-prove what an earlier
+          // page already showed.
+          if (res.data.some((a) => this.hasAttendance(a))) {
+            this.attendanceCountsSeen.set(true);
+          }
         },
         error: () => {
           this.athletes.set([]);

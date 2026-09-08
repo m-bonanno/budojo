@@ -826,7 +826,7 @@
                 @if (hasAttendance(athlete)) {
                   <span
                     class="athlete-card__attendance"
-                    [attr.aria-label]="attendanceAria(athlete)"
+                    [attr.aria-label]="attendanceAriaMonth(athlete)"
                     [attr.data-cy]="'athlete-card-attendance-' + athlete.id"
                   >
                     <i class="pi pi-calendar" aria-hidden="true"></i>

@@ -1819,5 +1819,33 @@ describe('AthletesListComponent — how often they actually turn up (#1447)', ()
     expect(card?.textContent).toContain('6');
     // An all-time count nobody can order is reference material, not a chip.
     expect(card?.textContent).not.toContain('214');
+    // And the label has to agree with the card. `textContent` never sees an
+    // attribute, so the assertion above passed while the card announced
+    // "214 in total" to a screen reader — a number that is not on it.
+    const label = card?.getAttribute('aria-label') ?? '';
+    expect(label).toContain('6');
+    expect(label).not.toContain('214');
+  });
+
+  it('keeps the column once the server has proved it sends counts', () => {
+    // Derived from the current page, this vanished whenever a search came
+    // back empty — including mid-sort, leaving an attendance sort running
+    // with no control to turn it off — and again on every skeleton render,
+    // shifting the table sideways on each reload.
+    const fixture = render([makeAthlete({ id: 1, attendance_month_count: 6 })]);
+    expect(fixture.componentInstance.hasAttendanceCounts()).toBe(true);
+
+    const list = TestBed.inject(AthleteService).list as unknown as Mock;
+    list.mockReturnValue(
+      of({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
+    );
+    fixture.componentInstance.onSearchInput('zzz');
+    fixture.componentInstance.resetFilters();
+    fixture.detectChanges();
+
+    // An empty page proves nothing about the server, so it must not
+    // un-prove what an earlier page already showed.
+    expect(fixture.componentInstance.hasAttendanceCounts()).toBe(true);
+    expect(el(fixture, '[data-cy="athletes-th-attendance"]')).not.toBeNull();
   });
 });

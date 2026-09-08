@@ -1808,7 +1808,8 @@
         "any": "Payment"
       },
       "attendance": {
-        "aria": "{{month}} sessions this month, {{total}} in total"
+        "aria": "{{month}} sessions this month, {{total}} in total",
+        "ariaMonth": "{{month}} sessions this month"
       }
     },
     "invitation": {

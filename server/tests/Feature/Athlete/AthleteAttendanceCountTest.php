@@ -56,6 +56,25 @@ it('counts this month and all time separately', function (): void {
         ->and($row['attendance_total_count'])->toBe(3);
 });
 
+it('counts both ends of the month and neither day outside it', function (): void {
+    // The month scope is a date range rather than whereYear+whereMonth, which
+    // keeps the predicate sargable — see the comment in AthleteController and
+    // the same reasoning in GetMonthlyAttendanceSummaryAction. A range is only
+    // worth having if its edges are exact, so both are pinned here.
+    $athlete = athleteNamed($this->academy, 'Rossi');
+    attendedOn($athlete, [
+        now()->subMonth()->endOfMonth()->toDateString(),
+        now()->startOfMonth()->toDateString(),
+        now()->endOfMonth()->toDateString(),
+        now()->addMonth()->startOfMonth()->toDateString(),
+    ]);
+
+    $row = $this->getJson('/api/v1/athletes')->json('data.0');
+
+    expect($row['attendance_month_count'])->toBe(2)
+        ->and($row['attendance_total_count'])->toBe(4);
+});
+
 it('reports zero for an athlete who has never trained', function (): void {
     athleteNamed($this->academy, 'Rossi');
 
