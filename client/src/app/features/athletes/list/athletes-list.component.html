@@ -86,18 +86,6 @@
         [placeholder]="'athletes.list.beltPlaceholder' | translate"
         styleClass="filter-select"
       />
-      @if (hasMonthlyFee()) {
-        <p-select
-          [options]="paidOptions()"
-          [ngModel]="selectedPaid()"
-          (ngModelChange)="onPaidChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [placeholder]="'athletes.list.paidPlaceholder' | translate"
-          styleClass="filter-select"
-          data-cy="athletes-paid-filter"
-        />
-      }
     </div>
 
     <!--
@@ -123,19 +111,59 @@
         styleClass="filter-select"
         appendTo="body"
       />
-      @if (hasMonthlyFee()) {
-        <p-select
-          [options]="paidOptions()"
-          [ngModel]="selectedPaid()"
-          (ngModelChange)="onPaidChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [placeholder]="'athletes.list.paidPlaceholder' | translate"
-          styleClass="filter-select"
-          appendTo="body"
-        />
-      }
     </app-filter-sheet>
+
+    <!--
+      Belt sorting, lifted out of the table header (#1443). It used to be a
+      `<th>` — a surface the mobile card list does not have, so sorting by
+      belt was desktop-only for as long as it was a column. Here it sits in
+      the row that renders at BOTH breakpoints, which is the same reasoning
+      that put the eye and the bin here in #1432.
+    -->
+    <button
+      type="button"
+      class="athletes-page__toggle"
+      [class.athletes-page__toggle--on]="sortField() === 'belt'"
+      [pTooltip]="beltSortTooltip()"
+      tooltipPosition="top"
+      [attr.aria-label]="beltSortTooltip()"
+      (click)="cycleBeltSort()"
+      data-cy="athletes-sort-belt"
+    >
+      <i
+        class="pi"
+        [class.pi-sort-alt]="sortField() !== 'belt'"
+        [class.pi-sort-amount-up-alt]="sortField() === 'belt' && sortOrder() === 'asc'"
+        [class.pi-sort-amount-down]="sortField() === 'belt' && sortOrder() === 'desc'"
+        aria-hidden="true"
+      ></i>
+      <span class="athletes-page__toggle-label">{{ 'athletes.list.table.belt' | translate }}</span>
+    </button>
+
+    <!--
+      Payment, as a cycling button rather than a select (#1446). Three
+      mutually exclusive values do not need a popup to choose between them,
+      and the same argument that replaced the status select with the eye
+      (#1426) applies here: one question, one control, answered in place.
+      The label carries the CURRENT state, and below 768px — where it is
+      hidden to keep this row on one line — the ICON carries it instead:
+      wallet / tick / cross, never colour on its own.
+    -->
+    @if (hasMonthlyFee()) {
+      <button
+        type="button"
+        class="athletes-page__toggle"
+        [class.athletes-page__toggle--on]="selectedPaid() !== ''"
+        [pTooltip]="paidCycleTooltip()"
+        tooltipPosition="top"
+        [attr.aria-label]="paidCycleTooltip()"
+        (click)="cyclePaid()"
+        data-cy="athletes-paid-filter"
+      >
+        <i class="pi {{ paidCycleIcon() }}" aria-hidden="true"></i>
+        <span class="athletes-page__toggle-label">{{ paidCycleLabel() }}</span>
+      </button>
+    }
 
     <!--
       The eye (#1403) and the bin, lifted OUT of `__filters-inline` (#1426).
@@ -242,33 +270,13 @@
                 </span>
               </button>
             </th>
-            <th class="belt-th" [attr.aria-sort]="beltAriaSort()">
-              <button
-                type="button"
-                class="belt-th__btn"
-                data-cy="athletes-th-belt"
-                [pTooltip]="beltSortTooltip()"
-                tooltipPosition="top"
-                (click)="cycleBeltSort()"
-                [attr.aria-label]="beltSortTooltip()"
-              >
-                {{ 'athletes.list.table.belt' | translate }}
-                <!--
-                Custom signifier (#210, follow-up to #205): drops PrimeNG's
-                `<p-sortIcon>` so the active state reads from OUR signals
-                instead of PrimeNG's internal table state. When the sort
-                moves to first/last_name (Full-name cycle), this column's
-                arrow goes back to neutral instead of staying highlighted.
-              -->
-                <span
-                  class="belt-th__signifier"
-                  [class.belt-th__signifier--active]="sortField() === 'belt'"
-                  aria-hidden="true"
-                >
-                  {{ beltSortLabel() }}
-                </span>
-              </button>
-            </th>
+            <!--
+              The Belt column left in #1443. The belt-coloured spine down the
+              left edge of every row (#1429) already carries it, on both
+              layouts, and repeating it as text spent the widest column on the
+              one piece of information the row cannot lose. Sorting moved to
+              the toolbar above, where a phone can reach it too.
+            -->
             @if (hasMonthlyFee()) {
               <!-- Header carries the current month abbreviation (#282) so an
                  instructor reading "Unpaid" on a row knows which month the
@@ -295,15 +303,22 @@
                 height of the row reads as "this row is a blue belt"; one the
                 height of an avatar reads as a mark beside the avatar.
 
-                Redundant with the belt column on purpose: the words stay for
-                reading, this is for glancing, and colour alone would carry the
-                fact for nobody using a screen reader.
+                It was redundant with the Belt column until #1443 removed it,
+                which makes this the only place the desktop row carries the
+                belt — so the words have to be reachable from here rather than
+                merely nearby. Three ways, because colour alone is not one:
+                the `aria-label` the spine has always had, the tooltip below
+                for a sighted reader who cannot tell brown from black in a
+                9px stripe, and the badge that still carries the name in text
+                on the mobile card, where there is room for it.
               -->
               <app-belt-badge
                 class="athlete-row__spine"
                 appearance="spine"
                 [belt]="athlete.belt"
                 [stripes]="athlete.stripes"
+                [pTooltip]="beltName(athlete)"
+                tooltipPosition="right"
               />
               <div class="athlete-name">
                 <div class="athlete-name__body">
@@ -414,9 +429,6 @@
                   }
                 </div>
               </div>
-            </td>
-            <td>
-              <app-belt-badge [belt]="athlete.belt" [stripes]="athlete.stripes" />
             </td>
             @if (hasMonthlyFee()) {
               <td>
@@ -537,7 +549,9 @@
 
         <ng-template pTemplate="emptymessage">
           <tr>
-            <td [attr.colspan]="hasMonthlyFee() ? 4 : 3" class="empty-message">
+            <!-- Name + (payment) + actions. Was 4/3 while Belt was a column
+                 of its own (#1443). -->
+            <td [attr.colspan]="hasMonthlyFee() ? 3 : 2" class="empty-message">
               @if (loading()) {
                 <!-- Skeleton rows replace the PrimeNG header-spinner that
                    [showLoader]="false" suppressed. Canon § motion: skeletons

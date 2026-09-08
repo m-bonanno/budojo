@@ -1687,10 +1687,8 @@
       "searchPlaceholder": "Search by name",
       "beltPlaceholder": "Belt",
       "statusPlaceholder": "Status",
-      "paidPlaceholder": "Paid",
       "ownerChip": "Owner",
       "paidOptions": {
-        "all": "All",
         "yes": "Paid",
         "no": "Unpaid"
       },
@@ -1709,7 +1707,7 @@
         "fullNameSortLastDesc": "Sorted by last name (Z → A). Click to cycle.",
         "beltSortInitial": "Click to sort by belt rank (white → black)",
         "beltSortAsc": "Sorted by belt (white → black). Click to flip.",
-        "beltSortDesc": "Sorted by belt (black → white). Click to flip.",
+        "beltSortDesc": "Sorted by belt (black → white). Click to stop sorting by belt.",
         "edit": "Edit",
         "editAria": "Edit {{name}}",
         "openMenuAria": "Open menu for {{name}}",
@@ -1723,7 +1721,10 @@
         "documents": "Documents",
         "payments": "Payments",
         "promotions": "Belt history",
-        "carnet": "Carnet {{code}} — {{count}} entries left"
+        "carnet": "Carnet {{code}} — {{count}} entries left",
+        "paidCycleAll": "Showing everyone. Click to show only who has paid.",
+        "paidCyclePaid": "Showing who has paid. Click to show only who has not.",
+        "paidCycleUnpaid": "Showing who has not paid. Click to show everyone again."
       },
       "social": {
         "facebookLabel": "Open Facebook profile",
@@ -1796,7 +1797,10 @@
       },
       "importButton": "Import",
       "showTrashed": "Show deleted athletes",
-      "hideTrashed": "Back to the roster"
+      "hideTrashed": "Back to the roster",
+      "paidFilter": {
+        "any": "Payment"
+      }
     },
     "invitation": {
       "title": "Account & invitation",

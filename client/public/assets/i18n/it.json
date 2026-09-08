@@ -1687,10 +1687,8 @@
       "searchPlaceholder": "Cerca per nome",
       "beltPlaceholder": "Cintura",
       "statusPlaceholder": "Stato",
-      "paidPlaceholder": "Pagamento",
       "ownerChip": "Owner",
       "paidOptions": {
-        "all": "Tutti",
         "yes": "Pagato",
         "no": "Non pagato"
       },
@@ -1709,7 +1707,7 @@
         "fullNameSortLastDesc": "Ordinato per cognome (Z → A). Clicca per cambiare.",
         "beltSortInitial": "Clicca per ordinare per grado di cintura (bianca → nera)",
         "beltSortAsc": "Ordinato per cintura (bianca → nera). Clicca per invertire.",
-        "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per invertire.",
+        "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per non ordinare più per cintura.",
         "edit": "Modifica",
         "editAria": "Modifica {{name}}",
         "openMenuAria": "Apri il menu per {{name}}",
@@ -1723,7 +1721,10 @@
         "documents": "Documenti",
         "payments": "Pagamenti",
         "promotions": "Storico cinture",
-        "carnet": "Carnet {{code}} — {{count}} ingressi rimasti"
+        "carnet": "Carnet {{code}} — {{count}} ingressi rimasti",
+        "paidCycleAll": "Stai vedendo tutti. Clicca per vedere solo chi ha pagato.",
+        "paidCyclePaid": "Stai vedendo chi ha pagato. Clicca per vedere solo chi non ha pagato.",
+        "paidCycleUnpaid": "Stai vedendo chi non ha pagato. Clicca per tornare a vedere tutti."
       },
       "social": {
         "facebookLabel": "Apri profilo Facebook",
@@ -1796,7 +1797,10 @@
       },
       "importButton": "Importa",
       "showTrashed": "Mostra atleti cancellati",
-      "hideTrashed": "Torna alla lista"
+      "hideTrashed": "Torna alla lista",
+      "paidFilter": {
+        "any": "Pagamento"
+      }
     },
     "invitation": {
       "title": "Account & invito",

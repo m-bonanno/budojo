@@ -58,6 +58,7 @@ import { IconButtonComponent } from '../../../shared/components/icon-button/icon
 import { OnboardingChecklistComponent } from '../../onboarding/onboarding-checklist.component';
 import { OnboardingService } from '../../../core/services/onboarding.service';
 import { academyChargesAFee } from '../../../shared/utils/academy-fee';
+import { BELT_KEYS, BELT_ORDER } from '../../../shared/utils/i18n-enum-keys';
 import { CarnetService } from '../../../core/services/carnet.service';
 
 interface SelectOption<T extends string> {
@@ -262,41 +263,12 @@ export class AthletesListComponent implements OnInit {
       .subscribe((q) => this.applySearch(q));
   }
 
-  // Belt → translation key map. Same exhaustive `Record<Belt, string>`
-  // pattern as DailyAttendanceComponent (#339): adding a new Belt member
-  // fails TS compilation here until the matching translation key is added.
-  // Order is kept separate (IBJJF rank, kids → adults → senior coral/red)
-  // because Record key order isn't a language guarantee.
-  private readonly beltLabelKeys: Record<Belt, string> = {
-    grey: 'belts.grey',
-    yellow: 'belts.yellow',
-    orange: 'belts.orange',
-    green: 'belts.green',
-    white: 'belts.white',
-    blue: 'belts.blue',
-    purple: 'belts.purple',
-    brown: 'belts.brown',
-    black: 'belts.black',
-    'red-and-black': 'belts.redAndBlack',
-    'red-and-white': 'belts.redAndWhite',
-    red: 'belts.red',
-  };
-
-  private readonly beltOrder: readonly (Belt | '')[] = [
-    '',
-    'grey',
-    'yellow',
-    'orange',
-    'green',
-    'white',
-    'blue',
-    'purple',
-    'brown',
-    'black',
-    'red-and-black',
-    'red-and-white',
-    'red',
-  ];
+  // The key map and the rank order both come from `i18n-enum-keys` (#1443).
+  // This file used to carry private copies of each; the shared ones are the
+  // same two literals, and two of them is how a new belt gets added to one
+  // and not the other. Only the leading `''` is local — it is the "all
+  // belts" option, which belongs to this dropdown and not to the enum.
+  private readonly beltOrder: readonly (Belt | '')[] = ['', ...BELT_ORDER];
 
   readonly beltOptions = computed<SelectOption<Belt>[]>(() => {
     this.languageService.currentLang(); // signal dep — recompute on toggle
@@ -304,7 +276,7 @@ export class AthletesListComponent implements OnInit {
       label:
         value === ''
           ? this.translate.instant('belts.all')
-          : this.translate.instant(this.beltLabelKeys[value]),
+          : this.translate.instant(BELT_KEYS[value]),
       value,
     }));
   });
@@ -361,17 +333,13 @@ export class AthletesListComponent implements OnInit {
     if (this.selectedBelt() !== '') count += 1;
     // The default is `active`, so that is what counts as "no filter" now.
     if (this.selectedStatus() !== 'active') count += 1;
-    if (this.selectedPaid() !== '') count += 1;
+    // Payment is deliberately NOT counted any more (#1446): the sheet no
+    // longer contains that control — it moved to the shared row beside the
+    // eye, where it renders on the phone too and shows its own state. A
+    // badge counting a filter the sheet does not display sends the user to
+    // open a sheet that has nothing to do with it. `resetFilters()` leaves
+    // it alone for the same reason.
     return count;
-  });
-
-  readonly paidOptions = computed<SelectOption<AthletePaidFilter>[]>(() => {
-    this.languageService.currentLang();
-    return [
-      { label: this.translate.instant('athletes.list.paidOptions.all'), value: '' },
-      { label: this.translate.instant('athletes.list.paidOptions.yes'), value: 'yes' },
-      { label: this.translate.instant('athletes.list.paidOptions.no'), value: 'no' },
-    ];
   });
 
   ngOnInit(): void {
@@ -518,6 +486,11 @@ export class AthletesListComponent implements OnInit {
    */
   protected clearAllFiltersAndSearch(): void {
     this.searchTerm.set('');
+    // Payment too, unlike the sheet's own Reset (#1446): this CTA is the way
+    // out of a filtered-empty list, so leaving one filter standing would
+    // dead-end the user it exists to rescue. Routed through `onPaidChange`
+    // so the URL — the source of truth for this one — is cleared with it.
+    this.onPaidChange('');
     this.resetFilters();
   }
 
@@ -525,28 +498,18 @@ export class AthletesListComponent implements OnInit {
    * "Reset" action on the mobile filter-sheet (#704). Clears every
    * dropdown in one shot and re-runs the load. The free-text search
    * box stays untouched — clearing it is its own dedicated affordance.
+   *
+   * So is the payment filter, since #1446 moved it out of the sheet and onto
+   * the control row: a Reset that silently cleared a filter the sheet never
+   * showed would change the list for a reason the user cannot see.
    */
   resetFilters(): void {
     this.selectedBelt.set('');
     // Back to the default, not to "everyone" (#1403): reset means "the list I
     // started from", and that list is the actives.
     this.selectedStatus.set('active');
-    this.selectedPaid.set('');
     this.resetPage();
     this.load();
-    // Drop the `paid` query param from the URL so a refresh after
-    // reset doesn't re-apply the filter the user just cleared
-    // (#803, reviewer finding on PR #804). `replaceUrl: true` keeps
-    // the back button from going to the half-reset state. We don't
-    // re-trigger the queryParamMap subscription with a `null`-only
-    // navigate when the param is already absent — Angular skips the
-    // navigation as a no-op, no extra load() fires.
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { paid: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
   }
 
   /**
@@ -698,36 +661,38 @@ export class AthletesListComponent implements OnInit {
     const f = this.sortField();
     const o = this.sortOrder();
 
-    let nextOrder: AthleteSortOrder;
+    // asc → desc → OFF. The third leg is what a toolbar control needs and a
+    // column header did not: while this lived in a `<th>` there was always
+    // another header to click to move the sort elsewhere, so "stop sorting by
+    // belt" needed no state of its own. Standing on its own in the toolbar it
+    // does — otherwise the only way out of a belt sort is to sort by name.
+    //
+    // `load()` omits both sort params when the field is null, which hands the
+    // order back to the server's default rather than inventing a third one
+    // here.
     if (f === 'belt' && o === 'asc') {
-      nextOrder = 'desc';
+      this.sortOrder.set('desc');
+    } else if (f === 'belt' && o === 'desc') {
+      this.sortField.set(null);
     } else {
-      // First click on the column or coming in from any other state
-      // (null, name sort, etc.) → start at asc, the conventional default.
-      nextOrder = 'asc';
+      // Coming in from any other state (null, a name sort) → asc, the
+      // conventional default.
+      this.sortField.set('belt');
+      this.sortOrder.set('asc');
     }
 
-    this.sortField.set('belt');
-    this.sortOrder.set(nextOrder);
     this.resetPage();
     this.load();
   }
 
   /**
-   * Compact direction signifier for the Belt header. `↑` when asc,
-   * `↓` when desc, `↕` when the sort is on a different column. Matches
-   * the visual rhythm of the Full-name signifier.
+   * Plain-English tooltip — Norman § signifier. Says what the NEXT press
+   * does, which a tri-state control has to, since two of its three states
+   * look alike from the outside.
    */
-  readonly beltSortLabel = computed<string>(() => {
-    if (this.sortField() !== 'belt') return '↕';
-    return this.sortOrder() === 'asc' ? '↑' : '↓';
-  });
-
-  /** Plain-English tooltip — Norman § signifier. */
   readonly beltSortTooltip = computed<string>(() => {
     this.languageService.currentLang(); // signal dep — recompute on toggle
-    const f = this.sortField();
-    if (f !== 'belt') {
+    if (this.sortField() !== 'belt') {
       return this.translate.instant('athletes.list.tooltip.beltSortInitial');
     }
     return this.translate.instant(
@@ -737,10 +702,64 @@ export class AthletesListComponent implements OnInit {
     );
   });
 
-  /** WAI-ARIA sort state for the Belt <th>. */
-  readonly beltAriaSort = computed<'ascending' | 'descending' | 'none'>(() => {
-    if (this.sortField() !== 'belt') return 'none';
-    return this.sortOrder() === 'asc' ? 'ascending' : 'descending';
+  /**
+   * all → paid → unpaid → all (#1446).
+   *
+   * Routed through `onPaidChange` deliberately: the URL is the source of
+   * truth for this filter and the signal is set by the `queryParamMap`
+   * subscription, so reading `selectedPaid()` back immediately after this
+   * returns the OLD value. Compute the next state from the current one
+   * BEFORE handing over, never after.
+   */
+  cyclePaid(): void {
+    const current = this.selectedPaid();
+    const next: AthletePaidFilter | '' = current === '' ? 'yes' : current === 'yes' ? 'no' : '';
+    this.onPaidChange(next);
+  }
+
+  /** The button carries its current state as a word, not only as a colour. */
+  readonly paidCycleLabel = computed<string>(() => {
+    this.languageService.currentLang();
+    const paid = this.selectedPaid();
+    if (paid === 'yes') return this.translate.instant('athletes.list.paidOptions.yes');
+    if (paid === 'no') return this.translate.instant('athletes.list.paidOptions.no');
+    return this.translate.instant('athletes.list.paidFilter.any');
+  });
+
+  /**
+   * The belt as words, for the spine's tooltip on the desktop row (#1443).
+   *
+   * With the Belt column gone the spine is the only belt on that row, and a
+   * 9px stripe does not separate brown from black — nor the two corals —
+   * for everyone. The name stays reachable here and on the spine's own
+   * `aria-label`; the mobile card still writes it out in full.
+   */
+  beltName(athlete: Athlete): string {
+    this.languageService.currentLang();
+    return this.translate.instant(BELT_KEYS[athlete.belt]);
+  }
+
+  /**
+   * The payment button's glyph, which carries the STATE and not just the
+   * subject. Below 768px the label is hidden to keep the control row on one
+   * line, so on a phone this icon and the highlight are the whole signal —
+   * a wallet that never changed shape would leave "paid" and "unpaid"
+   * distinguishable by colour alone.
+   */
+  readonly paidCycleIcon = computed<string>(() => {
+    const paid = this.selectedPaid();
+    if (paid === 'yes') return 'pi-check-circle';
+    if (paid === 'no') return 'pi-times-circle';
+    return 'pi-wallet';
+  });
+
+  /** Same contract as the belt tooltip: what the next press does. */
+  readonly paidCycleTooltip = computed<string>(() => {
+    this.languageService.currentLang();
+    const paid = this.selectedPaid();
+    if (paid === 'yes') return this.translate.instant('athletes.list.tooltip.paidCyclePaid');
+    if (paid === 'no') return this.translate.instant('athletes.list.tooltip.paidCycleUnpaid');
+    return this.translate.instant('athletes.list.tooltip.paidCycleAll');
   });
 
   goToNew(): void {
