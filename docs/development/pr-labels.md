@@ -22,10 +22,14 @@ Add `💥 breaking change` as a **second** label when the PR contains a `BREAKIN
 | Moment                                       | Label               |
 | -------------------------------------------- | ------------------- |
 | Still being worked on                        | `🚧 wip`            |
-| All reviewer comments resolved, ready to merge | `🟢 ready to merge` |
+| Every check green                            | `🟢 ready to merge` — **applied by CI, not by you** |
 | Waiting on a dependency or decision          | `🔴 blocked`        |
 
-**Lifecycle:** open the PR with the type label only. Switch to `🟢 ready to merge` once CI is green.
+**Lifecycle:** open the PR with the type label only. `🟢 ready to merge` then looks after itself — [`ready-to-merge-label.yml`](../../.github/workflows/ready-to-merge-label.yml) adds it when every check on the head commit passes and removes it when a later push goes red.
+
+It used to be a manual step, and it lost: 11 of the last 25 merged PRs never got it (#1460). A green pipeline already says "this can go", so a second thing to remember at the moment you are about to merge adds nothing — it only makes the label unreliable, and an unreliable label is worse than none, because the PR list looks like it means something. Read from CI it is information again: the board can be trusted without opening each PR.
+
+**Do not add or remove it by hand.** If it is missing on a PR that looks green, the checks are not actually finished — that is the label doing its job.
 
 ## `🧊 frozen` — issues only, never PRs
 

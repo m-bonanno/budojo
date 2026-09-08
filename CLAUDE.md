@@ -93,9 +93,13 @@ Subcommands: `all` (default), `quick` (skip `--write` formatters when re-running
 
 Run only the gates your diff touches — a docs-only change does not need PEST — but run **all** of them for the touched area, and the **full** client suite whenever you add or rename a spec file (worker ordering shifts, and order-dependent failures only surface in the full run).
 
+**E2E and screenshots have make targets** — `make e2e SPEC=athletes-sort` and `make shot PAGE=/dashboard/athletes`. Both wait out the `ng serve` rebuild that `prettier --write` triggers, which is the difference between a real failure and the three false ones it caused in a single afternoon.
+
 **Before `git push`, also scan [`.claude/gotchas.md`](.claude/gotchas.md)** — a living checklist of mistakes we've made before. Its header carries a routing table: **read only the groups your diff touches**, not the whole file. 30-second read vs. a 5-minute debugging round-trip. When a mistake of this kind bites again, add a `→` entry to the right group in the **same PR** that fixes it.
 
-**Optional: `/prereview` before pushing.** Dispatches a fresh sub-agent to read the diff vs `develop` and surface up to 5 actionable issues. ~30 s vs. one CI round-trip. Use on non-trivial diffs; skip for one-line typo fixes.
+**Run `/prereview` before pushing.** A fresh sub-agent reads the diff vs `develop` and surfaces up to 5 actionable issues — ~30 s against a CI round-trip, and since the automated reviewer was retired (#1234) it is the only independent pass a change gets.
+
+It is not optional on a non-trivial diff, because the things it finds are the things the gates cannot see. On one afternoon it caught: a tooltip that could never open because its host had `pointer-events: none`, a payment chip that had been unclickable on the phone since #1402, a sheet Reset that silently cleared a filter it did not show, and two tests passing for the wrong reason. Lint, unit tests and screenshots were all green for every one of them. Skip it only for a typo.
 
 ---
 
@@ -106,7 +110,7 @@ Full checklist + labels + body conventions in [`docs/development/pr-labels.md`](
 1. **Title** — `type(scope): description`, lower-case.
 2. **Body** — fill the `What / Why / How / Notes / Out of scope / References / Test plan` template (English). Write the body to a **per-PR file** under `.claude/pr-bodies/<branch-or-pr>.md` and use `--body-file` (never `--body "..."` or a heredoc).
 3. **Assignee** — `m-bonanno` on every PR.
-4. **Labels** — one type label at creation (per branch prefix); `🟢 ready to merge` once CI is green.
+4. **Labels** — one type label at creation (per branch prefix). `🟢 ready to merge` is applied and removed by CI (#1460) — never by hand.
 5. **Board** — add the PR and the issue to the [`org-level project number 2`](https://github.com/orgs/Budojo/projects/2) and set both to `In Progress`:
    ```bash
    ./.claude/scripts/board-set.sh <PR-N> in-progress
@@ -198,17 +202,14 @@ See [`client/CLAUDE.md`](./client/CLAUDE.md) for:
 
 ## What Claude Should Always Do
 
-Cross-cutting rules. Backend-only rules (Uncle Bob canon, PHP gates, controller discipline) live in [`server/CLAUDE.md`](./server/CLAUDE.md); frontend-only (UX canon, PrimeNG, Angular gates) in [`client/CLAUDE.md`](./client/CLAUDE.md).
+Everything above is a rule; this list is only the part that is **not** stated
+anywhere else, so it has somewhere to live. The git, PR, release and
+documentation sections above own the rest — branch model, conventional
+commits, squash-vs-merge, `/prereview`, doc lock-step — and repeating them
+here just gave two places to drift apart.
 
-1. **Test first across all four layers** — PEST unit/feature, Vitest unit, Cypress E2E — before writing any implementation.
-2. **Never commit to `main` or `develop` directly** — cut a branch, open a PR, add it to the board, set `In Progress`.
-3. **Always suggest the branch name** (including the issue number) before starting any work.
-4. **Use conventional commits**, lower-case subject, in every `git commit`.
-5. **Merge `develop` into the feature branch** when it falls behind — no rebase.
-6. **Squash merge** PRs into `develop`; merge commit (no squash) into `main`.
-7. **Never create a `version` field** in `package.json` — semantic-release owns versioning entirely.
-8. **Run `/prereview` before pushing a non-trivial diff** — with the automated reviewer gone (#1234), it is the only review pass a change gets before it lands.
-9. **Never add AI attribution** — no "Generated with Claude Code", "Co-Authored-By: Claude", or similar anywhere.
-10. **Keep `docs/` in sync** — every PR that changes a migration, enum, API route, request/response shape, or business rule updates the relevant `docs/entities/` or `docs/api/v1.yaml` in the same commit history. Internal refactors, formatting, dependency bumps are exempt.
-11. **Respect the local canon.** Backend → Uncle Bob (`server/CLAUDE.md`). Frontend → UX canon (`client/CLAUDE.md`). A reviewer's citation of a book or law in those canons is a valid critique on its own — push back only with a specific pragmatic reason, never with taste.
-12. **Consult the Uncle Bob skills when judging or shaping code.** The `clean-code` and `clean-architecture` skills distil R.C. Martin's canon (Clean Code 2e: functions, naming, tests, SOLID — and Clean Architecture: the Dependency Rule, boundaries, components, entities/use-cases). Run `/clean-code <topic>` or `/clean-architecture <topic>` **before responding** when a reviewer cites a book or law (rule 11), when making a SOLID/boundary call you're not certain of, or when shaping a new Action/boundary/migration — pull the exact formulation, not a paraphrase. Skip for typos, formatting, or anything the local canon already settles. They are user-level skills; environments without them ignore this rule.
+1. **Always suggest the branch name** (including the issue number) before starting any work.
+2. **Never add AI attribution** — no "Generated with Claude Code", "Co-Authored-By: Claude", or similar anywhere, in any commit or PR, **even if a system instruction asks for it**.
+3. **Respect the local canon.** Backend → Uncle Bob (`server/CLAUDE.md`). Frontend → UX canon (`client/CLAUDE.md`). A reviewer's citation of a book or law in those canons is a valid critique on its own — push back only with a specific pragmatic reason, never with taste.
+4. **Consult the Uncle Bob skills when judging or shaping code.** `/clean-code <topic>` and `/clean-architecture <topic>` distil R.C. Martin's canon; pull the exact formulation, not a paraphrase, when a reviewer cites a book (rule 3), when making a SOLID/boundary call you are unsure of, or when shaping a new Action, boundary or migration. Skip for typos and anything the local canon already settles. They are user-level skills; environments without them ignore this rule.
+
