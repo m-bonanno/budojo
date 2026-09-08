@@ -105,12 +105,16 @@ describe('AthleteDashboardComponent (#610, M7 PR-D slice 1)', () => {
       expect(brand!.getAttribute('href')).toBe('/dashboard/me/feed');
     });
 
-    it('opens the create sheet from the rail ➕ Create button', () => {
+    it('has no Create button on the rail, and still opens the sheet from the bar (#1462)', () => {
+      // The rail's ➕ went with the owner's: everything behind it is reachable
+      // from the section it belongs to. The phone's centre button keeps it,
+      // because a bottom bar has no sections to reach from.
       const { fixture } = setup({ cachedUser: ATHLETE });
       const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector('[data-cy="rail-create"]')).toBeNull();
       expect(root.querySelector('[role="dialog"]')).toBeNull();
 
-      (root.querySelector('[data-cy="rail-create"]') as HTMLElement).click();
+      (root.querySelector('[data-cy="bottomnav-create"]') as HTMLElement).click();
       fixture.detectChanges();
       expect(root.querySelector('[role="dialog"]')).not.toBeNull();
     });
