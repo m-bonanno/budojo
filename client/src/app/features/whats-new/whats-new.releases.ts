@@ -60,6 +60,93 @@ export function localised(value: Localised, lang: string): string {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: 'v2.52.0',
+    date: '2026-09-08',
+    headline: {
+      en: 'Attendance you can read, a roster that opens on rank.',
+      it: 'Le presenze si leggono, la lista si apre dalla cintura.',
+    },
+    sections: [
+      {
+        heading: {
+          en: '📅 Sessions become a fraction',
+          it: '📅 Le presenze diventano una frazione',
+        },
+        bullets: [
+          {
+            en: 'The Sessions column showed two numbers in a row — 3 · 3 — which read as the same number written twice, and neither said out of how many. They are two stacked fractions now: 3/6 this month, 214/920 since they joined. Three sessions means nothing until you know whether there were three classes or twelve. Hovering either line says which period it covers.',
+            it: "La colonna Presenze mostrava due numeri di fila — 3 · 3 — che si leggevano come lo stesso numero scritto due volte, e nessuno dei due diceva su quante. Adesso sono due frazioni, una sopra l'altra: 3/6 questo mese, 214/920 da quando è iscritto. Tre presenze non vogliono dire niente finché non sai se le lezioni erano tre o dodici. Passando il mouse su ciascuna riga c'è scritto quale periodo copre.",
+          },
+          {
+            en: 'The total is measured from when THAT athlete joined, not from when the gym started. Otherwise someone who signs up in September and comes to every class reads 1/540 — a number about the gym, presented as if it were about them. With no training days configured in Academy the plain counts stay, since there is no denominator to divide by.',
+            it: "Il totale è misurato da quando quell'atleta si è iscritto, non da quando esiste la palestra. Altrimenti chi si iscrive a settembre e viene a tutte le lezioni legge 1/540: un numero sulla palestra, presentato come se parlasse di lui. Se non hai impostato i giorni di allenamento in Academy restano i numeri semplici, perché non c'è denominatore.",
+          },
+          {
+            en: 'The Attendance panel at the top of the roster is gone: it said the same thing for the top five athletes that the column now says for everyone, in less detail.',
+            it: 'È sparito il riquadro Presenze in alto: diceva la stessa cosa per i primi cinque atleti che ora la colonna dice per tutti, con meno dettaglio.',
+          },
+        ],
+      },
+      {
+        heading: { en: '⚠️ Alerts become a button', it: '⚠️ Gli avvisi diventano un pulsante' },
+        bullets: [
+          {
+            en: '"10 athletes need attention" was a card as wide as the page, spending vertical space on a number that is usually small and often zero — on the screen that exists to show athletes. It is a button in the filter row now, with the count beside it, and the panel behind it says WHAT is missing: certificates absent, certificates expiring. Each line leads to the list. A count on its own leaves you hunting for the ten people it means.',
+            it: "«10 atleti da controllare» era un riquadro largo quanto la pagina, che occupava spazio verticale per un numero di solito piccolo e spesso zero — nella schermata che esiste per mostrare gli atleti. Ora è un pulsante nella riga dei filtri, col numero accanto, e il pannello dice cosa manca: certificati mancanti, certificati in scadenza. Ogni riga porta all'elenco. Un numero da solo ti lascia a cercare le dieci persone di cui parla.",
+          },
+          {
+            en: 'When nothing needs attention the button is not there. The old card stayed to announce it had nothing to announce.',
+            it: "Quando non c'è niente da controllare il pulsante non c'è. Il riquadro di prima invece restava lì a dire che non aveva niente da dire.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '🥋 The roster opens on belt rank',
+          it: '🥋 La lista si apre ordinata per cintura',
+        },
+        bullets: [
+          {
+            en: 'It opened in the order athletes were entered, which answers "who did I add last" — a question nobody asks. It opens highest belt first now, every time. The belt button has two states instead of three: an "off" that returned you to insertion order is the thing this change takes you out of.',
+            it: "Si apriva nell'ordine in cui gli atleti erano stati inseriti, che risponde alla domanda «chi ho aggiunto per ultimo» — che non se la fa nessuno. Adesso si apre dalla cintura più alta alla più bassa, ogni volta. Il pulsante ha due stati invece di tre: lo stato «spento» rimandava all'ordine di inserimento, che è proprio quello da cui questo cambiamento ti toglie.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '📋 Attendance and the roster match',
+          it: '📋 Presenze e lista atleti si assomigliano',
+        },
+        bullets: [
+          {
+            en: "The two screens show the same people and drew them differently: the roster with a coloured stripe at the left, a photo and an age; attendance with the belt as a chip in a column of its own and nothing else. Same person, two faces, and moving between the screens meant re-learning the row. The row is the same now — attendance keeps only what is its own, the present/absent tick, and its Belt column went the way the roster's did.",
+            it: "Le due schermate mostrano le stesse persone e le disegnavano in due modi diversi: nella lista la striscia colorata a sinistra, la foto, l'età; nelle presenze la cintura come pallino in una colonna a sé e nient'altro. Stessa persona, due facce, e passando da una schermata all'altra dovevi rifare l'occhio. Adesso la riga è la stessa: nelle presenze resta solo ciò che è suo, la spunta presente/assente, e anche lì la colonna Cintura è sparita.",
+          },
+          {
+            en: 'The monthly summary, previously reachable only from the panel on the roster, now has its own button on the Attendance page — which is where you are when you are wondering who showed up.',
+            it: 'Il riepilogo del mese, che prima si raggiungeva solo dal riquadro nella lista, ora ha il suo pulsante nella pagina Presenze: è lì che sei quando ti stai chiedendo chi è venuto.',
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '✏️ The athlete form, reorganised',
+          it: '✏️ La scheda di modifica atleta, riordinata',
+        },
+        bullets: [
+          {
+            en: 'It was a run of fields in the order they were added over the years: the phone between date of birth and website, the billing period between status and address. No field wrong, the whole unreadable — to find anything you re-read all of it. It is five titled blocks now — Who they are, At the gym, Contact, Billing, Address — in the order someone would ask them.',
+            it: "Era una sequenza di campi nell'ordine in cui erano stati aggiunti negli anni: il telefono fra la data di nascita e il sito, il periodo di pagamento fra lo stato e l'indirizzo. Nessun campo sbagliato, e l'insieme illeggibile: per trovare qualcosa dovevi rileggerla tutta. Adesso è divisa in cinque blocchi con un titolo — Anagrafica, In palestra, Contatti, Pagamento, Indirizzo — nell'ordine in cui uno le domande se le farebbe.",
+          },
+          {
+            en: 'And the fields are as wide as what goes in them: a postcode is not as wide as a street. A field offering four times the room it needs is telling you something untrue about what to write in it. Narrow the window to half the screen and it becomes a single column, as readable as it is full-screen.',
+            it: "E i campi hanno la larghezza di quello che ci va dentro: il CAP non è largo come la via. Un campo che offre quattro volte lo spazio necessario ti sta dicendo una cosa falsa su cosa scriverci. Restringendo la finestra a metà schermo diventa una colonna sola, leggibile com'è a schermo intero.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: 'v2.51.0',
     date: '2026-09-08',
     headline: {
