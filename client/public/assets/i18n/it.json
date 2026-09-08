@@ -1687,10 +1687,8 @@
       "searchPlaceholder": "Cerca per nome",
       "beltPlaceholder": "Cintura",
       "statusPlaceholder": "Stato",
-      "paidPlaceholder": "Pagamento",
       "ownerChip": "Owner",
       "paidOptions": {
-        "all": "Tutti",
         "yes": "Pagato",
         "no": "Non pagato"
       },
@@ -1699,7 +1697,8 @@
         "belt": "Cintura",
         "status": "Stato",
         "paidPrefix": "Pagato",
-        "payment": "Pagamento"
+        "payment": "Pagamento",
+        "attendance": "Presenze"
       },
       "tooltip": {
         "fullNameSortInitial": "Clicca per ordinare per nome (A → Z)",
@@ -1709,7 +1708,7 @@
         "fullNameSortLastDesc": "Ordinato per cognome (Z → A). Clicca per cambiare.",
         "beltSortInitial": "Clicca per ordinare per grado di cintura (bianca → nera)",
         "beltSortAsc": "Ordinato per cintura (bianca → nera). Clicca per invertire.",
-        "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per invertire.",
+        "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per non ordinare più per cintura.",
         "edit": "Modifica",
         "editAria": "Modifica {{name}}",
         "openMenuAria": "Apri il menu per {{name}}",
@@ -1723,7 +1722,15 @@
         "documents": "Documenti",
         "payments": "Pagamenti",
         "promotions": "Storico cinture",
-        "carnet": "Carnet {{code}} — {{count}} ingressi rimasti"
+        "carnet": "Carnet {{code}} — {{count}} ingressi rimasti",
+        "paidCycleAll": "Stai vedendo tutti. Clicca per vedere solo chi ha pagato.",
+        "paidCyclePaid": "Stai vedendo chi ha pagato. Clicca per vedere solo chi non ha pagato.",
+        "paidCycleUnpaid": "Stai vedendo chi non ha pagato. Clicca per tornare a vedere tutti.",
+        "attendanceSortInitial": "Clicca per ordinare per presenze del mese (prima le più alte)",
+        "attendanceSortMonthDesc": "Ordinato per presenze del mese (prima le più alte). Clicca per continuare.",
+        "attendanceSortMonthAsc": "Ordinato per presenze del mese (prima le più basse). Clicca per continuare.",
+        "attendanceSortTotalDesc": "Ordinato per presenze totali (prima le più alte). Clicca per continuare.",
+        "attendanceSortTotalAsc": "Ordinato per presenze totali (prima le più basse). Clicca per continuare."
       },
       "social": {
         "facebookLabel": "Apri profilo Facebook",
@@ -1796,7 +1803,14 @@
       },
       "importButton": "Importa",
       "showTrashed": "Mostra atleti cancellati",
-      "hideTrashed": "Torna alla lista"
+      "hideTrashed": "Torna alla lista",
+      "paidFilter": {
+        "any": "Pagamento"
+      },
+      "attendance": {
+        "aria": "{{month}} presenze questo mese, {{total}} in totale",
+        "ariaMonth": "{{month}} presenze questo mese"
+      }
     },
     "invitation": {
       "title": "Account & invito",

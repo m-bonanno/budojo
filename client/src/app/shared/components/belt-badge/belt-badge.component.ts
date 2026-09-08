@@ -49,10 +49,16 @@ export class BeltBadgeComponent {
   /**
    * `badge` writes the belt's name; `spine` says it in colour alone.
    *
-   * A spine never carries text, so it is **redundant encoding** — the belt is
-   * still readable as words elsewhere on the row. That is what keeps it
-   * accessible rather than decorative, and it is why adopting it must not
-   * remove the badge from the same row.
+   * A spine never carries text, so the belt has to be readable as words from
+   * somewhere — that is what keeps it accessible rather than decorative.
+   *
+   * Until #1443 the rule was stricter: a badge had to stay on the same row.
+   * The roster removed its Belt column, so the rule is now the weaker but
+   * honest one — **a spine may be the only belt on a row, provided the name
+   * is still reachable without colour**: the `aria-label` it always carries,
+   * plus a tooltip on the host for a sighted reader. The roster's mobile card
+   * keeps the badge as well, because it has the room; the desktop row does
+   * not, which is the whole reason the column went.
    */
   readonly appearance = input<'badge' | 'spine'>('badge');
 

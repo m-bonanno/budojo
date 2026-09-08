@@ -206,7 +206,7 @@ describe('AthletesListComponent', () => {
       expect(component.sortOrder()).toBe('asc');
     });
 
-    it('flips asc → desc → asc on subsequent clicks of the same column', () => {
+    it('cycles asc → desc → off, so the toolbar control can also stop sorting (#1443)', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
@@ -217,8 +217,33 @@ describe('AthletesListComponent', () => {
       component.cycleBeltSort();
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'desc']);
 
+      // Third press releases the sort entirely. While this was a column
+      // header, clicking a different header was the way out; standing alone
+      // in the toolbar it needs its own off state, or a belt sort could only
+      // be escaped by sorting on something else.
+      component.cycleBeltSort();
+      expect(component.sortField()).toBeNull();
+
+      // And a fourth starts the cycle over.
       component.cycleBeltSort();
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'asc']);
+    });
+
+    it('drops sort_by from the request once the cycle reaches off', () => {
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
+
+      component.cycleBeltSort();
+      component.cycleBeltSort();
+      listSpy.mockClear();
+      component.cycleBeltSort();
+
+      // Not "belt with some default direction" — absent, which hands the
+      // order back to the server rather than inventing a third one here.
+      expect(listSpy.mock.calls[0][0].sortBy).toBeUndefined();
+      expect(listSpy.mock.calls[0][0].sortOrder).toBeUndefined();
     });
 
     it('restarts at asc when the active sort is on a different column', () => {
@@ -235,23 +260,31 @@ describe('AthletesListComponent', () => {
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'asc']);
     });
 
-    it('renders the signifier as ↑/↓ when active and ↕ when inactive', () => {
+    it('shows the direction on the toolbar button icon, neutral when the sort is elsewhere', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
 
-      // Neutral.
-      expect(component.beltSortLabel()).toBe('↕');
+      const icon = (): DOMTokenList =>
+        (fixture.nativeElement.querySelector('[data-cy="athletes-sort-belt"] i') as HTMLElement)
+          .classList;
+
+      expect(icon()).toContain('pi-sort-alt');
 
       component.cycleBeltSort();
-      expect(component.beltSortLabel()).toBe('↑');
+      fixture.detectChanges();
+      expect(icon()).toContain('pi-sort-amount-up-alt');
 
       component.cycleBeltSort();
-      expect(component.beltSortLabel()).toBe('↓');
+      fixture.detectChanges();
+      expect(icon()).toContain('pi-sort-amount-down');
 
-      // Move to a different column — Belt signifier returns to neutral.
+      // Sorting by something else returns this control to neutral — the
+      // signal is the source, so it cannot be left highlighted the way
+      // PrimeNG's own sort icon was (#205).
       component.cycleFullNameSort();
-      expect(component.beltSortLabel()).toBe('↕');
+      fixture.detectChanges();
+      expect(icon()).toContain('pi-sort-alt');
     });
 
     it('forwards sort_by=belt + sort_order to the backend filter', () => {
@@ -371,11 +404,14 @@ describe('AthletesListComponent', () => {
       expect(listSpy.mock.calls[0][0].paid).toBe('yes');
     });
 
-    it('resetFilters clears `?paid` from the URL so refresh-after-reset stays clean (#803 reviewer)', async () => {
-      // Reviewer finding on PR #804: `resetFilters()` mutated the
+    it('clearAllFiltersAndSearch clears `?paid` from the URL so refresh-after-reset stays clean (#803 reviewer)', async () => {
+      // Reviewer finding on PR #804: clearing the filter mutated the
       // signal directly without dropping the URL param; a refresh
       // after Reset re-applied the just-cleared `paid=no` filter
       // because the URL was the source of truth post-#803.
+      //
+      // The action that owns this moved in #1446 — see the sibling test
+      // below for why the sheet's own Reset no longer does it.
       TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
       const router = TestBed.inject(Router);
       await router.navigate([], { queryParams: { paid: 'no' } });
@@ -386,11 +422,35 @@ describe('AthletesListComponent', () => {
       await fixture.whenStable();
       expect(component.selectedPaid()).toBe('no');
 
-      component.resetFilters();
+      (component as unknown as { clearAllFiltersAndSearch: () => void }).clearAllFiltersAndSearch();
       await fixture.whenStable();
 
       expect(component.selectedPaid()).toBe('');
       expect(router.url).not.toContain('paid=');
+    });
+
+    it('the sheet Reset leaves the payment filter alone — it is not in the sheet (#1446)', async () => {
+      // #1446 moved payment out of the filter sheet and onto the control
+      // row, where it renders on the phone too and shows its own state.
+      // A Reset that cleared it anyway would change the list for a reason
+      // the user cannot see, and `activeFilterCount` — which no longer
+      // counts it — would have said nothing was active beforehand.
+      TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
+      const router = TestBed.inject(Router);
+      await router.navigate([], { queryParams: { paid: 'no' } });
+
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      await fixture.whenStable();
+      component.selectedBelt.set('blue');
+
+      component.resetFilters();
+      await fixture.whenStable();
+
+      expect(component.selectedBelt()).toBe('');
+      expect(component.selectedPaid()).toBe('no');
+      expect(router.url).toContain('paid=no');
     });
 
     it('hydrates selectedPaid from the `paid` query param on first render (#803)', async () => {
@@ -428,6 +488,51 @@ describe('AthletesListComponent', () => {
       component.onPaidChange('');
       await fixture.whenStable();
       expect(listSpy.mock.calls[0][0].paid).toBeUndefined();
+    });
+
+    it('cycles all → paid → unpaid → all on the toolbar button (#1446)', async () => {
+      TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
+
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.selectedPaid()).toBe('yes');
+      expect(listSpy.mock.calls.at(-1)?.[0].paid).toBe('yes');
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.selectedPaid()).toBe('no');
+      expect(listSpy.mock.calls.at(-1)?.[0].paid).toBe('no');
+
+      listSpy.mockClear();
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.selectedPaid()).toBe('');
+      expect(listSpy.mock.calls.at(-1)?.[0].paid).toBeUndefined();
+    });
+
+    it('the button says which state it is in, not only what colour it is', async () => {
+      TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
+
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      // Resolved EN copy, not the key — a missing key renders the key and
+      // still passes an assertion written against it.
+      expect(component.paidCycleLabel()).toBe('Payment');
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.paidCycleLabel()).toBe('Paid');
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.paidCycleLabel()).toBe('Unpaid');
     });
 
     it('hasMonthlyFee=false when academy.monthly_fee_cents is null or absent', () => {
@@ -684,6 +789,21 @@ describe('AthletesListComponent', () => {
       const link = fixture.nativeElement.querySelector('[data-cy="athlete-social-instagram-8"]');
       expect(link).not.toBeNull();
       expect(link.getAttribute('href')).toBe('https://instagram.com/mario');
+    });
+
+    it('puts the socials on the name line, not on a line of their own (#1445)', () => {
+      // The point of #1445 is vertical space, and the only thing that actually
+      // buys it is WHERE the icons sit. A test that just finds the link would
+      // stay green if they drifted back under the name, so this one pins the
+      // parent: the socials group is a sibling of the age badge inside the
+      // primary line, and there is no wrapper stacking a second row.
+      const fixture = setupWithRows([
+        makeListAthlete({ id: 20, facebook: 'https://facebook.com/mario' }),
+      ]);
+      const link = fixture.nativeElement.querySelector('[data-cy="athlete-social-facebook-20"]');
+
+      expect(link.closest('.athlete-name__primary')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.athlete-name__body')).toBeNull();
     });
 
     it('renders neither icon when both socials are null', () => {
@@ -1391,6 +1511,77 @@ describe('AthletesListComponent — what is paying for the month (#1402)', () =>
     expect(chip(fixture, 4)).toContain('Monthly');
   });
 
+  function chipIcon(fixture: ComponentFixture<AthletesListComponent>, id: number): string {
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-cy="athlete-coverage-${id}"] .p-tag-icon`,
+      )?.className ?? ''
+    );
+  }
+
+  /**
+   * The same chip on the mobile card. Both layouts render in jsdom, so
+   * without this the card's own `[icon]` binding could be deleted and the
+   * suite would stay green — on the form factor this app is built for.
+   */
+  function cardChipIcon(fixture: ComponentFixture<AthletesListComponent>, id: number): string {
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-cy="athlete-card-coverage-${id}"] .p-tag-icon`,
+      )?.className ?? ''
+    );
+  }
+
+  it('gives the chip a glyph for what pays, so the column can be scanned (#1444)', () => {
+    // Three shapes, not five: every subscription period is the same answer to
+    // "is this settled", and the carnet is the one that is settled by a
+    // different mechanism. The cross is the only row that wants something.
+    const covered = render([
+      makeAthlete({ id: 10, paid_current_month: true, payment_coverage: 'monthly' }),
+    ]);
+    expect(chipIcon(covered, 10)).toContain('pi-money-bill');
+
+    const annual = render([
+      makeAthlete({ id: 11, paid_current_month: true, payment_coverage: 'annual' }),
+    ]);
+    expect(chipIcon(annual, 11)).toContain('pi-money-bill');
+
+    const carnet = render([
+      makeAthlete({
+        id: 12,
+        paid_current_month: false,
+        payment_coverage: 'carnet',
+        active_carnet: { id: 9, code: 'A7K2', remaining_entries: 8, expires_at: '2027-01-01' },
+      }),
+    ]);
+    expect(chipIcon(carnet, 12)).toContain('pi-ticket');
+
+    const unpaid = render([
+      makeAthlete({ id: 13, paid_current_month: false, payment_coverage: 'none' }),
+    ]);
+    expect(chipIcon(unpaid, 13)).toContain('pi-times-circle');
+
+    // The card carries the same fact, and #1402 settled that it has to read
+    // the same in both places or it does not exist for the instructor on the
+    // mat. Asserted on the card too, or half the binding is untested.
+    expect(cardChipIcon(carnet, 12)).toContain('pi-ticket');
+    expect(cardChipIcon(unpaid, 13)).toContain('pi-times-circle');
+  });
+
+  it('tells paid from unpaid without reading the colour (#1444)', () => {
+    // The reason this chip is allowed an icon at all: its states are a
+    // green/amber pair, which is the one pair a red-green reader cannot
+    // separate. The glyph has to differ, not just the fill.
+    const paid = render([
+      makeAthlete({ id: 14, paid_current_month: true, payment_coverage: 'monthly' }),
+    ]);
+    const unpaid = render([
+      makeAthlete({ id: 15, paid_current_month: false, payment_coverage: 'none' }),
+    ]);
+
+    expect(chipIcon(paid, 14)).not.toBe(chipIcon(unpaid, 15));
+  });
+
   it('offers marking paid only to someone who is not covered', () => {
     const fixture = render([]);
     const cmp = fixture.componentInstance;
@@ -1438,5 +1629,223 @@ describe('AthletesListComponent — what is paying for the month (#1402)', () =>
 
     cmp['openPaymentMenu'](event, makeAthlete({ id: 8, payment_coverage: 'none' }) as never);
     expect(cmp['paymentMenuItems']().map((i) => i.label)).not.toContain('Sell a carnet');
+  });
+});
+
+describe('AthletesListComponent — how often they actually turn up (#1447)', () => {
+  function makeAthlete(over: Partial<Athlete> = {}): Athlete {
+    return {
+      id: 42,
+      first_name: 'Mario',
+      last_name: 'Rossi',
+      email: null,
+      phone_country_code: null,
+      phone_national_number: null,
+      address: null,
+      date_of_birth: null,
+      belt: 'white',
+      stripes: 0,
+      status: 'active',
+      joined_at: '2026-01-01',
+      created_at: '2026-01-01T00:00:00Z',
+      attendance_month_count: 0,
+      attendance_total_count: 0,
+      ...over,
+    } as Athlete;
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [AthletesListComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: AthleteService, useClass: FakeAthleteService },
+        { provide: PaymentService, useClass: FakePaymentService },
+        ...provideI18nTesting(),
+      ],
+    });
+  });
+
+  function render(rows: Athlete[]) {
+    const athleteService = TestBed.inject(AthleteService) as unknown as FakeAthleteService;
+    athleteService.list.mockReturnValue(
+      of({
+        data: rows,
+        meta: { total: rows.length, current_page: 1, per_page: 20, last_page: 1 },
+      }),
+    );
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+
+    return fixture;
+  }
+
+  function el(
+    fixture: ComponentFixture<AthletesListComponent>,
+    selector: string,
+  ): HTMLElement | null {
+    return (fixture.nativeElement as HTMLElement).querySelector(selector);
+  }
+
+  it('shows this month loudly and the all-time count as context', () => {
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 6, attendance_total_count: 214 }),
+    ]);
+
+    expect(el(fixture, '.athlete-attendance__month')?.textContent?.trim()).toBe('6');
+    expect(el(fixture, '.athlete-attendance__total')?.textContent).toContain('214');
+  });
+
+  it('hides the column entirely when the payload never carried the counts', () => {
+    // A pre-#1447 server, or any payload that did not select them. Rendering
+    // "0" there would report that nobody has ever trained — a worse lie than
+    // showing nothing, and one the reader cannot tell from the truth.
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: undefined, attendance_total_count: undefined }),
+    ]);
+
+    expect(el(fixture, '[data-cy="athletes-th-attendance"]')).toBeNull();
+    expect(el(fixture, '.athlete-attendance')).toBeNull();
+  });
+
+  it('still shows a genuine zero, which is a real answer', () => {
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 0, attendance_total_count: 0 }),
+    ]);
+
+    expect(el(fixture, '[data-cy="athletes-th-attendance"]')).not.toBeNull();
+    expect(el(fixture, '.athlete-attendance__month')?.textContent?.trim()).toBe('0');
+  });
+
+  it('cycles month desc → month asc → total desc → total asc → month desc', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+
+    // Descending first: a count column is opened with "who trains most", and
+    // every leaderboard the user has seen starts at the top.
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'desc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'asc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_total', 'desc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_total', 'asc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'desc']);
+  });
+
+  it('restarts the cycle when the sort is currently on another column', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+    cmp.sortField.set('belt');
+    cmp.sortOrder.set('asc');
+
+    cmp.cycleAttendanceSort();
+
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'desc']);
+  });
+
+  it('sends the alias on the wire, not a column name', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    // `as Mock` for the args, the way the sibling describes read them — the
+    // fake's own `vi.fn()` signature takes no parameters.
+    const list = TestBed.inject(AthleteService).list as unknown as Mock;
+
+    fixture.componentInstance.cycleAttendanceSort();
+
+    expect(list.mock.calls.at(-1)?.[0]).toMatchObject({
+      sortBy: 'attendance_month',
+      sortOrder: 'desc',
+    });
+  });
+
+  it('says which of the two numbers leads, and which way', () => {
+    // Same signifier contract as the Full name header's F↑/L↓: the letter is
+    // the lead, the arrow the direction, and `↕` means the sort is elsewhere.
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+
+    expect(cmp.attendanceSortLabel()).toBeNull();
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceSortLabel()).toBe('M↓');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceSortLabel()).toBe('M↑');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceSortLabel()).toBe('T↓');
+  });
+
+  it('reports the direction to assistive tech, and nothing when it is not sorting', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+
+    expect(cmp.attendanceAriaSort()).toBe('none');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceAriaSort()).toBe('descending');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceAriaSort()).toBe('ascending');
+  });
+
+  it('gives the cell an aria-label with both numbers spelled out', () => {
+    // The separator between them is `aria-hidden`, so without this a screen
+    // reader would read "6 214" and leave the listener to guess.
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 6, attendance_total_count: 214 }),
+    ]);
+
+    const label = el(fixture, '.athlete-attendance')?.getAttribute('aria-label');
+    expect(label).toContain('6');
+    expect(label).toContain('214');
+    expect(label).not.toBe('');
+  });
+
+  it('puts only this month on the mobile card, where there is no header to sort from', () => {
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 6, attendance_total_count: 214 }),
+    ]);
+
+    const card = el(fixture, '[data-cy="athlete-card-attendance-1"]');
+    expect(card?.textContent).toContain('6');
+    // An all-time count nobody can order is reference material, not a chip.
+    expect(card?.textContent).not.toContain('214');
+    // And the label has to agree with the card. `textContent` never sees an
+    // attribute, so the assertion above passed while the card announced
+    // "214 in total" to a screen reader — a number that is not on it.
+    const label = card?.getAttribute('aria-label') ?? '';
+    expect(label).toContain('6');
+    expect(label).not.toContain('214');
+  });
+
+  it('keeps the column once the server has proved it sends counts', () => {
+    // Derived from the current page, this vanished whenever a search came
+    // back empty — including mid-sort, leaving an attendance sort running
+    // with no control to turn it off — and again on every skeleton render,
+    // shifting the table sideways on each reload.
+    const fixture = render([makeAthlete({ id: 1, attendance_month_count: 6 })]);
+    expect(fixture.componentInstance.hasAttendanceCounts()).toBe(true);
+
+    const list = TestBed.inject(AthleteService).list as unknown as Mock;
+    list.mockReturnValue(
+      of({ data: [], meta: { total: 0, current_page: 1, per_page: 20, last_page: 1 } }),
+    );
+    fixture.componentInstance.onSearchInput('zzz');
+    fixture.componentInstance.resetFilters();
+    fixture.detectChanges();
+
+    // An empty page proves nothing about the server, so it must not
+    // un-prove what an earlier page already showed.
+    expect(fixture.componentInstance.hasAttendanceCounts()).toBe(true);
+    expect(el(fixture, '[data-cy="athletes-th-attendance"]')).not.toBeNull();
   });
 });

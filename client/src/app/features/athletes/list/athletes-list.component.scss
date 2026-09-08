@@ -46,6 +46,19 @@
     @media (min-width: 768px) {
       max-width: 22rem;
     }
+
+    // The projected input does not stretch on its own, so the host reserved
+    // its 22rem and the input drew itself at its intrinsic width inside it —
+    // the leftover was dead space that read as an oversized gap before the
+    // belt filter (#1442). The row's `gap` is already `0.5rem`, the smallest
+    // step the 8dp grid allows, so it was never the thing to tune.
+    //
+    // No `::ng-deep`: the p-iconfield host and this input are both declared
+    // in this component's template and carry the same `_ngcontent` attribute
+    // (.claude/gotchas.md). Same fix as help and search-palette.
+    input {
+      width: 100%;
+    }
   }
 
   // Desktop inline row (#704). Hidden on phone widths; the chip+sheet
@@ -89,27 +102,29 @@
 
 // ── Table cells ────────────────────────────────────────────────────────────────
 
+// Type only. The column layout that used to live here was stacking the name
+// line above the socials line; #1445 put them on one line, so there is one
+// child left and nothing to lay out — see `__primary` below, which is where
+// the row's arrangement actually happens now.
 .athlete-name {
   font-weight: 500;
   color: var(--p-surface-900);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
 
-  &__body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-  }
-
-  // Primary line — avatar link + name link + age badge inline.
-  // Replaces the old single-row layout when socials were absent;
-  // structure is now primary stack + optional socials row below.
+  // The row's one line: avatar, name, age, socials, and whichever of the
+  // owner chip and the status actually apply.
+  //
+  // It used to be a stack — this line, plus a socials line under it — with a
+  // `__body` column wrapper holding the two together. #1445 moved the socials
+  // up here, which left that wrapper holding a single child, so it is gone
+  // and its `min-width: 0` moved onto this rule. Wrapping matters now that
+  // the line can carry six things: a long name next to an owner chip and two
+  // social icons has to fall to a second line rather than push the cell wide.
   &__primary {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
   }
 
   // Avatar affordance on the desktop table (#983). Same affordance
@@ -142,11 +157,11 @@
     }
   }
 
-  // Socials row — pi-facebook / pi-instagram icons inline below the
-  // name. Conditional render in template (no empty placeholder for
-  // athletes without socials). Mirrors academy-detail's contactLinks
-  // pattern. Per audit § 5, icon size pinned to 14px (PrimeNG SVG
-  // icon canonical "sm" step) — pre-empts the eventual icon-scale
+  // The socials, as a group ON the name line since #1445 — they used to be
+  // a row of their own beneath it. Conditional render in template (no empty
+  // placeholder for athletes without socials). Mirrors academy-detail's
+  // contactLinks pattern. Per audit § 5, icon size pinned to 14px (PrimeNG
+  // SVG icon canonical "sm" step) — pre-empts the eventual icon-scale
   // tokens.
   &__socials {
     display: flex;
@@ -208,7 +223,6 @@
       border-radius: var(--p-border-radius-sm);
     }
   }
-  flex-wrap: wrap;
 
   &__text {
     flex: 0 1 auto;
@@ -317,13 +331,15 @@
 // padded strip swallows clicks. Visual rhythm matches the other <th>s
 // because the same padding still applies, just on a different element.
 
-.full-name-th {
+.full-name-th,
+.attendance-th {
   // Hand the cell padding off to the inner button below — the button
   // is the actual interactive element, so the padding lives there.
   padding: 0;
 }
 
-.full-name-th__btn {
+.full-name-th__btn,
+.attendance-th__btn {
   // Strip the browser default button chrome — the <button> exists for
   // semantics + keyboard handling, not for visual buttoning. Inherits
   // the parent <th>'s typography so it reads identically to a static
@@ -355,7 +371,8 @@
   }
 }
 
-.full-name-th__signifier {
+.full-name-th__signifier,
+.attendance-th__signifier {
   display: inline-block;
   min-width: 1.5rem;
   font-size: 0.75rem;
@@ -372,51 +389,39 @@
   }
 }
 
-// ── Belt 2-state sort header (#210) ───────────────────────────────────────────
-//
-// Same shape as the Full-name header so the two columns read as a pair.
-// Drops PrimeNG's `<p-sortIcon>` because PrimeNG's table doesn't know
-// about our Full-name cycle and would leave the Belt arrow active when
-// the sort moves elsewhere (#205 follow-up). The custom signifier below
-// reads from our `sortField` / `sortOrder` signals directly.
+// The Belt sort header (#210) and its custom signifier lived here until
+// #1443 moved belt sorting into the toolbar, where a phone can reach it.
+// `.athletes-page__toggle` above carries it now; the Full-name header keeps
+// the in-table cycle it has always had.
 
-.belt-th {
-  padding: 0;
+// The Attendance header (#1447) wears the Full-name header's clothes,
+// because it is the same thing: one column over two related scalars, so the
+// cycle picks which one leads and its direction, and the signifier says
+// which. Extending those selectors rather than restating them keeps the two
+// headers from drifting apart the first time either is restyled.
+.attendance-th__btn {
+  // Right-aligned, unlike the name: these are numbers, and a column of
+  // numbers is read down its last digit.
+  justify-content: flex-end;
 }
 
-.belt-th__btn {
+// The cell. The month is the number the instructor acts on, so it carries
+// the weight; the all-time count is the context that tells a quiet month
+// apart from a quiet athlete, so it recedes.
+.athlete-attendance {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  width: 100%;
-  padding: 0.75rem 1rem;
-  margin: 0;
-  background: transparent;
-  border: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  user-select: none;
-
-  &:focus-visible {
-    outline: 2px solid var(--p-focus-ring-color, var(--p-primary-color));
-    outline-offset: -2px;
-  }
-}
-
-.belt-th__signifier {
-  display: inline-block;
-  min-width: 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.5rem;
   font-variant-numeric: tabular-nums;
-  color: var(--p-text-muted-color);
 
-  // Active state — primary color when the sort is on belt; neutral
-  // grey when the sort is elsewhere or unset.
-  &--active {
-    color: var(--p-primary-color);
+  &__month {
+    font-weight: 600;
+  }
+
+  &__total {
+    font-size: 0.875rem;
+    color: var(--p-text-muted-color);
   }
 }
 
@@ -458,13 +463,14 @@ $athletes-mobile-breakpoint: 768px;
   gap: 0.625rem;
 }
 
-// Apple-minimalist card: name + 3-dot on top, belt + status + paid on a
-// chip row, optional socials below. The whole card surface (except the
-// 3-dot button + social links) is a tap target for the athlete detail
-// page via a "stretched link" pseudo-element (#670 Copilot review): the
-// name anchor carries a `::after` that expands to fill the card. The
-// menu button and social links sit on a higher z-index so their own
-// tap targets still win against the stretched link.
+// Apple-minimalist card: name + 3-dot on top, then one wrapping chip row
+// carrying belt, status, payment and the socials (#1445 folded the socials
+// in; they used to be a row of their own). The whole card surface is a tap
+// target for the athlete detail page via a "stretched link" pseudo-element
+// (#670 Copilot review): the name anchor carries a `::after` that expands to
+// fill the card. Every control that has to win against it — the 3-dot, the
+// avatar, the social links, the payment chip — lifts itself to `z-index: 2`.
+// Anything added to this card needs the same lift or it is decoration.
 .athlete-card {
   position: relative;
   display: flex;
@@ -605,10 +611,44 @@ $athletes-mobile-breakpoint: 768px;
     gap: 0.5rem;
   }
 
+  // This month's session count (#1447). Deliberately not a `p-tag`: the
+  // other chips on this row are states with a severity, and a count has no
+  // severity — six is not good or bad. Muted text with a calendar glyph
+  // reads as a fact beside them rather than a fourth status competing for
+  // the same attention.
+  &__attendance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--p-text-muted-color);
+
+    i.pi {
+      font-size: var(--budojo-icon-sm);
+      line-height: 1;
+    }
+  }
+
+  // A group inside the badge row since #1445, not a row of its own beneath
+  // it — so no top margin, and the gap comes back onto the 8dp grid now that
+  // it is not compensating for a 2px offset (it was 0.625rem / 10px).
   &__socials {
     display: flex;
-    gap: 0.625rem;
-    margin-top: 0.125rem;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  // The payment chip needs the same lift as everything else on this card
+  // (#1444). It has been the one control the stretched link swallowed since
+  // #1402: `.athlete-coverage` carries no stacking of its own, so on the card
+  // — and only on the card, the desktop table has no overlay — tapping
+  // "Monthly" navigated to the athlete instead of opening the payment menu.
+  // Scoped here rather than on `.athlete-coverage` itself, which the table
+  // shares and where a `position: relative` would mean nothing.
+  .athlete-coverage {
+    position: relative;
+    z-index: 2;
   }
 
   // Social links sit on a higher z-index than the stretched name link
@@ -666,13 +706,15 @@ $athletes-mobile-breakpoint: 768px;
 }
 
 // The eye itself, sized to match the filter selects beside it so the row of
-// controls keeps one baseline.
-.athletes-page__reveal {
+// controls keeps one baseline — and, since #1443, the two labelled toggles
+// that joined it there (belt sort, payment filter). One surface, one focus
+// ring, one "on" state: they are the same kind of control and a second
+// visual language for them would read as a second kind.
+.athletes-page__reveal,
+.athletes-page__toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
   border: 1px solid transparent;
   border-radius: var(--budojo-radius-medium, 0.75rem);
   background: var(--p-surface-100);
@@ -696,6 +738,48 @@ $athletes-mobile-breakpoint: 768px;
   &--on {
     background: var(--p-highlight-background);
     color: var(--p-primary-color);
+  }
+}
+
+// Icon-only: a fixed square, because there is no word to size it around.
+.athletes-page__reveal {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+// Labelled: the icon says what kind of control it is, the word says which
+// field it acts on. Icon alone would have made three adjacent square buttons
+// distinguishable only by glyph, and "which one sorts by belt" is not a
+// question a tooltip should be the only answer to (Krug).
+.athletes-page__toggle {
+  gap: 0.5rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 0.875rem;
+  // The row wraps on a phone; a label that breaks mid-word would take the
+  // control's height with it.
+  white-space: nowrap;
+
+  // Mobile-first: square like the eye and the bin, because five labelled
+  // controls do not share 375px and the row was spilling onto a third line —
+  // on the page whose job is to list athletes. The word returns at 768px.
+  // Nothing is lost meanwhile: both icons carry their own state (sort
+  // direction, wallet/tick/cross), so neither relies on colour alone.
+  width: 2.75rem;
+  padding: 0;
+
+  @media (min-width: 768px) {
+    width: auto;
+    padding: 0 1rem;
+  }
+}
+
+.athletes-page__toggle-label {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: inline;
   }
 }
 
@@ -743,7 +827,13 @@ $athletes-mobile-breakpoint: 768px;
   top: 0.5rem;
   bottom: 0.5rem;
   display: flex;
-  pointer-events: none;
+  // Hoverable on purpose (#1443). It was `pointer-events: none` while the
+  // spine was decoration sitting beside a Belt column that said the same
+  // thing in words. That column is gone, so the tooltip on this element is
+  // now how a sighted reader gets the belt's NAME — and a tooltip on a host
+  // that cannot receive `mouseenter` never opens. It sits over the cell's
+  // own left padding, where there is nothing else to click.
+  pointer-events: auto;
 }
 
 // The spine on the mobile card (#1429). The card already carries

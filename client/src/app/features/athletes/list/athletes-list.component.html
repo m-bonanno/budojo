@@ -86,18 +86,6 @@
         [placeholder]="'athletes.list.beltPlaceholder' | translate"
         styleClass="filter-select"
       />
-      @if (hasMonthlyFee()) {
-        <p-select
-          [options]="paidOptions()"
-          [ngModel]="selectedPaid()"
-          (ngModelChange)="onPaidChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [placeholder]="'athletes.list.paidPlaceholder' | translate"
-          styleClass="filter-select"
-          data-cy="athletes-paid-filter"
-        />
-      }
     </div>
 
     <!--
@@ -123,19 +111,59 @@
         styleClass="filter-select"
         appendTo="body"
       />
-      @if (hasMonthlyFee()) {
-        <p-select
-          [options]="paidOptions()"
-          [ngModel]="selectedPaid()"
-          (ngModelChange)="onPaidChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [placeholder]="'athletes.list.paidPlaceholder' | translate"
-          styleClass="filter-select"
-          appendTo="body"
-        />
-      }
     </app-filter-sheet>
+
+    <!--
+      Belt sorting, lifted out of the table header (#1443). It used to be a
+      `<th>` — a surface the mobile card list does not have, so sorting by
+      belt was desktop-only for as long as it was a column. Here it sits in
+      the row that renders at BOTH breakpoints, which is the same reasoning
+      that put the eye and the bin here in #1432.
+    -->
+    <button
+      type="button"
+      class="athletes-page__toggle"
+      [class.athletes-page__toggle--on]="sortField() === 'belt'"
+      [pTooltip]="beltSortTooltip()"
+      tooltipPosition="top"
+      [attr.aria-label]="beltSortTooltip()"
+      (click)="cycleBeltSort()"
+      data-cy="athletes-sort-belt"
+    >
+      <i
+        class="pi"
+        [class.pi-sort-alt]="sortField() !== 'belt'"
+        [class.pi-sort-amount-up-alt]="sortField() === 'belt' && sortOrder() === 'asc'"
+        [class.pi-sort-amount-down]="sortField() === 'belt' && sortOrder() === 'desc'"
+        aria-hidden="true"
+      ></i>
+      <span class="athletes-page__toggle-label">{{ 'athletes.list.table.belt' | translate }}</span>
+    </button>
+
+    <!--
+      Payment, as a cycling button rather than a select (#1446). Three
+      mutually exclusive values do not need a popup to choose between them,
+      and the same argument that replaced the status select with the eye
+      (#1426) applies here: one question, one control, answered in place.
+      The label carries the CURRENT state, and below 768px — where it is
+      hidden to keep this row on one line — the ICON carries it instead:
+      wallet / tick / cross, never colour on its own.
+    -->
+    @if (hasMonthlyFee()) {
+      <button
+        type="button"
+        class="athletes-page__toggle"
+        [class.athletes-page__toggle--on]="selectedPaid() !== ''"
+        [pTooltip]="paidCycleTooltip()"
+        tooltipPosition="top"
+        [attr.aria-label]="paidCycleTooltip()"
+        (click)="cyclePaid()"
+        data-cy="athletes-paid-filter"
+      >
+        <i class="pi {{ paidCycleIcon() }}" aria-hidden="true"></i>
+        <span class="athletes-page__toggle-label">{{ paidCycleLabel() }}</span>
+      </button>
+    }
 
     <!--
       The eye (#1403) and the bin, lifted OUT of `__filters-inline` (#1426).
@@ -242,33 +270,41 @@
                 </span>
               </button>
             </th>
-            <th class="belt-th" [attr.aria-sort]="beltAriaSort()">
-              <button
-                type="button"
-                class="belt-th__btn"
-                data-cy="athletes-th-belt"
-                [pTooltip]="beltSortTooltip()"
-                tooltipPosition="top"
-                (click)="cycleBeltSort()"
-                [attr.aria-label]="beltSortTooltip()"
-              >
-                {{ 'athletes.list.table.belt' | translate }}
-                <!--
-                Custom signifier (#210, follow-up to #205): drops PrimeNG's
-                `<p-sortIcon>` so the active state reads from OUR signals
-                instead of PrimeNG's internal table state. When the sort
-                moves to first/last_name (Full-name cycle), this column's
-                arrow goes back to neutral instead of staying highlighted.
-              -->
-                <span
-                  class="belt-th__signifier"
-                  [class.belt-th__signifier--active]="sortField() === 'belt'"
-                  aria-hidden="true"
+            <!--
+              The Belt column left in #1443. The belt-coloured spine down the
+              left edge of every row (#1429) already carries it, on both
+              layouts, and repeating it as text spent the widest column on the
+              one piece of information the row cannot lose. Sorting moved to
+              the toolbar above, where a phone can reach it too.
+            -->
+            <!--
+              Attendance (#1447). Informational and sortable, and the sort is a
+              4-state cycle for the same reason the Full name header has one:
+              the column carries two numbers, so one sort would only ever
+              answer half of what it shows.
+            -->
+            @if (hasAttendanceCounts()) {
+              <th class="attendance-th" [attr.aria-sort]="attendanceAriaSort()">
+                <button
+                  type="button"
+                  class="attendance-th__btn"
+                  data-cy="athletes-th-attendance"
+                  [pTooltip]="attendanceSortTooltip()"
+                  tooltipPosition="top"
+                  (click)="cycleAttendanceSort()"
+                  [attr.aria-label]="attendanceSortTooltip()"
                 >
-                  {{ beltSortLabel() }}
-                </span>
-              </button>
-            </th>
+                  {{ 'athletes.list.table.attendance' | translate }}
+                  <span
+                    class="attendance-th__signifier"
+                    [class.attendance-th__signifier--active]="attendanceSortLabel() !== null"
+                    aria-hidden="true"
+                  >
+                    {{ attendanceSortLabel() ?? '↕' }}
+                  </span>
+                </button>
+              </th>
+            }
             @if (hasMonthlyFee()) {
               <!-- Header carries the current month abbreviation (#282) so an
                  instructor reading "Unpaid" on a row knows which month the
@@ -295,89 +331,77 @@
                 height of the row reads as "this row is a blue belt"; one the
                 height of an avatar reads as a mark beside the avatar.
 
-                Redundant with the belt column on purpose: the words stay for
-                reading, this is for glancing, and colour alone would carry the
-                fact for nobody using a screen reader.
+                It was redundant with the Belt column until #1443 removed it,
+                which makes this the only place the desktop row carries the
+                belt — so the words have to be reachable from here rather than
+                merely nearby. Three ways, because colour alone is not one:
+                the `aria-label` the spine has always had, the tooltip below
+                for a sighted reader who cannot tell brown from black in a
+                9px stripe, and the badge that still carries the name in text
+                on the mobile card, where there is room for it.
               -->
               <app-belt-badge
                 class="athlete-row__spine"
                 appearance="spine"
                 [belt]="athlete.belt"
                 [stripes]="athlete.stripes"
+                [pTooltip]="beltName(athlete)"
+                tooltipPosition="right"
               />
               <div class="athlete-name">
-                <div class="athlete-name__body">
-                  <div class="athlete-name__primary">
-                    @if (publicProfileHandle(athlete); as handle) {
-                      <a
-                        class="athlete-name__avatar-link"
-                        [routerLink]="['/dashboard/u', handle]"
-                        [attr.aria-label]="
-                          'athletes.list.tooltip.publicProfileAria'
-                            | translate: { name: athlete.first_name + ' ' + athlete.last_name }
-                        "
-                        [attr.data-cy]="'athlete-avatar-link-' + athlete.id"
-                      >
-                        <app-user-avatar
-                          [url]="avatarFor(athlete)"
-                          [name]="athlete.first_name + ' ' + athlete.last_name"
-                          size="chip"
-                        />
-                      </a>
-                    } @else {
-                      <span
-                        class="athlete-name__avatar-link athlete-name__avatar-link--inert"
-                        aria-hidden="true"
-                        [attr.data-cy]="'athlete-avatar-inert-' + athlete.id"
-                      >
-                        <app-user-avatar
-                          [url]="avatarFor(athlete)"
-                          [name]="athlete.first_name + ' ' + athlete.last_name"
-                          size="chip"
-                        />
-                      </span>
-                    }
+                <div class="athlete-name__primary">
+                  @if (publicProfileHandle(athlete); as handle) {
                     <a
-                      class="athlete-name__text"
-                      [routerLink]="['/dashboard/athletes', athlete.id]"
-                      data-cy="athlete-name-link"
-                      >{{ athlete.first_name }} {{ athlete.last_name }}</a
+                      class="athlete-name__avatar-link"
+                      [routerLink]="['/dashboard/u', handle]"
+                      [attr.aria-label]="
+                        'athletes.list.tooltip.publicProfileAria'
+                          | translate: { name: athlete.first_name + ' ' + athlete.last_name }
+                      "
+                      [attr.data-cy]="'athlete-avatar-link-' + athlete.id"
                     >
-                    <app-age-badge [dateOfBirth]="athlete.date_of_birth" />
-                    <!-- Owner-as-athlete chip (#750). Tells the user at a
-                     glance which roster rows are academy staff training
-                     in their own academy vs. regular students. The
-                     PrimeNG tag stays neutral severity to avoid
-                     competing with the belt-color chip beside it. -->
-                    @if (athlete.is_self) {
-                      <p-tag
-                        [value]="'athletes.list.ownerChip' | translate"
-                        severity="secondary"
-                        [rounded]="true"
-                        [attr.data-cy]="'athlete-owner-chip-' + athlete.id"
+                      <app-user-avatar
+                        [url]="avatarFor(athlete)"
+                        [name]="athlete.first_name + ' ' + athlete.last_name"
+                        size="chip"
                       />
-                    }
-                    <!--
-                    The status, only when there is one worth saying (#1403).
-                    "Active" on twelve rows out of fourteen was a column that
-                    taught the eye to skip it. "Inactive" is the one word
-                    that carries information, and it belongs next to the name
-                    rather than in a place of its own.
-                  -->
-                    @if (isNotActive(athlete)) {
-                      <span
-                        class="athlete-name__status"
-                        [attr.data-cy]="'athlete-status-' + athlete.id"
-                        >{{ statusLabel(athlete.status) }}</span
-                      >
-                    }
-                  </div>
-                  <!-- Social icons inline below name+age. Conditional render —
-                   no empty placeholders for athletes without socials.
-                   Mirrors the academy-detail contactLinks pattern.
-                   stopPropagation prevents the row's primary nav target
-                   (the name link) from being triggered when the social
-                   link is tapped. -->
+                    </a>
+                  } @else {
+                    <span
+                      class="athlete-name__avatar-link athlete-name__avatar-link--inert"
+                      aria-hidden="true"
+                      [attr.data-cy]="'athlete-avatar-inert-' + athlete.id"
+                    >
+                      <app-user-avatar
+                        [url]="avatarFor(athlete)"
+                        [name]="athlete.first_name + ' ' + athlete.last_name"
+                        size="chip"
+                      />
+                    </span>
+                  }
+                  <a
+                    class="athlete-name__text"
+                    [routerLink]="['/dashboard/athletes', athlete.id]"
+                    data-cy="athlete-name-link"
+                    >{{ athlete.first_name }} {{ athlete.last_name }}</a
+                  >
+                  <app-age-badge [dateOfBirth]="athlete.date_of_birth" />
+                  <!-- On the name's own line since #1445, right after the age,
+                       rather than on a line of its own underneath. Two icons do
+                       not earn a row on a screen the instructor scrolls with one
+                       hand — and that row rendered for some athletes and not
+                       others, so the roster's rhythm depended on who had filled
+                       the field in.
+                       Conditional render, no empty placeholder.
+
+                       The `stopPropagation` below is belt-and-braces, not
+                       load-bearing: this `<tr>` has no click handler and the
+                       table has no selectionMode, so a social tap has nothing
+                       to bubble into. It stays — pinned by its own spec — so
+                       that adding a row-level handler later cannot silently
+                       start swallowing these taps. The mobile card solves the
+                       same problem with `z-index` instead, because there the
+                       thing to beat is a stretched link. -->
                   @if (athlete.facebook || athlete.instagram) {
                     <div class="athlete-name__socials">
                       @if (athlete.facebook) {
@@ -412,12 +436,59 @@
                       }
                     </div>
                   }
+                  <!-- Owner-as-athlete chip (#750). Tells the user at a
+                   glance which roster rows are academy staff training
+                   in their own academy vs. regular students. The
+                   PrimeNG tag stays neutral severity to avoid
+                   competing with the belt-color chip beside it. -->
+                  @if (athlete.is_self) {
+                    <p-tag
+                      [value]="'athletes.list.ownerChip' | translate"
+                      severity="secondary"
+                      [rounded]="true"
+                      [attr.data-cy]="'athlete-owner-chip-' + athlete.id"
+                    />
+                  }
+                  <!--
+                  The status, only when there is one worth saying (#1403).
+                  "Active" on twelve rows out of fourteen was a column that
+                  taught the eye to skip it. "Inactive" is the one word
+                  that carries information, and it belongs next to the name
+                  rather than in a place of its own.
+                -->
+                  @if (isNotActive(athlete)) {
+                    <span
+                      class="athlete-name__status"
+                      [attr.data-cy]="'athlete-status-' + athlete.id"
+                      >{{ statusLabel(athlete.status) }}</span
+                    >
+                  }
                 </div>
               </div>
             </td>
-            <td>
-              <app-belt-badge [belt]="athlete.belt" [stripes]="athlete.stripes" />
-            </td>
+            @if (hasAttendanceCounts()) {
+              <td>
+                <!--
+                  Two numbers, one of them louder. The month is what the
+                  instructor acts on — who has stopped coming — so it reads
+                  first and at full weight; the all-time count is the context
+                  that tells a quiet month apart from a quiet athlete, so it
+                  is muted and sits behind a separator.
+
+                  Not a link and not a button: the issue asked for a column
+                  that informs, and giving it a target would promise a drill-
+                  down that does not exist.
+                -->
+                <span class="athlete-attendance" [attr.aria-label]="attendanceAria(athlete)">
+                  <span class="athlete-attendance__month">{{
+                    athlete.attendance_month_count ?? 0
+                  }}</span>
+                  <span class="athlete-attendance__total" aria-hidden="true"
+                    >· {{ athlete.attendance_total_count ?? 0 }}</span
+                  >
+                </span>
+              </td>
+            }
             @if (hasMonthlyFee()) {
               <td>
                 @if (paymentNotExpected(athlete)) {
@@ -470,6 +541,7 @@
                     <p-tag
                       [value]="coverageLabel(athlete)"
                       [severity]="coverageSeverity(athlete)"
+                      [icon]="coverageIcon(athlete)"
                       [rounded]="true"
                     />
                   </button>
@@ -537,7 +609,14 @@
 
         <ng-template pTemplate="emptymessage">
           <tr>
-            <td [attr.colspan]="hasMonthlyFee() ? 4 : 3" class="empty-message">
+            <!-- Name + (attendance) + (payment) + actions. Was 4/3 while Belt
+                 was a column of its own (#1443); attendance (#1447) is the
+                 second optional one — it renders only when the payload
+                 actually carried the counts. -->
+            <td
+              [attr.colspan]="2 + (hasAttendanceCounts() ? 1 : 0) + (hasMonthlyFee() ? 1 : 0)"
+              class="empty-message"
+            >
               @if (loading()) {
                 <!-- Skeleton rows replace the PrimeNG header-spinner that
                    [showLoader]="false" suppressed. Canon § motion: skeletons
@@ -731,39 +810,63 @@
                     <p-tag
                       [value]="coverageLabel(athlete)"
                       [severity]="coverageSeverity(athlete)"
+                      [icon]="coverageIcon(athlete)"
                       [rounded]="true"
                     />
                   </button>
                 }
+                <!--
+                  The month count only (#1447). The card has no header to sort
+                  from, so a number the reader cannot order is worth showing
+                  only if it answers something on its own — "has this person
+                  been in this month" does; "214 sessions since 2022" is
+                  reference material that belongs on a screen with room. Muted
+                  and iconed so it reads as a fact rather than another status.
+                -->
+                @if (hasAttendance(athlete)) {
+                  <span
+                    class="athlete-card__attendance"
+                    [attr.aria-label]="attendanceAriaMonth(athlete)"
+                    [attr.data-cy]="'athlete-card-attendance-' + athlete.id"
+                  >
+                    <i class="pi pi-calendar" aria-hidden="true"></i>
+                    <span aria-hidden="true">{{ athlete.attendance_month_count }}</span>
+                  </span>
+                }
+                <!-- Inside the badge row since #1445, not on a line of its own
+                     under it. The row already wraps, so two icons cost nothing
+                     when they fit and fall gracefully when they do not — which
+                     is a better trade than a row that exists for some athletes
+                     and not others. -->
+                @if (athlete.facebook || athlete.instagram) {
+                  <div class="athlete-card__socials">
+                    @if (athlete.facebook) {
+                      <a
+                        class="athlete-card__social-link"
+                        [href]="athlete.facebook"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [attr.aria-label]="'athletes.list.social.facebookLabel' | translate"
+                        [attr.data-cy]="'athlete-card-social-facebook-' + athlete.id"
+                      >
+                        <i class="pi pi-facebook" aria-hidden="true"></i>
+                      </a>
+                    }
+                    @if (athlete.instagram) {
+                      <a
+                        class="athlete-card__social-link"
+                        [href]="athlete.instagram"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [attr.aria-label]="'athletes.list.social.instagramLabel' | translate"
+                        [attr.data-cy]="'athlete-card-social-instagram-' + athlete.id"
+                      >
+                        <i class="pi pi-instagram" aria-hidden="true"></i>
+                      </a>
+                    }
+                  </div>
+                }
               </div>
-              @if (athlete.facebook || athlete.instagram) {
-                <div class="athlete-card__socials">
-                  @if (athlete.facebook) {
-                    <a
-                      class="athlete-card__social-link"
-                      [href]="athlete.facebook"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      [attr.aria-label]="'athletes.list.social.facebookLabel' | translate"
-                      [attr.data-cy]="'athlete-card-social-facebook-' + athlete.id"
-                    >
-                      <i class="pi pi-facebook" aria-hidden="true"></i>
-                    </a>
-                  }
-                  @if (athlete.instagram) {
-                    <a
-                      class="athlete-card__social-link"
-                      [href]="athlete.instagram"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      [attr.aria-label]="'athletes.list.social.instagramLabel' | translate"
-                      [attr.data-cy]="'athlete-card-social-instagram-' + athlete.id"
-                    >
-                      <i class="pi pi-instagram" aria-hidden="true"></i>
-                    </a>
-                  }
-                </div>
-              }
             </li>
           }
         </ul>
