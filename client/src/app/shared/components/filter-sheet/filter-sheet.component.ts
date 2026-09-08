@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { Tooltip } from 'primeng/tooltip';
 
 /**
  * Mobile filter bottom-sheet (#704 / mobile audit row 16).
@@ -32,7 +33,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 @Component({
   selector: 'app-filter-sheet',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, Tooltip],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './filter-sheet.component.html',
   styleUrl: './filter-sheet.component.scss',

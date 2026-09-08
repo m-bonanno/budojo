@@ -3,11 +3,21 @@
   class="filter-sheet__chip"
   [attr.aria-haspopup]="'dialog'"
   [attr.aria-expanded]="isOpen()"
+  [attr.aria-label]="labelKey() | translate"
+  [pTooltip]="labelKey() | translate"
+  tooltipPosition="top"
   (click)="openSheet()"
   data-cy="filter-sheet-chip"
 >
+  <!--
+    Icon only (#1456). This trigger renders below 768px and nowhere else, so
+    its label was mobile-only text on the row with the least room — and the
+    alert button arriving next to it pushed the strip onto two lines, which
+    is the vertical space the roster had just won back. A funnel is a
+    convention the reader already knows; the name survives in the tooltip,
+    the aria-label, and the sheet's own heading.
+  -->
   <i class="pi pi-filter" aria-hidden="true"></i>
-  <span>{{ labelKey() | translate }}</span>
   @if (activeCount() > 0) {
     <span class="filter-sheet__badge" data-cy="filter-sheet-badge">{{ activeCount() }}</span>
   }
