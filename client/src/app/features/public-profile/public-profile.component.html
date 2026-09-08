@@ -26,7 +26,7 @@
         @if (s.profile.avatar_url) {
           <img [src]="s.profile.avatar_url" [alt]="s.profile.first_name" />
         } @else {
-          <span class="public-profile-initial">{{ initials() }}</span>
+          <span>{{ initials() }}</span>
         }
       </div>
       <div class="public-profile-identity">

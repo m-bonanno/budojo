@@ -190,7 +190,9 @@
                 [pTooltip]="whereTooltip(archive.name) | translate"
               >
                 <i [class]="whereIcon(archive.name)" aria-hidden="true"></i>
-                <span class="sr-only">{{ whereTooltip(archive.name) | translate }}</span>
+                <span class="backup-page__sr-only">{{
+                  whereTooltip(archive.name) | translate
+                }}</span>
               </span>
             }
           </div>

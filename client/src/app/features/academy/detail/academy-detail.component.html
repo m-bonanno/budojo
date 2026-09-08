@@ -15,169 +15,177 @@
     />
   </app-page-header>
 
-  <div class="logo-card" data-cy="academy-logo-card">
-    <div class="logo-card__preview" data-cy="academy-logo-preview">
-      @if (logoUrl(); as url) {
-        <img
-          [src]="url"
-          [alt]="'academy.detail.logoAlt' | translate"
-          loading="lazy"
-          data-cy="academy-logo-image"
-        />
-      } @else {
-        <span class="logo-card__placeholder" aria-hidden="true">
-          <i class="pi pi-image"></i>
-        </span>
-      }
-    </div>
-    <div class="logo-card__body">
-      <p class="logo-card__title">{{ 'academy.detail.logoTitle' | translate }}</p>
-      <p class="logo-card__hint">{{ 'academy.detail.logoHint' | translate }}</p>
-      <div class="logo-card__actions">
-        <p-button
-          [label]="
-            (logoUrl() ? 'academy.detail.logoReplace' : 'academy.detail.logoUpload') | translate
-          "
-          icon="pi pi-upload"
-          [loading]="logoUploading()"
-          (onClick)="onLogoBrowse()"
-          data-cy="academy-logo-upload"
-        />
-        @if (logoUrl()) {
-          <p-button
-            [label]="'academy.detail.logoRemove' | translate"
-            icon="pi pi-trash"
-            severity="secondary"
-            [text]="true"
-            (onClick)="confirmRemoveLogo($event)"
-            data-cy="academy-logo-remove"
+  <!--
+       The wrapper that carries this page's vertical rhythm (#1473).
+       #1126 moved `display:flex; gap:1.5rem` off `.detail` and into
+       `detail__body`, and never added the element — so every card on this
+       page has rendered flush against the next ever since.
+  -->
+  <div class="detail__body">
+    <div class="logo-card" data-cy="academy-logo-card">
+      <div class="logo-card__preview" data-cy="academy-logo-preview">
+        @if (logoUrl(); as url) {
+          <img
+            [src]="url"
+            [alt]="'academy.detail.logoAlt' | translate"
+            loading="lazy"
+            data-cy="academy-logo-image"
           />
+        } @else {
+          <span class="logo-card__placeholder" aria-hidden="true">
+            <i class="pi pi-image"></i>
+          </span>
         }
       </div>
+      <div class="logo-card__body">
+        <p class="logo-card__title">{{ 'academy.detail.logoTitle' | translate }}</p>
+        <p class="logo-card__hint">{{ 'academy.detail.logoHint' | translate }}</p>
+        <div class="logo-card__actions">
+          <p-button
+            [label]="
+              (logoUrl() ? 'academy.detail.logoReplace' : 'academy.detail.logoUpload') | translate
+            "
+            icon="pi pi-upload"
+            [loading]="logoUploading()"
+            (onClick)="onLogoBrowse()"
+            data-cy="academy-logo-upload"
+          />
+          @if (logoUrl()) {
+            <p-button
+              [label]="'academy.detail.logoRemove' | translate"
+              icon="pi pi-trash"
+              severity="secondary"
+              [text]="true"
+              (onClick)="confirmRemoveLogo($event)"
+              data-cy="academy-logo-remove"
+            />
+          }
+        </div>
+      </div>
+      <input
+        #logoInput
+        type="file"
+        class="logo-card__file"
+        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        (change)="onLogoSelected($event)"
+        data-cy="academy-logo-input"
+      />
     </div>
-    <input
-      #logoInput
-      type="file"
-      class="logo-card__file"
-      accept="image/png,image/jpeg,image/svg+xml,image/webp"
-      (change)="onLogoSelected($event)"
-      data-cy="academy-logo-input"
-    />
+
+    <dl class="card" [attr.aria-label]="'academy.detail.detailsAria' | translate">
+      <div class="row">
+        <dt class="row__label">{{ 'academy.detail.row.name' | translate }}</dt>
+        <dd class="row__value" data-cy="academy-row-name">{{ a?.name ?? '—' }}</dd>
+      </div>
+
+      <div class="row">
+        <dt class="row__label">{{ 'academy.detail.row.permalink' | translate }}</dt>
+        <dd class="row__value row__value--mono" data-cy="academy-row-slug">
+          {{ a?.slug ?? '—' }}
+        </dd>
+      </div>
+
+      <div class="row">
+        <dt class="row__label">{{ 'academy.detail.row.phone' | translate }}</dt>
+        <dd class="row__value" data-cy="academy-row-phone">
+          @if (phoneE164(); as phone) {
+            <!--
+              tel: link — both forms come pre-built from the `phoneE164`
+              computed (full `tel:+393331234567` href + the human-spaced
+              label "+39 3331234567"). Template stays a pure projection,
+              no inline string concatenation.
+            -->
+            <a [href]="phone.telHref" class="row__link">{{ phone.label }}</a>
+          } @else {
+            —
+          }
+        </dd>
+      </div>
+
+      <div class="row">
+        <dt class="row__label">{{ 'academy.detail.row.links' | translate }}</dt>
+        <dd class="row__value" data-cy="academy-row-links">
+          @let links = contactLinks();
+          @if (links.length > 0) {
+            <!--
+              Icon-only chip list. Each chip is a `<a target="_blank">` —
+              external destinations open in a new tab so the SPA session
+              isn't disrupted. `rel="noopener noreferrer"` prevents the
+              target page from accessing window.opener (security canon).
+              Tooltip + sr-only label provide the network name for
+              assistive tech and hover discovery.
+            -->
+            <ul class="contact-links" [attr.aria-label]="'academy.detail.linksAria' | translate">
+              @for (link of links; track link.id) {
+                <li>
+                  <a
+                    class="contact-links__chip"
+                    [href]="link.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="link.label"
+                    [attr.title]="link.label"
+                    [attr.data-cy]="'academy-link-' + link.id"
+                  >
+                    <i [class]="link.icon" aria-hidden="true"></i>
+                    <span class="contact-links__sr">{{ link.label }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            —
+          }
+        </dd>
+      </div>
+
+      @let addr = a?.address;
+      <div class="row">
+        <dt class="row__label">{{ 'academy.detail.row.address' | translate }}</dt>
+        <dd class="row__value" data-cy="academy-row-address">
+          @if (addr) {
+            <!--
+              Defensive rendering — legacy rows backfilled from the pre-#72
+              freeform column may have only line1 populated. Skip nulls so
+              the user doesn't see "null null (null)" gibberish; once they
+              re-edit, the all-or-nothing validator forces every field full.
+            -->
+            <span class="address-block">
+              @if (addr.line1) {
+                <span>{{ addr.line1 }}</span>
+              }
+              @if (addr.line2) {
+                <span>{{ addr.line2 }}</span>
+              }
+              @if (addr.postal_code || addr.city || addr.province) {
+                <span>
+                  @if (addr.postal_code) {
+                    {{ addr.postal_code }}
+                  }
+                  @if (addr.city) {
+                    {{ addr.city }}
+                  }
+                  @if (addr.province) {
+                    ({{ addr.province }})
+                  }
+                </span>
+              }
+              <span class="address-block__country">{{ addr.country }}</span>
+            </span>
+          } @else {
+            —
+          }
+        </dd>
+      </div>
+    </dl>
+
+    <!--
+      The slug is shown but never editable. Document it inline so the
+      curious user doesn't have to ask why — follows Norman's "signifier"
+      rule (explain constraints at the affordance, not in a help doc).
+    -->
+    <p class="detail__hint">
+      {{ 'academy.detail.permalinkHint' | translate }}
+    </p>
   </div>
-
-  <dl class="card" [attr.aria-label]="'academy.detail.detailsAria' | translate">
-    <div class="row">
-      <dt class="row__label">{{ 'academy.detail.row.name' | translate }}</dt>
-      <dd class="row__value" data-cy="academy-row-name">{{ a?.name ?? '—' }}</dd>
-    </div>
-
-    <div class="row">
-      <dt class="row__label">{{ 'academy.detail.row.permalink' | translate }}</dt>
-      <dd class="row__value row__value--mono" data-cy="academy-row-slug">
-        {{ a?.slug ?? '—' }}
-      </dd>
-    </div>
-
-    <div class="row">
-      <dt class="row__label">{{ 'academy.detail.row.phone' | translate }}</dt>
-      <dd class="row__value" data-cy="academy-row-phone">
-        @if (phoneE164(); as phone) {
-          <!--
-            tel: link — both forms come pre-built from the `phoneE164`
-            computed (full `tel:+393331234567` href + the human-spaced
-            label "+39 3331234567"). Template stays a pure projection,
-            no inline string concatenation.
-          -->
-          <a [href]="phone.telHref" class="row__link">{{ phone.label }}</a>
-        } @else {
-          —
-        }
-      </dd>
-    </div>
-
-    <div class="row">
-      <dt class="row__label">{{ 'academy.detail.row.links' | translate }}</dt>
-      <dd class="row__value" data-cy="academy-row-links">
-        @let links = contactLinks();
-        @if (links.length > 0) {
-          <!--
-            Icon-only chip list. Each chip is a `<a target="_blank">` —
-            external destinations open in a new tab so the SPA session
-            isn't disrupted. `rel="noopener noreferrer"` prevents the
-            target page from accessing window.opener (security canon).
-            Tooltip + sr-only label provide the network name for
-            assistive tech and hover discovery.
-          -->
-          <ul class="contact-links" [attr.aria-label]="'academy.detail.linksAria' | translate">
-            @for (link of links; track link.id) {
-              <li>
-                <a
-                  class="contact-links__chip"
-                  [href]="link.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  [attr.aria-label]="link.label"
-                  [attr.title]="link.label"
-                  [attr.data-cy]="'academy-link-' + link.id"
-                >
-                  <i [class]="link.icon" aria-hidden="true"></i>
-                  <span class="contact-links__sr">{{ link.label }}</span>
-                </a>
-              </li>
-            }
-          </ul>
-        } @else {
-          —
-        }
-      </dd>
-    </div>
-
-    @let addr = a?.address;
-    <div class="row">
-      <dt class="row__label">{{ 'academy.detail.row.address' | translate }}</dt>
-      <dd class="row__value" data-cy="academy-row-address">
-        @if (addr) {
-          <!--
-            Defensive rendering — legacy rows backfilled from the pre-#72
-            freeform column may have only line1 populated. Skip nulls so
-            the user doesn't see "null null (null)" gibberish; once they
-            re-edit, the all-or-nothing validator forces every field full.
-          -->
-          <span class="address-block">
-            @if (addr.line1) {
-              <span>{{ addr.line1 }}</span>
-            }
-            @if (addr.line2) {
-              <span>{{ addr.line2 }}</span>
-            }
-            @if (addr.postal_code || addr.city || addr.province) {
-              <span>
-                @if (addr.postal_code) {
-                  {{ addr.postal_code }}
-                }
-                @if (addr.city) {
-                  {{ addr.city }}
-                }
-                @if (addr.province) {
-                  ({{ addr.province }})
-                }
-              </span>
-            }
-            <span class="address-block__country">{{ addr.country }}</span>
-          </span>
-        } @else {
-          —
-        }
-      </dd>
-    </div>
-  </dl>
-
-  <!--
-    The slug is shown but never editable. Document it inline so the
-    curious user doesn't have to ask why — follows Norman's "signifier"
-    rule (explain constraints at the affordance, not in a help doc).
-  -->
-  <p class="detail__hint">
-    {{ 'academy.detail.permalinkHint' | translate }}
-  </p>
 </section>
