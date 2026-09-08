@@ -223,7 +223,22 @@ function createWindow(apiBase: string): BrowserWindow {
     titleBarOverlay: {
       color: '#fafafa',
       symbolColor: '#1c1c1e',
-      height: 40,
+      // Deliberately ONE PIXEL SHORTER than `--budojo-titlebar-height` (40px,
+      // client/src/styles.scss). Not a mismatch to tidy up — see #1424.
+      //
+      // The strip's hairline is a `border-bottom` on a `box-sizing: border-box`
+      // element, so it is the LAST pixel row inside the 40, not a 41st. This
+      // overlay is native paint sitting on top of the web content, so at
+      // height 40 it covered rows 0-39 and took the border with it: the line
+      // ran across the window and stopped dead where the buttons begin, which
+      // is exactly what the alpha tester reported twice. At 39 the overlay
+      // stops one row short and the border runs edge to edge.
+      //
+      // The buttons sitting a pixel higher is the right relationship anyway —
+      // the border is the bar's bottom edge, and the buttons belong above it
+      // rather than across it. Content clearance is untouched: that comes from
+      // `--budojo-safe-top`, which still tracks the full 40.
+      height: 39,
     },
     webPreferences: {
       preload: path.join(here, 'preload.cjs'),

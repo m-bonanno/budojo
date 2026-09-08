@@ -66,8 +66,17 @@ body {
 // The class is set by the root component only when the Electron bridge is
 // present, so nothing here affects the web build.
 html.budojo-desktop {
-  // Matches `titleBarOverlay.height` in desktop/src/main.ts. Changing one
-  // without the other puts the app's first row under the window buttons.
+  // The strip's own height, and the clearance the app keeps from the top of
+  // the window.
+  //
+  // `titleBarOverlay.height` in desktop/src/main.ts is deliberately ONE LESS
+  // than this — 39 against 40 — and that is not a mismatch waiting to be
+  // tidied up (#1424). The hairline below is a `border-bottom` on a
+  // `border-box` element, so it lives on this box's LAST pixel row; a native
+  // overlay of the same height paints straight over it in the region where
+  // the window buttons are, and the line stops dead there.
+  //
+  // Move this value and you must move that one with it, keeping the offset.
   --budojo-titlebar-height: 40px;
 
   // The app already has a notion of "stay clear of the top of the window" for
