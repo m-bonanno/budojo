@@ -51,7 +51,7 @@
           <h2 class="athlete-form__section-title">
             {{ 'athletes.form.section.identity' | translate }}
           </h2>
-          <div class="athlete-form__row athlete-form__row--two">
+          <div class="athlete-form__row">
             <app-budojo-form-field
               [label]="'athletes.form.label.firstName' | translate"
               [required]="true"
@@ -158,7 +158,7 @@
               />
             </app-budojo-form-field>
           </div>
-          <div class="athlete-form__row athlete-form__row--two">
+          <div class="athlete-form__row">
             <app-budojo-form-field
               [label]="'athletes.form.label.joined' | translate"
               [required]="true"
@@ -182,7 +182,7 @@
           <h2 class="athlete-form__section-title">
             {{ 'athletes.form.section.contact' | translate }}
           </h2>
-          <div class="athlete-form__row athlete-form__row--two">
+          <div class="athlete-form__row">
             <!-- Email is editable inline ONLY at create time. Once the
              athlete exists, the dedicated email-change-card on the
              detail page (`features/athletes/detail/email-change-card`)
