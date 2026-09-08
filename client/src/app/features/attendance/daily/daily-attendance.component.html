@@ -35,6 +35,20 @@
       styleClass="attendance__date-picker"
       data-cy="attendance-date"
     />
+    <!--
+      The month's summary, which used to be reachable only from a widget on
+      the roster (#1455 retired it). This is where someone thinking about
+      attendance already is, so this is where the way in belongs.
+    -->
+    <a
+      pageHeaderCta
+      class="attendance__summary-link"
+      routerLink="/dashboard/attendance/summary"
+      data-cy="attendance-summary-link"
+    >
+      <i class="pi pi-chart-bar" aria-hidden="true"></i>
+      <span>{{ 'attendance.daily.monthlySummary' | translate }}</span>
+    </a>
   </app-page-header>
 
   <!--

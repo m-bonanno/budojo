@@ -1642,7 +1642,8 @@
         "unmarked": "{{name}} non più segnato.",
         "markError": "Impossibile segnare {{name}} come presente. Riprova.",
         "unmarkError": "Impossibile rimuovere il segno per {{name}}. Riprova."
-      }
+      },
+      "monthlySummary": "Riepilogo del mese"
     },
     "summary": {
       "eyebrow": "Riepilogo presenze",
@@ -1706,9 +1707,9 @@
         "fullNameSortFirstDesc": "Ordinato per nome (Z → A). Clicca per cambiare.",
         "fullNameSortLastAsc": "Ordinato per cognome (A → Z). Clicca per cambiare.",
         "fullNameSortLastDesc": "Ordinato per cognome (Z → A). Clicca per cambiare.",
-        "beltSortInitial": "Clicca per ordinare per grado di cintura (bianca → nera)",
+        "beltSortInitial": "Clicca per ordinare per cintura (nera → bianca)",
         "beltSortAsc": "Ordinato per cintura (bianca → nera). Clicca per invertire.",
-        "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per non ordinare più per cintura.",
+        "beltSortDesc": "Ordinato per cintura (nera → bianca). Clicca per invertire.",
         "edit": "Modifica",
         "editAria": "Modifica {{name}}",
         "openMenuAria": "Apri il menu per {{name}}",
@@ -1809,7 +1810,18 @@
       },
       "attendance": {
         "aria": "{{month}} presenze questo mese, {{total}} in totale",
-        "ariaMonth": "{{month}} presenze questo mese"
+        "ariaMonth": "{{month}} presenze questo mese",
+        "cellAria": "{{monthAttended}} presenze su {{monthScheduled}} questo mese, {{totalAttended}} su {{totalScheduled}} da quando è iscritto",
+        "cellAriaCounts": "{{monthAttended}} presenze questo mese, {{totalAttended}} da quando è iscritto",
+        "tooltipMonth": "Questo mese",
+        "tooltipTotal": "Da quando è iscritto"
+      },
+      "alerts": {
+        "button": "Avvisi",
+        "none": "Non c'è niente da controllare",
+        "missingCertificate": "senza certificato medico",
+        "expiringCertificate": "certificato in scadenza entro 30 giorni",
+        "unpaid": "non in regola con il pagamento"
       }
     },
     "invitation": {

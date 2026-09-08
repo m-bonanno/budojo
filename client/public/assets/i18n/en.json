@@ -1642,7 +1642,8 @@
         "unmarked": "{{name}} un-marked.",
         "markError": "Couldn't mark {{name}} present. Try again.",
         "unmarkError": "Couldn't un-mark {{name}}. Try again."
-      }
+      },
+      "monthlySummary": "Monthly summary"
     },
     "summary": {
       "eyebrow": "Attendance summary",
@@ -1706,9 +1707,9 @@
         "fullNameSortFirstDesc": "Sorted by first name (Z → A). Click to cycle.",
         "fullNameSortLastAsc": "Sorted by last name (A → Z). Click to cycle.",
         "fullNameSortLastDesc": "Sorted by last name (Z → A). Click to cycle.",
-        "beltSortInitial": "Click to sort by belt rank (white → black)",
+        "beltSortInitial": "Click to sort by belt rank (black → white)",
         "beltSortAsc": "Sorted by belt (white → black). Click to flip.",
-        "beltSortDesc": "Sorted by belt (black → white). Click to stop sorting by belt.",
+        "beltSortDesc": "Sorted by belt (black → white). Click to flip.",
         "edit": "Edit",
         "editAria": "Edit {{name}}",
         "openMenuAria": "Open menu for {{name}}",
@@ -1809,7 +1810,18 @@
       },
       "attendance": {
         "aria": "{{month}} sessions this month, {{total}} in total",
-        "ariaMonth": "{{month}} sessions this month"
+        "ariaMonth": "{{month}} sessions this month",
+        "cellAria": "{{monthAttended}} of {{monthScheduled}} sessions this month, {{totalAttended}} of {{totalScheduled}} since joining",
+        "cellAriaCounts": "{{monthAttended}} sessions this month, {{totalAttended}} since joining",
+        "tooltipMonth": "This month",
+        "tooltipTotal": "Since they joined"
+      },
+      "alerts": {
+        "button": "Alerts",
+        "none": "Nothing needs attention",
+        "missingCertificate": "no medical certificate",
+        "expiringCertificate": "certificate expiring within 30 days",
+        "unpaid": "unpaid this month"
       }
     },
     "invitation": {

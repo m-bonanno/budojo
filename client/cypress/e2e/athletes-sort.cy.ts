@@ -55,30 +55,38 @@ describe('athletes table — column sorting', () => {
     cy.intercept('GET', '/api/v1/athletes*', { statusCode: 200, body: EMPTY_PAGE }).as('athletes');
   });
 
-  it('sends sort_by + sort_order on the wire from the toolbar belt control', () => {
+  it('asks for belt descending before anyone touches a control (#1457)', () => {
+    cy.visitAuthenticated('/dashboard/athletes');
+
+    // The roster opens on rank, highest first. Asserted on the wire because
+    // the default is worth nothing if it only exists in the component — the
+    // server does the ranking.
+    cy.wait('@athletes')
+      .its('request.url')
+      .should('include', 'sort_by=belt')
+      .and('include', 'sort_order=desc');
+  });
+
+  it('flips between the two belt directions and never turns itself off (#1457)', () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@athletes');
 
     // Belt sorting left the table header in #1443 — the header did not exist
-    // on a phone, so this was desktop-only while it was a column. Ascending
-    // first, the direction every table the user has muscle memory for starts
-    // with (Jakob's law).
+    // on a phone, so this was desktop-only while it was a column.
     cy.get('[data-cy="athletes-sort-belt"]').click();
     cy.wait('@athletes')
       .its('request.url')
       .should('include', 'sort_by=belt')
       .and('include', 'sort_order=asc');
 
+    // Second press goes back to descending rather than to no sort at all:
+    // "off" would drop the reader into insertion order, which is where the
+    // list used to open and the reason #1457 changed the default.
     cy.get('[data-cy="athletes-sort-belt"]').click();
     cy.wait('@athletes')
       .its('request.url')
       .should('include', 'sort_by=belt')
       .and('include', 'sort_order=desc');
-
-    // Third press releases it. A column header could hand the sort to a
-    // neighbour; a control standing on its own has to be able to let go.
-    cy.get('[data-cy="athletes-sort-belt"]').click();
-    cy.wait('@athletes').its('request.url').should('not.include', 'sort_by=belt');
   });
 
   it('the spine still says the belt in words, now that the column is gone (#1443)', () => {

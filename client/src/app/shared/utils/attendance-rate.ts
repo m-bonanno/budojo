@@ -89,32 +89,69 @@ export function countScheduledTrainingDays(
   }
 
   const lastDayOfMonth = new Date(year, month, 0).getDate();
+
+  return countScheduledTrainingDaysBetween(
+    schedules,
+    new Date(year, month - 1, 1),
+    new Date(year, month - 1, lastDayOfMonth),
+    today,
+  );
+}
+
+/**
+ * The same count over an arbitrary range (#1455) — `from` and `to`
+ * inclusive, both capped at today, since a session in the future has not
+ * been missed yet.
+ *
+ * This is the general shape; `countScheduledTrainingDays` above is the
+ * calendar-month case of it. The roster needs the range form to ask "how
+ * many sessions has there been since THIS athlete joined", which is a
+ * different window per row and the only honest denominator for a lifetime
+ * attendance rate: measuring someone who joined last month against three
+ * years of sessions reports a number about the academy, not about them.
+ *
+ * Returns `null` on the same "no schedule configured anywhere" condition,
+ * and `0` for a range that is entirely in the future — known-to-be-zero
+ * rather than unknown, same distinction the month case draws.
+ */
+export function countScheduledTrainingDaysBetween(
+  schedules: readonly AcademySchedule[] | null | undefined,
+  from: Date,
+  to: Date,
+  today: Date = new Date(),
+): number | null {
+  if (!schedules || schedules.length === 0) {
+    return null;
+  }
+
+  const anyConfiguredAnywhere = schedules.some(
+    (s) => s.training_days !== null && s.training_days.length > 0,
+  );
+  if (!anyConfiguredAnywhere) {
+    return null;
+  }
+
   // Strip time so the comparison is on the calendar day, not the wall
   // clock — otherwise an instructor checking the page mid-afternoon on
   // a training day would see today excluded if the comparison fell
   // before midnight UTC and the ISO conversion shifted it.
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const rawEnd = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  const end = rawEnd.getTime() > todayMidnight.getTime() ? todayMidnight : rawEnd;
 
   let count = 0;
-  for (let day = 1; day <= lastDayOfMonth; day++) {
-    const candidate = new Date(year, month - 1, day);
-    if (candidate.getTime() > todayMidnight.getTime()) {
-      // Future days don't count yet — the session hasn't happened.
-      break;
-    }
-
+  const candidate = new Date(start.getTime());
+  while (candidate.getTime() <= end.getTime()) {
     const schedule = scheduleForDate(schedules, candidate);
     const trainingDays = schedule?.training_days;
-    if (!trainingDays || trainingDays.length === 0) {
-      // No schedule in effect (date precedes the academy's history)
-      // OR the in-effect schedule is the "not configured" sentinel.
-      // Either way the day doesn't contribute.
-      continue;
-    }
-
-    if (trainingDays.includes(candidate.getDay())) {
+    // No schedule in effect (date precedes the academy's history) OR the
+    // in-effect schedule is the "not configured" sentinel. Either way the
+    // day doesn't contribute.
+    if (trainingDays && trainingDays.length > 0 && trainingDays.includes(candidate.getDay())) {
       count++;
     }
+    candidate.setDate(candidate.getDate() + 1);
   }
 
   return count;

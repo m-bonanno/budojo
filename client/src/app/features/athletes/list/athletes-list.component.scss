@@ -408,12 +408,24 @@
 // The cell. The month is the number the instructor acts on, so it carries
 // the weight; the all-time count is the context that tells a quiet month
 // apart from a quiet athlete, so it recedes.
+// Two fractions, stacked (#1455). Side by side they read as one number
+// repeated; one above the other they read as what they are — this month, then
+// the whole time. Right-aligned and tabular so the slashes line up down the
+// column and the eye can compare rows without reading them.
 .athlete-attendance {
   display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
   font-variant-numeric: tabular-nums;
+
+  // Both lines are hoverable and each says which window it covers — the
+  // stacking is a convention, and a convention has to be legible the first
+  // time. The cell's `aria-label` says both in words for anyone not hovering.
+  &__month,
+  &__total {
+    cursor: default;
+  }
 
   &__month {
     font-weight: 600;
@@ -422,6 +434,61 @@
   &__total {
     font-size: 0.875rem;
     color: var(--p-text-muted-color);
+  }
+}
+
+// The alert button (#1456) wears the toolbar's shared control surface, with
+// the count in place of a label — the same shape as the payment toggle, so
+// the row stays one family of buttons.
+.athletes-page__toggle--alert {
+  color: var(--p-orange-600, #c2410c);
+}
+
+.athletes-page__toggle-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.athletes-alerts {
+  display: flex;
+  flex-direction: column;
+  min-width: 16rem;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem;
+    border: 0;
+    border-radius: var(--p-border-radius-sm);
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--p-content-hover-background);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--p-primary-color);
+      outline-offset: -2px;
+    }
+
+    i.pi {
+      margin-left: auto;
+      color: var(--p-text-muted-color);
+    }
+  }
+
+  &__count {
+    min-width: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 }
 

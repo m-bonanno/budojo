@@ -2,6 +2,7 @@ import type { AcademySchedule } from '../../core/services/academy.service';
 import {
   attendanceRate,
   countScheduledTrainingDays,
+  countScheduledTrainingDaysBetween,
   schedulesForAcademy,
   scheduleForDate,
 } from './attendance-rate';
@@ -234,5 +235,82 @@ describe('attendanceRate', () => {
     // The instructor should see "trained on a non-scheduled day"; clamping
     // would hide that signal.
     expect(attendanceRate(6, 4)).toBeCloseTo(1.5, 4);
+  });
+});
+
+describe('countScheduledTrainingDaysBetween (#1455)', () => {
+  const TUE_THU: AcademySchedule[] = [
+    { id: 1, effective_from: '2020-01-01', training_days: [2, 4] },
+  ];
+
+  it('counts the training days inside an arbitrary window', () => {
+    // Mon 1 Sep 2026 → Sun 14 Sep: two Tuesdays (1, 8) and two Thursdays
+    // (3, 10) — plus Tue 15 falls outside, which is the point of the test.
+    const n = countScheduledTrainingDaysBetween(
+      TUE_THU,
+      new Date(2026, 8, 1),
+      new Date(2026, 8, 14),
+      new Date(2026, 8, 30),
+    );
+
+    expect(n).toBe(4);
+  });
+
+  it('never counts past today, however far the window reaches', () => {
+    // The roster asks "since they joined", and the answer must not include
+    // sessions that have not happened — otherwise everyone's rate falls as
+    // the month goes on, for a reason that is not about them.
+    const n = countScheduledTrainingDaysBetween(
+      TUE_THU,
+      new Date(2026, 8, 1),
+      new Date(2026, 11, 31),
+      new Date(2026, 8, 8),
+    );
+
+    expect(n).toBe(3); // Tue 1, Thu 3, Tue 8
+  });
+
+  it('returns 0 for a window that has not started yet', () => {
+    const n = countScheduledTrainingDaysBetween(
+      TUE_THU,
+      new Date(2026, 9, 1),
+      new Date(2026, 9, 31),
+      new Date(2026, 8, 8),
+    );
+
+    expect(n).toBe(0);
+  });
+
+  it('returns null when no schedule has ever been configured', () => {
+    // Null is "we cannot know", which the cell renders as a bare count. Zero
+    // would claim the academy held no sessions, which is a different answer.
+    expect(
+      countScheduledTrainingDaysBetween(null, new Date(2026, 8, 1), new Date(2026, 8, 30)),
+    ).toBeNull();
+    expect(
+      countScheduledTrainingDaysBetween(
+        [{ id: 1, effective_from: '2020-01-01', training_days: null }],
+        new Date(2026, 8, 1),
+        new Date(2026, 8, 30),
+      ),
+    ).toBeNull();
+  });
+
+  it('honours a schedule that changed mid-window (#1094)', () => {
+    // Trained Tue+Thu until 15 Sep, then Mondays only. A single-schedule
+    // count would report the wrong denominator for everyone who joined
+    // before the change.
+    const n = countScheduledTrainingDaysBetween(
+      [
+        { id: 2, effective_from: '2026-09-15', training_days: [1] },
+        { id: 1, effective_from: '2020-01-01', training_days: [2, 4] },
+      ],
+      new Date(2026, 8, 1),
+      new Date(2026, 8, 30),
+      new Date(2026, 8, 30),
+    );
+
+    // Tue 1, Thu 3, Tue 8, Thu 10 (old) + Mon 21, Mon 28 (new).
+    expect(n).toBe(6);
   });
 });

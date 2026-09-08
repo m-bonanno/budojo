@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -68,6 +69,7 @@ function toLocalDateString(d: Date): string {
     SkeletonModule,
     TableModule,
     Toast,
+    RouterLink,
     TranslatePipe,
     BeltBadgeComponent,
     FilterSheetComponent,

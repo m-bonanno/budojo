@@ -57,15 +57,10 @@ describe('Expiring documents widget + deep-link', () => {
     cy.intercept('GET', '/api/v1/athletes*', ATHLETES_EMPTY).as('athletes');
   });
 
-  it('shows the count on /dashboard/athletes and navigates to the full list on click', () => {
+  it('counts the alerts on the roster and opens the full list from the panel (#1456)', () => {
     cy.intercept('GET', '/api/v1/documents/expiring*', {
       statusCode: 200,
       body: {
-        // Composite envelope (#881): the widget reads
-        // `missing_medical_certificate` and calls `.length` on it with no
-        // `?? []` guard (expiring-documents-widget.component.ts:65), so a
-        // bare `{ data: [...] }` leaves it undefined and the widget throws
-        // during change detection — freezing its own tile on the skeleton.
         data: [
           expiringDoc({
             id: 1,
@@ -91,9 +86,11 @@ describe('Expiring documents widget + deep-link', () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait(['@academy', '@athletes', '@getExpiring']);
 
-    cy.get('[data-cy="expiring-widget-count"]').should('contain.text', '3 athletes need attention');
-
-    cy.get('[data-cy="expiring-widget"]').click();
+    // The widget this used to assert became a button in the filter row
+    // (#1456) — the count is on the control, the breakdown is in the panel,
+    // and the panel is what leads to the full list.
+    cy.get('[data-cy="athletes-alerts"]').should('contain.text', '3').click();
+    cy.get('[data-cy="athletes-alerts-expiring"]').should('be.visible').click();
 
     cy.url().should('include', '/dashboard/documents/expiring');
     cy.wait('@getExpiring');
@@ -102,9 +99,10 @@ describe('Expiring documents widget + deep-link', () => {
     cy.get('[data-cy="athlete-link"]').first().should('contain.text', 'Mario Rossi');
   });
 
-  it('renders the "up to date" state on the widget when the list is empty', () => {
-    // Composite envelope (#881) — the widget throws on an undefined
-    // `missing_medical_certificate` (see the count test above).
+  it('shows no alert control at all when nothing needs attention (#1456)', () => {
+    // The old widget rendered an "all up to date" tile — a card whose whole
+    // message was that it had nothing to say. A control that disappears says
+    // the same thing and costs no space.
     cy.intercept('GET', '/api/v1/documents/expiring*', {
       statusCode: 200,
       body: { data: [], missing_medical_certificate: [] },
@@ -113,8 +111,7 @@ describe('Expiring documents widget + deep-link', () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait(['@academy', '@athletes', '@getExpiring']);
 
-    cy.get('[data-cy="expiring-widget"]').should('contain.text', 'All documents up to date');
-    cy.get('[data-cy="expiring-widget-count"]').should('not.exist');
+    cy.get('[data-cy="athletes-alerts"]').should('not.exist');
   });
 
   it('the list page shows the empty-state block when no documents are expiring', () => {
