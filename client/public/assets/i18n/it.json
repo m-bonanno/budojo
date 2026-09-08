@@ -2202,6 +2202,12 @@
         },
         "selfNote": "Questa è la tua riga, quindi non si può eliminare da qui. Per smettere di allenarti in questa palestra usa l'interruttore nel tuo",
         "selfNoteLink": "profilo"
+      },
+      "section": {
+        "identity": "Anagrafica",
+        "gym": "In palestra",
+        "contact": "Contatti",
+        "billing": "Pagamento"
       }
     },
     "photo": {

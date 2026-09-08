@@ -2202,6 +2202,12 @@
         },
         "selfNote": "This is your own row, so it can't be deleted from here. To stop training at this academy, use the toggle on your",
         "selfNoteLink": "Profile page"
+      },
+      "section": {
+        "identity": "Who they are",
+        "gym": "At the gym",
+        "contact": "Contact",
+        "billing": "Billing"
       }
     },
     "photo": {
