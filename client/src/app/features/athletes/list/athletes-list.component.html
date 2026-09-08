@@ -321,78 +321,52 @@
                 tooltipPosition="right"
               />
               <div class="athlete-name">
-                <div class="athlete-name__body">
-                  <div class="athlete-name__primary">
-                    @if (publicProfileHandle(athlete); as handle) {
-                      <a
-                        class="athlete-name__avatar-link"
-                        [routerLink]="['/dashboard/u', handle]"
-                        [attr.aria-label]="
-                          'athletes.list.tooltip.publicProfileAria'
-                            | translate: { name: athlete.first_name + ' ' + athlete.last_name }
-                        "
-                        [attr.data-cy]="'athlete-avatar-link-' + athlete.id"
-                      >
-                        <app-user-avatar
-                          [url]="avatarFor(athlete)"
-                          [name]="athlete.first_name + ' ' + athlete.last_name"
-                          size="chip"
-                        />
-                      </a>
-                    } @else {
-                      <span
-                        class="athlete-name__avatar-link athlete-name__avatar-link--inert"
-                        aria-hidden="true"
-                        [attr.data-cy]="'athlete-avatar-inert-' + athlete.id"
-                      >
-                        <app-user-avatar
-                          [url]="avatarFor(athlete)"
-                          [name]="athlete.first_name + ' ' + athlete.last_name"
-                          size="chip"
-                        />
-                      </span>
-                    }
+                <div class="athlete-name__primary">
+                  @if (publicProfileHandle(athlete); as handle) {
                     <a
-                      class="athlete-name__text"
-                      [routerLink]="['/dashboard/athletes', athlete.id]"
-                      data-cy="athlete-name-link"
-                      >{{ athlete.first_name }} {{ athlete.last_name }}</a
+                      class="athlete-name__avatar-link"
+                      [routerLink]="['/dashboard/u', handle]"
+                      [attr.aria-label]="
+                        'athletes.list.tooltip.publicProfileAria'
+                          | translate: { name: athlete.first_name + ' ' + athlete.last_name }
+                      "
+                      [attr.data-cy]="'athlete-avatar-link-' + athlete.id"
                     >
-                    <app-age-badge [dateOfBirth]="athlete.date_of_birth" />
-                    <!-- Owner-as-athlete chip (#750). Tells the user at a
-                     glance which roster rows are academy staff training
-                     in their own academy vs. regular students. The
-                     PrimeNG tag stays neutral severity to avoid
-                     competing with the belt-color chip beside it. -->
-                    @if (athlete.is_self) {
-                      <p-tag
-                        [value]="'athletes.list.ownerChip' | translate"
-                        severity="secondary"
-                        [rounded]="true"
-                        [attr.data-cy]="'athlete-owner-chip-' + athlete.id"
+                      <app-user-avatar
+                        [url]="avatarFor(athlete)"
+                        [name]="athlete.first_name + ' ' + athlete.last_name"
+                        size="chip"
                       />
-                    }
-                    <!--
-                    The status, only when there is one worth saying (#1403).
-                    "Active" on twelve rows out of fourteen was a column that
-                    taught the eye to skip it. "Inactive" is the one word
-                    that carries information, and it belongs next to the name
-                    rather than in a place of its own.
-                  -->
-                    @if (isNotActive(athlete)) {
-                      <span
-                        class="athlete-name__status"
-                        [attr.data-cy]="'athlete-status-' + athlete.id"
-                        >{{ statusLabel(athlete.status) }}</span
-                      >
-                    }
-                  </div>
-                  <!-- Social icons inline below name+age. Conditional render —
-                   no empty placeholders for athletes without socials.
-                   Mirrors the academy-detail contactLinks pattern.
-                   stopPropagation prevents the row's primary nav target
-                   (the name link) from being triggered when the social
-                   link is tapped. -->
+                    </a>
+                  } @else {
+                    <span
+                      class="athlete-name__avatar-link athlete-name__avatar-link--inert"
+                      aria-hidden="true"
+                      [attr.data-cy]="'athlete-avatar-inert-' + athlete.id"
+                    >
+                      <app-user-avatar
+                        [url]="avatarFor(athlete)"
+                        [name]="athlete.first_name + ' ' + athlete.last_name"
+                        size="chip"
+                      />
+                    </span>
+                  }
+                  <a
+                    class="athlete-name__text"
+                    [routerLink]="['/dashboard/athletes', athlete.id]"
+                    data-cy="athlete-name-link"
+                    >{{ athlete.first_name }} {{ athlete.last_name }}</a
+                  >
+                  <app-age-badge [dateOfBirth]="athlete.date_of_birth" />
+                  <!-- On the name's own line since #1445, right after the age,
+                       rather than on a line of its own underneath. Two icons do
+                       not earn a row on a screen the instructor scrolls with one
+                       hand — and that row rendered for some athletes and not
+                       others, so the roster's rhythm depended on who had filled
+                       the field in.
+                       Conditional render, no empty placeholder. stopPropagation
+                       keeps the row's primary nav target (the name link) from
+                       firing when a social link is tapped. -->
                   @if (athlete.facebook || athlete.instagram) {
                     <div class="athlete-name__socials">
                       @if (athlete.facebook) {
@@ -426,6 +400,33 @@
                         </a>
                       }
                     </div>
+                  }
+                  <!-- Owner-as-athlete chip (#750). Tells the user at a
+                   glance which roster rows are academy staff training
+                   in their own academy vs. regular students. The
+                   PrimeNG tag stays neutral severity to avoid
+                   competing with the belt-color chip beside it. -->
+                  @if (athlete.is_self) {
+                    <p-tag
+                      [value]="'athletes.list.ownerChip' | translate"
+                      severity="secondary"
+                      [rounded]="true"
+                      [attr.data-cy]="'athlete-owner-chip-' + athlete.id"
+                    />
+                  }
+                  <!--
+                  The status, only when there is one worth saying (#1403).
+                  "Active" on twelve rows out of fourteen was a column that
+                  taught the eye to skip it. "Inactive" is the one word
+                  that carries information, and it belongs next to the name
+                  rather than in a place of its own.
+                -->
+                  @if (isNotActive(athlete)) {
+                    <span
+                      class="athlete-name__status"
+                      [attr.data-cy]="'athlete-status-' + athlete.id"
+                      >{{ statusLabel(athlete.status) }}</span
+                    >
                   }
                 </div>
               </div>
@@ -482,6 +483,7 @@
                     <p-tag
                       [value]="coverageLabel(athlete)"
                       [severity]="coverageSeverity(athlete)"
+                      [icon]="coverageIcon(athlete)"
                       [rounded]="true"
                     />
                   </button>
@@ -745,39 +747,45 @@
                     <p-tag
                       [value]="coverageLabel(athlete)"
                       [severity]="coverageSeverity(athlete)"
+                      [icon]="coverageIcon(athlete)"
                       [rounded]="true"
                     />
                   </button>
                 }
+                <!-- Inside the badge row since #1445, not on a line of its own
+                     under it. The row already wraps, so two icons cost nothing
+                     when they fit and fall gracefully when they do not — which
+                     is a better trade than a row that exists for some athletes
+                     and not others. -->
+                @if (athlete.facebook || athlete.instagram) {
+                  <div class="athlete-card__socials">
+                    @if (athlete.facebook) {
+                      <a
+                        class="athlete-card__social-link"
+                        [href]="athlete.facebook"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [attr.aria-label]="'athletes.list.social.facebookLabel' | translate"
+                        [attr.data-cy]="'athlete-card-social-facebook-' + athlete.id"
+                      >
+                        <i class="pi pi-facebook" aria-hidden="true"></i>
+                      </a>
+                    }
+                    @if (athlete.instagram) {
+                      <a
+                        class="athlete-card__social-link"
+                        [href]="athlete.instagram"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [attr.aria-label]="'athletes.list.social.instagramLabel' | translate"
+                        [attr.data-cy]="'athlete-card-social-instagram-' + athlete.id"
+                      >
+                        <i class="pi pi-instagram" aria-hidden="true"></i>
+                      </a>
+                    }
+                  </div>
+                }
               </div>
-              @if (athlete.facebook || athlete.instagram) {
-                <div class="athlete-card__socials">
-                  @if (athlete.facebook) {
-                    <a
-                      class="athlete-card__social-link"
-                      [href]="athlete.facebook"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      [attr.aria-label]="'athletes.list.social.facebookLabel' | translate"
-                      [attr.data-cy]="'athlete-card-social-facebook-' + athlete.id"
-                    >
-                      <i class="pi pi-facebook" aria-hidden="true"></i>
-                    </a>
-                  }
-                  @if (athlete.instagram) {
-                    <a
-                      class="athlete-card__social-link"
-                      [href]="athlete.instagram"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      [attr.aria-label]="'athletes.list.social.instagramLabel' | translate"
-                      [attr.data-cy]="'athlete-card-social-instagram-' + athlete.id"
-                    >
-                      <i class="pi pi-instagram" aria-hidden="true"></i>
-                    </a>
-                  }
-                </div>
-              }
             </li>
           }
         </ul>

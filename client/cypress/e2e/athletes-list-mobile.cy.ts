@@ -28,6 +28,11 @@ const ATHLETES_TWO = {
         status: 'active',
         joined_at: '2023-01-10',
         created_at: '2026-04-22T10:00:00+00:00',
+        // Mario carries socials and Luigi does not — #1445 moved these into
+        // the badge row, and the interesting case is a card that has them
+        // sitting next to a card that does not.
+        facebook: 'https://facebook.com/mario',
+        instagram: 'https://instagram.com/mario',
       },
       {
         id: 2,
@@ -95,6 +100,24 @@ MOBILE_VIEWPORTS.forEach(({ name, width, height }) => {
       cy.get('[data-cy="athletes-mobile-list"]').within(() => {
         cy.contains('Mario').should('be.visible');
         cy.contains('Luigi').should('be.visible');
+      });
+    });
+
+    it('keeps the socials inside the badge row rather than under it (#1445)', () => {
+      // The change is worth a card row of height only if the icons actually
+      // join the badges — and only if joining them does not push the row
+      // past the card. Both halves asserted here, at every mobile width.
+      cy.visitAuthenticated('/dashboard/athletes');
+      cy.wait(['@academy', '@athletes']);
+
+      cy.get('[data-cy="athlete-card-social-facebook-1"]')
+        .should('be.visible')
+        .parents('.athlete-card__badges')
+        .should('have.length', 1);
+
+      cy.document().then((doc) => {
+        const root = doc.documentElement;
+        expect(root.scrollWidth, 'document.scrollWidth').to.be.lte(root.clientWidth);
       });
     });
 

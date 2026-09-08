@@ -791,6 +791,21 @@ describe('AthletesListComponent', () => {
       expect(link.getAttribute('href')).toBe('https://instagram.com/mario');
     });
 
+    it('puts the socials on the name line, not on a line of their own (#1445)', () => {
+      // The point of #1445 is vertical space, and the only thing that actually
+      // buys it is WHERE the icons sit. A test that just finds the link would
+      // stay green if they drifted back under the name, so this one pins the
+      // parent: the socials group is a sibling of the age badge inside the
+      // primary line, and there is no wrapper stacking a second row.
+      const fixture = setupWithRows([
+        makeListAthlete({ id: 20, facebook: 'https://facebook.com/mario' }),
+      ]);
+      const link = fixture.nativeElement.querySelector('[data-cy="athlete-social-facebook-20"]');
+
+      expect(link.closest('.athlete-name__primary')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.athlete-name__body')).toBeNull();
+    });
+
     it('renders neither icon when both socials are null', () => {
       const fixture = setupWithRows([makeListAthlete({ id: 9, facebook: null, instagram: null })]);
       expect(
@@ -1494,6 +1509,58 @@ describe('AthletesListComponent — what is paying for the month (#1402)', () =>
     const fixture = render([makeAthlete({ id: 4, paid_current_month: true })]);
 
     expect(chip(fixture, 4)).toContain('Monthly');
+  });
+
+  function chipIcon(fixture: ComponentFixture<AthletesListComponent>, id: number): string {
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-cy="athlete-coverage-${id}"] .p-tag-icon`,
+      )?.className ?? ''
+    );
+  }
+
+  it('gives the chip a glyph for what pays, so the column can be scanned (#1444)', () => {
+    // Three shapes, not five: every subscription period is the same answer to
+    // "is this settled", and the carnet is the one that is settled by a
+    // different mechanism. The cross is the only row that wants something.
+    const covered = render([
+      makeAthlete({ id: 10, paid_current_month: true, payment_coverage: 'monthly' }),
+    ]);
+    expect(chipIcon(covered, 10)).toContain('pi-money-bill');
+
+    const annual = render([
+      makeAthlete({ id: 11, paid_current_month: true, payment_coverage: 'annual' }),
+    ]);
+    expect(chipIcon(annual, 11)).toContain('pi-money-bill');
+
+    const carnet = render([
+      makeAthlete({
+        id: 12,
+        paid_current_month: false,
+        payment_coverage: 'carnet',
+        active_carnet: { id: 9, code: 'A7K2', remaining_entries: 8, expires_at: '2027-01-01' },
+      }),
+    ]);
+    expect(chipIcon(carnet, 12)).toContain('pi-ticket');
+
+    const unpaid = render([
+      makeAthlete({ id: 13, paid_current_month: false, payment_coverage: 'none' }),
+    ]);
+    expect(chipIcon(unpaid, 13)).toContain('pi-times-circle');
+  });
+
+  it('tells paid from unpaid without reading the colour (#1444)', () => {
+    // The reason this chip is allowed an icon at all: its states are a
+    // green/amber pair, which is the one pair a red-green reader cannot
+    // separate. The glyph has to differ, not just the fill.
+    const paid = render([
+      makeAthlete({ id: 14, paid_current_month: true, payment_coverage: 'monthly' }),
+    ]);
+    const unpaid = render([
+      makeAthlete({ id: 15, paid_current_month: false, payment_coverage: 'none' }),
+    ]);
+
+    expect(chipIcon(paid, 14)).not.toBe(chipIcon(unpaid, 15));
   });
 
   it('offers marking paid only to someone who is not covered', () => {

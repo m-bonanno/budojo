@@ -820,6 +820,28 @@ export class AthletesListComponent implements OnInit {
   }
 
   /**
+   * The chip's leading glyph (#1444) — what is paying, as a shape.
+   *
+   * The instructor reads this column by scanning it, not by reading it, and
+   * "Mensile / Trimestrale / Semestrale / Annuale" are four different words
+   * for the same answer. A note gives all four one silhouette, a ticket
+   * separates the carnet from them, and a cross is the only row that wants
+   * something. It is also the channel that survives when colour does not:
+   * paid and unpaid stop being a green/amber pair the eye has to resolve.
+   *
+   * This is the one status chip in the app that carries an icon — see
+   * `docs/design/README.md` § Iconography for the rule it is an exception to
+   * and the test a future chip has to pass to join it.
+   */
+  protected coverageIcon(athlete: Athlete): string {
+    const coverage = this.coverageOf(athlete);
+
+    if (coverage === 'none') return 'pi pi-times-circle';
+
+    return coverage === 'carnet' ? 'pi pi-ticket' : 'pi pi-money-bill';
+  }
+
+  /**
    * `none` is the only state that asks for something, so it is the only one
    * that gets warning tone. Everything else is settled and reads as settled.
    */
