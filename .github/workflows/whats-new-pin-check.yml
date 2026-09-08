@@ -36,7 +36,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          # `fetch-depth: 0` alone is not enough — `actions/checkout`
+          # defaults to `fetch-tags: false`, so `git tag` here only sees
+          # whatever tags happen to be auto-followed by the plain fetch,
+          # not the full set. `LAST_TAG` can still resolve to something
+          # (a false sense that tag lookup "worked"), while the
+          # `${LAST_TAG}..HEAD` commit walk below silently comes up
+          # short — this is the exact trap release.yml's own checkout
+          # step already carries the comment for (see #42), just never
+          # applied here. Caught live when this job reported a `patch`
+          # bump for a range that plainly held seven `feat:` commits.
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Compute expected version + assert whats-new matches
         run: |
