@@ -105,6 +105,79 @@ export const RELEASES: readonly Release[] = [
           },
         ],
       },
+      {
+        heading: {
+          en: '🎚️ The filter row, in one row',
+          it: '🎚️ La riga dei filtri, in una sola riga',
+        },
+        bullets: [
+          {
+            en: 'Three fixes from the alpha tester, all in the roster header. The payment column said "Payment · Sep" even for someone who paid a quarterly fee in February — the month stopped meaning "paid this month" once the column started showing how the current month is covered. It just says "Payment" now.',
+            it: "Tre correzioni segnalate dall'alpha tester, tutte nell'intestazione della lista atleti. La colonna pagamento diceva «Pagamento · Set» anche per chi aveva pagato un trimestrale a febbraio — il mese non c'entrava più da quando la colonna racconta come il mese corrente è coperto, non se è stato pagato quel mese preciso. Ora dice solo «Pagamento».",
+          },
+          {
+            en: 'The status dropdown and the eye that reveals inactive athletes asked the same question two ways. Only the eye remains — one gesture, and it defaults to the state you open the page in anyway. Whoever is in the trash now has their own button next to it, since "who did I delete" is a different question from "who trains here", not a wider version of it.',
+            it: "Il menu a tendina «Stato» e l'occhio per vedere gli atleti non attivi facevano la stessa domanda con due controlli diversi. Resta solo l'occhio — un gesto solo, e lo stato di default è quello con cui apri la pagina comunque. Chi era nel cestino ha ora il suo pulsante dedicato, accanto all'occhio: «chi ho eliminato» è una domanda diversa da «chi si allena qui».",
+          },
+          {
+            en: 'Search and the filters share one row from 768px up, instead of stacking onto two rows that pushed the first athlete further down the one page that exists to show you athletes.',
+            it: 'Ricerca e filtri condividono la stessa riga da 768px in su, invece di impilarsi su due righe che spingevano il primo atleta più in basso — nella pagina che esiste apposta per mostrare gli atleti.',
+          },
+        ],
+      },
+      {
+        heading: { en: '🥋 No more "suspended"', it: '🥋 Niente più «sospeso»' },
+        bullets: [
+          {
+            en: 'The "Suspended" status had existed for months, behaving identically to "Inactive" everywhere in the app — same exclusion from payment reminders, same silence on expiring medical certificates. Two names for one behaviour, and nobody could say what the second name was for. One status remains for "this athlete does not train here anymore": Inactive.',
+            it: "Lo stato «Sospeso» esisteva da mesi ma si comportava, in ogni punto dell'app, esattamente come «Non attivo» — stessa esclusione dai promemoria di pagamento, stesso silenzio sui certificati medici in scadenza. Due nomi per un solo comportamento, e il secondo nome nessuno sapeva più a cosa servisse. Resta un solo stato per «questo atleta non si allena più qui»: Non attivo.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '🎨 The belt, visible from the side too',
+          it: '🎨 La cintura si vede anche di lato',
+        },
+        bullets: [
+          {
+            en: "Each athlete's row in the roster carried a coloured dot for their belt. It is a vertical stripe down the left edge of the row now, the same colour — closer to what a belt actually looks like, and easier to pick out while scanning down the list quickly.",
+            it: 'La riga di ogni atleta nella lista aveva un pallino colorato per indicare la cintura. Ora è una striscia verticale a sinistra della riga, dello stesso colore — più vicina a come si vede davvero una cintura, e più facile da individuare scorrendo la lista velocemente.',
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '⚠️ Deleting an athlete, in one place',
+          it: '⚠️ Eliminare un atleta, in una zona sola',
+        },
+        bullets: [
+          {
+            en: "The delete button used to live in the roster — one row away from eleven identical ones, a click indistinguishable from just opening that person. It is at the bottom of the athlete's own edit page now, in a separate red-bordered section, the GitHub repository-settings pattern: reaching it means choosing that person and opening their page first. The confirmation is the same as before, and now explains what actually happens: it is a soft delete, the row survives, but the athlete's documents are permanently removed from disk.",
+            it: "Il pulsante per eliminare un atleta viveva nella lista — una riga fra undici uguali, un click di distanza dall'aprire semplicemente quella persona. Ora è in fondo alla pagina di modifica dell'atleta, in una sezione rossa a parte, come su GitHub quando elimini un repository: per arrivarci devi prima aver scelto proprio quella persona e aperto la sua pagina. La conferma resta la stessa, e ora spiega anche cosa succede davvero: è una cancellazione soft, la riga sopravvive, ma i documenti dell'atleta vengono eliminati per sempre dal disco.",
+          },
+          {
+            en: 'Your own row (if you train and manage the academy at once) no longer shows this button — it uses the existing toggle on your Profile page instead, which is reversible and needs no confirmation, because leaving the academy on your own is not the same thing as deleting an athlete.',
+            it: "Il proprio profilo (per chi si allena e gestisce l'academy insieme) non mostra più questo pulsante — usa invece l'interruttore già esistente nella pagina Profilo, che è reversibile e non richiede conferma, perché lasciare l'academy da soli non è la stessa cosa che eliminare un atleta.",
+          },
+        ],
+      },
+      {
+        heading: {
+          en: '📖 Promotion history, correctable',
+          it: '📖 Lo storico promozioni si può correggere',
+        },
+        bullets: [
+          {
+            en: "Every belt and stripe was recorded with the date you typed it into Budojo — not the date it actually happened. For a promotion entered late, the date was simply wrong, with no way to fix it. Every row on an athlete's Promotions tab now has a pencil that corrects just the date.",
+            it: "Ogni cintura e ogni striscetta venivano registrate con la data in cui le scrivevi su Budojo — non con la data in cui erano davvero accadute. Per una promozione inserita in ritardo, la data era semplicemente sbagliata, e non c'era modo di sistemarla. Ora ogni riga della scheda Promozioni di un atleta ha una matita per correggere solo la data.",
+          },
+          {
+            en: 'And a new "Add a past promotion" button transcribes the history of an athlete who trained before Budojo existed — belts and stripes, one at a time, with the real date. If the date you enter contradicts a promotion already on record around it, it tells you immediately and explains what does not line up, instead of leaving the history contradicting itself. A row entered by mistake can be deleted too.',
+            it: "E c'è un pulsante nuovo, «Aggiungi una promozione passata», per trascrivere lo storico di un atleta che si allenava già prima di Budojo — cinture e striscette, una alla volta, con la data vera. Se la data che inserisci non è coerente con le promozioni già registrate intorno ad essa, te lo dice subito e ti spiega cosa non torna, invece di lasciare lo storico contraddittorio. Una riga inserita per sbaglio si può anche eliminare.",
+          },
+        ],
+      },
     ],
   },
   {
