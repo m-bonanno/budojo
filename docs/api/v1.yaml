@@ -3071,7 +3071,7 @@ paths:
             returns only athletes with a row in `athlete_payments` for the
             current calendar (year, month); `no` returns only those without
             AND whose `status` is `active` (#805 — payment is not expected
-            from suspended / inactive athletes, so they're excluded from
+            from inactive athletes, so they're excluded from
             the "owes" view). The asymmetry is deliberate: `paid=yes`
             does NOT carry the same status gate, because an athlete who
             paid earlier in the month and went inactive is still factually
@@ -6002,7 +6002,7 @@ components:
     AthleteStatus:
       type: string
       description: Enrollment status for an athlete
-      enum: [active, suspended, inactive]
+      enum: [active, inactive]
 
     # ── Generic envelopes ─────────────────────────────────────────────────
 

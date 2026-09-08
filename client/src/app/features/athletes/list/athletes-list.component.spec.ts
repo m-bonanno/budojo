@@ -1001,7 +1001,7 @@ describe('AthletesListComponent', () => {
         of({
           data: [
             makeAthlete({ id: 10, status: 'active', paid_current_month: false }),
-            makeAthlete({ id: 11, status: 'suspended', paid_current_month: false }),
+            makeAthlete({ id: 11, status: 'inactive', paid_current_month: false }),
             makeAthlete({ id: 12, status: 'inactive', paid_current_month: false }),
           ],
           meta: { total: 3, current_page: 1, per_page: 20, last_page: 1 },
@@ -1110,8 +1110,8 @@ describe('AthletesListComponent — who is expected to pay (#1381)', () => {
     expect(predicate()(athlete({ is_self: true }))).toBe(true);
   });
 
-  it('does not expect payment from a suspended athlete', () => {
-    expect(predicate()(athlete({ status: 'suspended' }))).toBe(true);
+  it('does not expect payment from an inactive athlete', () => {
+    expect(predicate()(athlete({ status: 'inactive' }))).toBe(true);
   });
 
   it('does not expect payment when no fee resolves for them', () => {
@@ -1227,14 +1227,15 @@ describe('AthletesListComponent — the roster shows who trains here (#1403)', (
     expect(list.mock.calls.at(-1)?.[0]).toMatchObject({ status: 'active' });
   });
 
-  it('picking a status from the menu lights the eye, so the two never disagree', () => {
+  it('lights the eye for any list that is wider than the actives', () => {
     const fixture = TestBed.createComponent(AthletesListComponent);
     fixture.detectChanges();
     const cmp = fixture.componentInstance;
 
-    // Two controls, one piece of state: "Suspended" is not "only the actives",
-    // and the eye has to say so or the grey rows have no explanation.
-    cmp.onStatusChange('suspended');
+    // The eye is derived, never held beside the state — so anything that is
+    // not "only the actives" has to light it, or the grey rows on screen have
+    // no explanation.
+    cmp.onStatusChange('inactive');
     expect(cmp.showingInactive()).toBe(true);
   });
 

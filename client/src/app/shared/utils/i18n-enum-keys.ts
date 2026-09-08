@@ -55,7 +55,6 @@ export const BELT_ORDER: readonly Belt[] = [
  */
 export const STATUS_KEYS: Readonly<Record<AthleteStatus, string>> = {
   active: 'statuses.active',
-  suspended: 'statuses.suspended',
   inactive: 'statuses.inactive',
 };
 
@@ -64,4 +63,4 @@ export const STATUS_KEYS: Readonly<Record<AthleteStatus, string>> = {
  * lists them. Exported alongside `STATUS_KEYS` so callers don't
  * re-declare the order separately.
  */
-export const STATUS_ORDER: readonly AthleteStatus[] = ['active', 'suspended', 'inactive'] as const;
+export const STATUS_ORDER: readonly AthleteStatus[] = ['active', 'inactive'] as const;

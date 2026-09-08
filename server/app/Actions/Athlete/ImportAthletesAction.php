@@ -185,8 +185,12 @@ final class ImportAthletesAction
         $normalised = mb_strtolower(trim($text));
 
         return match ($normalised) {
-            'inactive', 'inattivo', 'inattiva', 'no', 'ritirato' => AthleteStatus::Inactive->value,
-            'suspended', 'sospeso', 'sospesa' => AthleteStatus::Suspended->value,
+            // `sospeso` is still ACCEPTED, and maps to inactive. The status
+            // was retired (#1427), but a register written before that says
+            // what it says — refusing those rows would punish an academy for
+            // our vocabulary change.
+            'inactive', 'inattivo', 'inattiva', 'no', 'ritirato',
+            'suspended', 'sospeso', 'sospesa' => AthleteStatus::Inactive->value,
             default => AthleteStatus::Active->value,
         };
     }

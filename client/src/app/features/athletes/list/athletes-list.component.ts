@@ -182,7 +182,7 @@ export class AthletesListComponent implements OnInit {
    * shows an em-dash instead of a toggle:
    *
    *   - the owner training in their own academy (#750) — no payment ledger;
-   *   - a suspended or inactive athlete (#805) — surfacing "Unpaid" there
+   *   - an inactive athlete (#805) — surfacing "Unpaid" there
    *     conflated "no payment recorded" with "owes";
    *   - nobody resolved a fee for them (#1381) — on an academy priced only
    *     by tier, an athlete on no tier owes nothing, and offering the toggle
@@ -320,7 +320,6 @@ export class AthletesListComponent implements OnInit {
   // value on `athletes.status`.
   private readonly statusLabelKeys: Record<AthleteListStatus, string> = {
     active: 'statuses.active',
-    suspended: 'statuses.suspended',
     inactive: 'statuses.inactive',
     trashed: 'statuses.trashed',
   };
@@ -328,7 +327,6 @@ export class AthletesListComponent implements OnInit {
   private readonly statusOrder: readonly (AthleteListStatus | '')[] = [
     '',
     'active',
-    'suspended',
     'inactive',
     'trashed',
   ];
@@ -1215,12 +1213,10 @@ export class AthletesListComponent implements OnInit {
     });
   }
 
-  statusSeverity(status: AthleteStatus): 'success' | 'warn' | 'secondary' {
+  statusSeverity(status: AthleteStatus): 'success' | 'secondary' {
     switch (status) {
       case 'active':
         return 'success';
-      case 'suspended':
-        return 'warn';
       case 'inactive':
         return 'secondary';
     }

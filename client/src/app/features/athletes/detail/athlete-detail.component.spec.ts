@@ -109,7 +109,6 @@ describe('AthleteDetailComponent', () => {
     httpMock.expectOne('/api/v1/athletes/42').flush({ data: makeAthlete() });
 
     expect(fixture.componentInstance.statusSeverity('active')).toBe('success');
-    expect(fixture.componentInstance.statusSeverity('suspended')).toBe('warn');
     expect(fixture.componentInstance.statusSeverity('inactive')).toBe('secondary');
     httpMock.verify();
   });

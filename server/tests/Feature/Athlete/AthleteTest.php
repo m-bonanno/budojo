@@ -84,10 +84,10 @@ it('filters athletes by belt', function (): void {
 it('filters athletes by status', function (): void {
     $user = userWithAcademy();
     Athlete::factory()->for($user->academy)->create(['status' => 'active']);
-    Athlete::factory()->for($user->academy)->create(['status' => 'suspended']);
+    Athlete::factory()->for($user->academy)->create(['status' => 'inactive']);
 
     $this->actingAs($user)
-        ->getJson('/api/v1/athletes?status=suspended')
+        ->getJson('/api/v1/athletes?status=inactive')
         ->assertOk()
         ->assertJsonCount(1, 'data');
 });

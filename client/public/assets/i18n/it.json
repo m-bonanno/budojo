@@ -1675,7 +1675,6 @@
   "statuses": {
     "all": "Tutti gli stati",
     "active": "Attivo",
-    "suspended": "Sospeso",
     "inactive": "Inattivo",
     "trashed": "Cancellati"
   },

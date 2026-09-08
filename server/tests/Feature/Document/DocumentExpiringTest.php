@@ -142,9 +142,8 @@ it('includes active athletes with no medical certificate in the missing_medical_
     expect($ids)->toContain($missing->id)->and($ids)->not->toContain($withCert->id);
 });
 
-it('excludes inactive / suspended athletes from missing_medical_certificate', function (): void {
+it('excludes inactive athletes from missing_medical_certificate', function (): void {
     $user = userWithAcademy();
-    Athlete::factory()->for($user->academy)->create(['status' => 'suspended']);
     Athlete::factory()->for($user->academy)->create(['status' => 'inactive']);
     $active = Athlete::factory()->for($user->academy)->create(['status' => 'active']);
 

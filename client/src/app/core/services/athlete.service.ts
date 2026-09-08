@@ -47,7 +47,7 @@ export const MAX_STRIPES_PER_BELT: Record<Belt, number> = {
   'red-and-white': 4,
   red: 4,
 };
-export type AthleteStatus = 'active' | 'suspended' | 'inactive';
+export type AthleteStatus = 'active' | 'inactive';
 
 /**
  * Filter token for the athletes-list `?status=` query (#700). Extends

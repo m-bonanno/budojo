@@ -24,7 +24,7 @@ An `Athlete` represents a student enrolled at an `Academy`. This is the core ros
 | `date_of_birth` | date | nullable | Cast to `Carbon\Carbon` in the model |
 | `belt` | string | not null | Cast to `App\Enums\Belt` backed enum — kids (`grey` / `yellow` / `orange` / `green`) + adults (`white` / `blue` / `purple` / `brown` / `black`) + senior coral and red (`red-and-black` / `red-and-white` / `red`) |
 | `stripes` | tinyint unsigned | not null, default `0` | Range 0–6 on `black` (graus 1°–6°); 0–4 on every other belt. Enforced cross-field at the request layer via `Belt::maxStripes()` |
-| `status` | string | not null | Cast to `App\Enums\AthleteStatus` backed enum (`active` / `suspended` / `inactive`) |
+| `status` | string | not null | Cast to `App\Enums\AthleteStatus` backed enum (`active` / `inactive`) |
 | `joined_at` | date | not null | When the athlete first enrolled |
 | `photo_path` | string(255) | nullable | Relative path on the `public` disk of the athlete's photo (#1357). Null until the first `POST /athletes/{id}/photo`. The wire layer emits `photo_url` (full URL, with a cache-buster) via `AthleteResource`, never the raw path. Independent of `user_id`: an athlete needs no account to have a face, which matters because `athlete_accounts` is absent from the desktop runtime. |
 | `created_at` | timestamp | nullable | |
@@ -80,7 +80,6 @@ Covers the full **IBJJF rank scale** on a single linear axis:
 | Case | Value | Meaning |
 |---|---|---|
 | `Active` | `active` | Currently training and paying |
-| `Suspended` | `suspended` | Temporarily not attending (injury, travel); retained on the roster |
 | `Inactive` | `inactive` | No longer attending but not deleted — kept for history and belt tracking |
 
 ## Business rules

@@ -103,7 +103,7 @@ return [
             'stripes' => 2,
             'joined_at' => '2022-03-15',
             'attendance_probability' => 0.65,
-            'status' => 'suspended',
+            'status' => 'inactive',
         ],
 
         // PURPLE BELTS (6)
@@ -160,7 +160,7 @@ return [
             'stripes' => 3,
             'joined_at' => '2023-07-15',
             'attendance_probability' => 0.55,
-            'status' => 'suspended',
+            'status' => 'inactive',
         ],
         [
             'first_name' => 'John',
@@ -261,7 +261,7 @@ return [
             'stripes' => 0,
             'joined_at' => '2024-02-05',
             'attendance_probability' => 0.50,
-            'status' => 'suspended',
+            'status' => 'inactive',
         ],
         [
             'first_name' => 'Roberto',
@@ -395,7 +395,7 @@ return [
             'stripes' => 1,
             'joined_at' => '2025-06-25',
             'attendance_probability' => 0.30,
-            'status' => 'suspended',
+            'status' => 'inactive',
         ],
         [
             'first_name' => 'Nicolas',
