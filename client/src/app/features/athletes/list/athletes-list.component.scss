@@ -331,13 +331,15 @@
 // padded strip swallows clicks. Visual rhythm matches the other <th>s
 // because the same padding still applies, just on a different element.
 
-.full-name-th {
+.full-name-th,
+.attendance-th {
   // Hand the cell padding off to the inner button below — the button
   // is the actual interactive element, so the padding lives there.
   padding: 0;
 }
 
-.full-name-th__btn {
+.full-name-th__btn,
+.attendance-th__btn {
   // Strip the browser default button chrome — the <button> exists for
   // semantics + keyboard handling, not for visual buttoning. Inherits
   // the parent <th>'s typography so it reads identically to a static
@@ -369,7 +371,8 @@
   }
 }
 
-.full-name-th__signifier {
+.full-name-th__signifier,
+.attendance-th__signifier {
   display: inline-block;
   min-width: 1.5rem;
   font-size: 0.75rem;
@@ -390,6 +393,37 @@
 // #1443 moved belt sorting into the toolbar, where a phone can reach it.
 // `.athletes-page__toggle` above carries it now; the Full-name header keeps
 // the in-table cycle it has always had.
+
+// The Attendance header (#1447) wears the Full-name header's clothes,
+// because it is the same thing: one column over two related scalars, so the
+// cycle picks which one leads and its direction, and the signifier says
+// which. Extending those selectors rather than restating them keeps the two
+// headers from drifting apart the first time either is restyled.
+.attendance-th__btn {
+  // Right-aligned, unlike the name: these are numbers, and a column of
+  // numbers is read down its last digit.
+  justify-content: flex-end;
+}
+
+// The cell. The month is the number the instructor acts on, so it carries
+// the weight; the all-time count is the context that tells a quiet month
+// apart from a quiet athlete, so it recedes.
+.athlete-attendance {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+
+  &__month {
+    font-weight: 600;
+  }
+
+  &__total {
+    font-size: 0.875rem;
+    color: var(--p-text-muted-color);
+  }
+}
 
 // ── Mobile cards layout (#670) ─────────────────────────────────────────
 //
@@ -575,6 +609,25 @@ $athletes-mobile-breakpoint: 768px;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  // This month's session count (#1447). Deliberately not a `p-tag`: the
+  // other chips on this row are states with a severity, and a count has no
+  // severity — six is not good or bad. Muted text with a calendar glyph
+  // reads as a fact beside them rather than a fourth status competing for
+  // the same attention.
+  &__attendance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--p-text-muted-color);
+
+    i.pi {
+      font-size: var(--budojo-icon-sm);
+      line-height: 1;
+    }
   }
 
   // A group inside the badge row since #1445, not a row of its own beneath

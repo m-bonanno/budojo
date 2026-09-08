@@ -277,6 +277,34 @@
               one piece of information the row cannot lose. Sorting moved to
               the toolbar above, where a phone can reach it too.
             -->
+            <!--
+              Attendance (#1447). Informational and sortable, and the sort is a
+              4-state cycle for the same reason the Full name header has one:
+              the column carries two numbers, so one sort would only ever
+              answer half of what it shows.
+            -->
+            @if (hasAttendanceCounts()) {
+              <th class="attendance-th" [attr.aria-sort]="attendanceAriaSort()">
+                <button
+                  type="button"
+                  class="attendance-th__btn"
+                  data-cy="athletes-th-attendance"
+                  [pTooltip]="attendanceSortTooltip()"
+                  tooltipPosition="top"
+                  (click)="cycleAttendanceSort()"
+                  [attr.aria-label]="attendanceSortTooltip()"
+                >
+                  {{ 'athletes.list.table.attendance' | translate }}
+                  <span
+                    class="attendance-th__signifier"
+                    [class.attendance-th__signifier--active]="attendanceSortLabel() !== null"
+                    aria-hidden="true"
+                  >
+                    {{ attendanceSortLabel() ?? '↕' }}
+                  </span>
+                </button>
+              </th>
+            }
             @if (hasMonthlyFee()) {
               <!-- Header carries the current month abbreviation (#282) so an
                  instructor reading "Unpaid" on a row knows which month the
@@ -438,6 +466,29 @@
                 </div>
               </div>
             </td>
+            @if (hasAttendanceCounts()) {
+              <td>
+                <!--
+                  Two numbers, one of them louder. The month is what the
+                  instructor acts on — who has stopped coming — so it reads
+                  first and at full weight; the all-time count is the context
+                  that tells a quiet month apart from a quiet athlete, so it
+                  is muted and sits behind a separator.
+
+                  Not a link and not a button: the issue asked for a column
+                  that informs, and giving it a target would promise a drill-
+                  down that does not exist.
+                -->
+                <span class="athlete-attendance" [attr.aria-label]="attendanceAria(athlete)">
+                  <span class="athlete-attendance__month">{{
+                    athlete.attendance_month_count ?? 0
+                  }}</span>
+                  <span class="athlete-attendance__total" aria-hidden="true"
+                    >· {{ athlete.attendance_total_count ?? 0 }}</span
+                  >
+                </span>
+              </td>
+            }
             @if (hasMonthlyFee()) {
               <td>
                 @if (paymentNotExpected(athlete)) {
@@ -558,9 +609,14 @@
 
         <ng-template pTemplate="emptymessage">
           <tr>
-            <!-- Name + (payment) + actions. Was 4/3 while Belt was a column
-                 of its own (#1443). -->
-            <td [attr.colspan]="hasMonthlyFee() ? 3 : 2" class="empty-message">
+            <!-- Name + (attendance) + (payment) + actions. Was 4/3 while Belt
+                 was a column of its own (#1443); attendance (#1447) is the
+                 second optional one — it renders only when the payload
+                 actually carried the counts. -->
+            <td
+              [attr.colspan]="2 + (hasAttendanceCounts() ? 1 : 0) + (hasMonthlyFee() ? 1 : 0)"
+              class="empty-message"
+            >
               @if (loading()) {
                 <!-- Skeleton rows replace the PrimeNG header-spinner that
                    [showLoader]="false" suppressed. Canon § motion: skeletons
@@ -758,6 +814,24 @@
                       [rounded]="true"
                     />
                   </button>
+                }
+                <!--
+                  The month count only (#1447). The card has no header to sort
+                  from, so a number the reader cannot order is worth showing
+                  only if it answers something on its own — "has this person
+                  been in this month" does; "214 sessions since 2022" is
+                  reference material that belongs on a screen with room. Muted
+                  and iconed so it reads as a fact rather than another status.
+                -->
+                @if (hasAttendance(athlete)) {
+                  <span
+                    class="athlete-card__attendance"
+                    [attr.aria-label]="attendanceAriaMonth(athlete)"
+                    [attr.data-cy]="'athlete-card-attendance-' + athlete.id"
+                  >
+                    <i class="pi pi-calendar" aria-hidden="true"></i>
+                    <span aria-hidden="true">{{ athlete.attendance_month_count }}</span>
+                  </span>
                 }
                 <!-- Inside the badge row since #1445, not on a line of its own
                      under it. The row already wraps, so two icons cost nothing

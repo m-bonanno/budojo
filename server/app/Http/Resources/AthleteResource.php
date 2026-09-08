@@ -144,6 +144,14 @@ class AthleteResource extends JsonResource
                 'remaining_entries' => CarnetAvailability::remainingEntries($activeCarnet),
                 'expires_at' => $activeCarnet->expires_at->toDateString(),
             ],
+            // How often this athlete has actually turned up (#1447) — this
+            // month, and since they joined. Null on `show`, where the query
+            // does not select the counts: null means "not asked for", and the
+            // SPA renders the column only where it has an answer. Reporting 0
+            // instead would be a lie the roster could not tell apart from
+            // someone who has genuinely never trained.
+            'attendance_month_count' => $athlete->attendance_month_count,
+            'attendance_total_count' => $athlete->attendance_total_count,
             // M7 PR-B-UI (#467) — the single invitation block the SPA's
             // athlete-detail card renders. Read-side projection only;
             // the raw token + sha-256 hash never leave the database.

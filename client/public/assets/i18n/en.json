@@ -1697,7 +1697,8 @@
         "belt": "Belt",
         "status": "Status",
         "paidPrefix": "Paid",
-        "payment": "Payment"
+        "payment": "Payment",
+        "attendance": "Sessions"
       },
       "tooltip": {
         "fullNameSortInitial": "Click to sort by first name (A → Z)",
@@ -1724,7 +1725,12 @@
         "carnet": "Carnet {{code}} — {{count}} entries left",
         "paidCycleAll": "Showing everyone. Click to show only who has paid.",
         "paidCyclePaid": "Showing who has paid. Click to show only who has not.",
-        "paidCycleUnpaid": "Showing who has not paid. Click to show everyone again."
+        "paidCycleUnpaid": "Showing who has not paid. Click to show everyone again.",
+        "attendanceSortInitial": "Click to sort by sessions this month (most first)",
+        "attendanceSortMonthDesc": "Sorted by sessions this month (most first). Click to cycle.",
+        "attendanceSortMonthAsc": "Sorted by sessions this month (fewest first). Click to cycle.",
+        "attendanceSortTotalDesc": "Sorted by sessions all time (most first). Click to cycle.",
+        "attendanceSortTotalAsc": "Sorted by sessions all time (fewest first). Click to cycle."
       },
       "social": {
         "facebookLabel": "Open Facebook profile",
@@ -1800,6 +1806,10 @@
       "hideTrashed": "Back to the roster",
       "paidFilter": {
         "any": "Payment"
+      },
+      "attendance": {
+        "aria": "{{month}} sessions this month, {{total}} in total",
+        "ariaMonth": "{{month}} sessions this month"
       }
     },
     "invitation": {

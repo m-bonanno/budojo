@@ -3104,11 +3104,29 @@ paths:
             accepted as a primary sort (it's meaningful only as a within-belt
             tiebreaker — a 4-stripe blue above a 0-stripe black is never
             correct); requesting it falls back to the default ordering.
+            `attendance_month` and `attendance_total` (#1447) sort on the two
+            counts this endpoint selects rather than on a column, and always
+            tiebreak on `last_name asc, first_name asc` regardless of
+            `sort_order`. Counts are small integers over a roster of hundreds,
+            so ties are the common case; without a stable second key the tied
+            block reorders between requests and an athlete can land on two
+            pages or none. The tiebreak stays ascending because the names are
+            a stable key, not a second dimension the caller asked to reverse.
+
             Unknown values also fall back to the default `created_at desc`.
           required: false
           schema:
             type: string
-            enum: [first_name, last_name, belt, joined_at, created_at]
+            enum:
+              [
+                first_name,
+                last_name,
+                belt,
+                joined_at,
+                created_at,
+                attendance_month,
+                attendance_total,
+              ]
         - name: sort_order
           in: query
           description: Sort direction. Defaults to `desc` when `sort_by` is set.
@@ -7379,6 +7397,35 @@ components:
             false`, because it is not a paid month and the unpaid widget, the
             `?paid` filter and both reminders still read that.
           example: monthly
+        attendance_month_count:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: |
+            How many sessions this athlete attended in the **current calendar
+            month** (#1447), by the server's clock.
+
+            Selected only by the roster index, as a `withCount` alias. On
+            `GET /athletes/{id}` it is `null` — read that as **"not asked
+            for"**, never as zero, which is a real answer meaning someone has
+            not trained this month.
+
+            Counts days, not rows: at most one live attendance record exists
+            per (athlete, day), enforced on insert, and a day corrected by
+            soft-delete-and-reinsert is counted once.
+          example: 6
+        attendance_total_count:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: |
+            The same count over the athlete's whole history (#1447). Same
+            null-means-not-selected rule as `attendance_month_count`.
+
+            The two answer different questions, and diverge on exactly the
+            athlete the roster is most worth spotting: the veteran with three
+            years of sessions who has not appeared this month.
+          example: 214
         billing_period_months:
           type: integer
           enum: [1, 3, 6, 12]
