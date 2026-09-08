@@ -160,13 +160,7 @@
         (click)="cyclePaid()"
         data-cy="athletes-paid-filter"
       >
-        <i
-          class="pi"
-          [class.pi-wallet]="selectedPaid() === ''"
-          [class.pi-check-circle]="selectedPaid() === 'yes'"
-          [class.pi-times-circle]="selectedPaid() === 'no'"
-          aria-hidden="true"
-        ></i>
+        <i class="pi {{ paidCycleIcon() }}" aria-hidden="true"></i>
         <span class="athletes-page__toggle-label">{{ paidCycleLabel() }}</span>
       </button>
     }

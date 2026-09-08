@@ -58,7 +58,7 @@ import { IconButtonComponent } from '../../../shared/components/icon-button/icon
 import { OnboardingChecklistComponent } from '../../onboarding/onboarding-checklist.component';
 import { OnboardingService } from '../../../core/services/onboarding.service';
 import { academyChargesAFee } from '../../../shared/utils/academy-fee';
-import { BELT_KEYS } from '../../../shared/utils/i18n-enum-keys';
+import { BELT_KEYS, BELT_ORDER } from '../../../shared/utils/i18n-enum-keys';
 import { CarnetService } from '../../../core/services/carnet.service';
 
 interface SelectOption<T extends string> {
@@ -263,41 +263,12 @@ export class AthletesListComponent implements OnInit {
       .subscribe((q) => this.applySearch(q));
   }
 
-  // Belt → translation key map. Same exhaustive `Record<Belt, string>`
-  // pattern as DailyAttendanceComponent (#339): adding a new Belt member
-  // fails TS compilation here until the matching translation key is added.
-  // Order is kept separate (IBJJF rank, kids → adults → senior coral/red)
-  // because Record key order isn't a language guarantee.
-  private readonly beltLabelKeys: Record<Belt, string> = {
-    grey: 'belts.grey',
-    yellow: 'belts.yellow',
-    orange: 'belts.orange',
-    green: 'belts.green',
-    white: 'belts.white',
-    blue: 'belts.blue',
-    purple: 'belts.purple',
-    brown: 'belts.brown',
-    black: 'belts.black',
-    'red-and-black': 'belts.redAndBlack',
-    'red-and-white': 'belts.redAndWhite',
-    red: 'belts.red',
-  };
-
-  private readonly beltOrder: readonly (Belt | '')[] = [
-    '',
-    'grey',
-    'yellow',
-    'orange',
-    'green',
-    'white',
-    'blue',
-    'purple',
-    'brown',
-    'black',
-    'red-and-black',
-    'red-and-white',
-    'red',
-  ];
+  // The key map and the rank order both come from `i18n-enum-keys` (#1443).
+  // This file used to carry private copies of each; the shared ones are the
+  // same two literals, and two of them is how a new belt gets added to one
+  // and not the other. Only the leading `''` is local — it is the "all
+  // belts" option, which belongs to this dropdown and not to the enum.
+  private readonly beltOrder: readonly (Belt | '')[] = ['', ...BELT_ORDER];
 
   readonly beltOptions = computed<SelectOption<Belt>[]>(() => {
     this.languageService.currentLang(); // signal dep — recompute on toggle
@@ -305,7 +276,7 @@ export class AthletesListComponent implements OnInit {
       label:
         value === ''
           ? this.translate.instant('belts.all')
-          : this.translate.instant(this.beltLabelKeys[value]),
+          : this.translate.instant(BELT_KEYS[value]),
       value,
     }));
   });
@@ -364,8 +335,10 @@ export class AthletesListComponent implements OnInit {
     if (this.selectedStatus() !== 'active') count += 1;
     // Payment is deliberately NOT counted any more (#1446): the sheet no
     // longer contains that control — it moved to the shared row beside the
-    // eye — and a badge counting a filter the sheet cannot show or clear
-    // points at the wrong place.
+    // eye, where it renders on the phone too and shows its own state. A
+    // badge counting a filter the sheet does not display sends the user to
+    // open a sheet that has nothing to do with it. `resetFilters()` leaves
+    // it alone for the same reason.
     return count;
   });
 
@@ -513,6 +486,11 @@ export class AthletesListComponent implements OnInit {
    */
   protected clearAllFiltersAndSearch(): void {
     this.searchTerm.set('');
+    // Payment too, unlike the sheet's own Reset (#1446): this CTA is the way
+    // out of a filtered-empty list, so leaving one filter standing would
+    // dead-end the user it exists to rescue. Routed through `onPaidChange`
+    // so the URL — the source of truth for this one — is cleared with it.
+    this.onPaidChange('');
     this.resetFilters();
   }
 
@@ -520,28 +498,18 @@ export class AthletesListComponent implements OnInit {
    * "Reset" action on the mobile filter-sheet (#704). Clears every
    * dropdown in one shot and re-runs the load. The free-text search
    * box stays untouched — clearing it is its own dedicated affordance.
+   *
+   * So is the payment filter, since #1446 moved it out of the sheet and onto
+   * the control row: a Reset that silently cleared a filter the sheet never
+   * showed would change the list for a reason the user cannot see.
    */
   resetFilters(): void {
     this.selectedBelt.set('');
     // Back to the default, not to "everyone" (#1403): reset means "the list I
     // started from", and that list is the actives.
     this.selectedStatus.set('active');
-    this.selectedPaid.set('');
     this.resetPage();
     this.load();
-    // Drop the `paid` query param from the URL so a refresh after
-    // reset doesn't re-apply the filter the user just cleared
-    // (#803, reviewer finding on PR #804). `replaceUrl: true` keeps
-    // the back button from going to the half-reset state. We don't
-    // re-trigger the queryParamMap subscription with a `null`-only
-    // navigate when the param is already absent — Angular skips the
-    // navigation as a no-op, no extra load() fires.
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { paid: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
   }
 
   /**

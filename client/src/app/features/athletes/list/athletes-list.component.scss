@@ -757,7 +757,13 @@ $athletes-mobile-breakpoint: 768px;
   top: 0.5rem;
   bottom: 0.5rem;
   display: flex;
-  pointer-events: none;
+  // Hoverable on purpose (#1443). It was `pointer-events: none` while the
+  // spine was decoration sitting beside a Belt column that said the same
+  // thing in words. That column is gone, so the tooltip on this element is
+  // now how a sighted reader gets the belt's NAME — and a tooltip on a host
+  // that cannot receive `mouseenter` never opens. It sits over the cell's
+  // own left padding, where there is nothing else to click.
+  pointer-events: auto;
 }
 
 // The spine on the mobile card (#1429). The card already carries

@@ -404,11 +404,14 @@ describe('AthletesListComponent', () => {
       expect(listSpy.mock.calls[0][0].paid).toBe('yes');
     });
 
-    it('resetFilters clears `?paid` from the URL so refresh-after-reset stays clean (#803 reviewer)', async () => {
-      // Reviewer finding on PR #804: `resetFilters()` mutated the
+    it('clearAllFiltersAndSearch clears `?paid` from the URL so refresh-after-reset stays clean (#803 reviewer)', async () => {
+      // Reviewer finding on PR #804: clearing the filter mutated the
       // signal directly without dropping the URL param; a refresh
       // after Reset re-applied the just-cleared `paid=no` filter
       // because the URL was the source of truth post-#803.
+      //
+      // The action that owns this moved in #1446 — see the sibling test
+      // below for why the sheet's own Reset no longer does it.
       TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
       const router = TestBed.inject(Router);
       await router.navigate([], { queryParams: { paid: 'no' } });
@@ -419,11 +422,35 @@ describe('AthletesListComponent', () => {
       await fixture.whenStable();
       expect(component.selectedPaid()).toBe('no');
 
-      component.resetFilters();
+      (component as unknown as { clearAllFiltersAndSearch: () => void }).clearAllFiltersAndSearch();
       await fixture.whenStable();
 
       expect(component.selectedPaid()).toBe('');
       expect(router.url).not.toContain('paid=');
+    });
+
+    it('the sheet Reset leaves the payment filter alone — it is not in the sheet (#1446)', async () => {
+      // #1446 moved payment out of the filter sheet and onto the control
+      // row, where it renders on the phone too and shows its own state.
+      // A Reset that cleared it anyway would change the list for a reason
+      // the user cannot see, and `activeFilterCount` — which no longer
+      // counts it — would have said nothing was active beforehand.
+      TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
+      const router = TestBed.inject(Router);
+      await router.navigate([], { queryParams: { paid: 'no' } });
+
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      await fixture.whenStable();
+      component.selectedBelt.set('blue');
+
+      component.resetFilters();
+      await fixture.whenStable();
+
+      expect(component.selectedBelt()).toBe('');
+      expect(component.selectedPaid()).toBe('no');
+      expect(router.url).toContain('paid=no');
     });
 
     it('hydrates selectedPaid from the `paid` query param on first render (#803)', async () => {
