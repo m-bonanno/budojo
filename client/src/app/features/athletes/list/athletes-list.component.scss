@@ -143,15 +143,11 @@
   }
 }
 
-.athlete-email {
-  font-size: 0.875rem;
-  color: var(--p-surface-600);
-}
-
-.athlete-date {
-  font-size: 0.875rem;
-  color: var(--p-surface-500);
-  white-space: nowrap;
+// The em-dash on rows where a payment is not expected. It had a class and no
+// rule (#1472), so the one thing it exists to do — sit in the column quietly
+// without reading as a value — it was doing by accident of inheritance.
+.athlete-paid-empty {
+  color: var(--p-text-muted-color);
 }
 
 .athlete-actions {
@@ -192,12 +188,6 @@
     outline: 2px solid var(--p-primary-color);
     outline-offset: 2px;
   }
-}
-
-.stripes {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--p-surface-600);
 }
 
 .text-center {
