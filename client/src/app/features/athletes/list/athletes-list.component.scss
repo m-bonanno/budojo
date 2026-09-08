@@ -746,6 +746,13 @@ $athletes-mobile-breakpoint: 768px;
   position: relative;
 }
 
+// The spine widened to 9px and sits close to the cell's own padding edge;
+// this reserves visible daylight before the avatar starts, independent of
+// whatever the table's native cell padding happens to be (#1429 review).
+.athlete-name {
+  margin-left: 0.5rem;
+}
+
 .athlete-row__spine {
   position: absolute;
   left: 0.375rem;
@@ -769,7 +776,9 @@ $athletes-mobile-breakpoint: 768px;
 }
 
 // And the card's content clears it, so the bar is beside the name rather than
-// under the avatar.
+// under the avatar. Wider than the spine's own footprint (9px bar starting
+// at 8px, ending at 17px) so there is visible daylight before the avatar,
+// not just enough to avoid touching it (#1429 review).
 .athlete-card {
-  padding-left: 1.5rem;
+  padding-left: 1.875rem;
 }
