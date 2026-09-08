@@ -1622,7 +1622,6 @@
       "beltPlaceholder": "Cintura",
       "table": {
         "fullName": "Nome e cognome",
-        "belt": "Cintura",
         "presentAria": "Presente"
       },
       "selfBadge": {
@@ -1664,13 +1663,6 @@
         "athlete": "Atleta",
         "days": "Giorni"
       }
-    },
-    "summaryWidget": {
-      "eyebrowPrefix": "Presenze",
-      "errorTitle": "Impossibile verificare",
-      "athletesPerSession": "atleti / sessione",
-      "viewAll": "Vedi tutto →",
-      "empty": "Nessuna presenza registrata questo mese."
     }
   },
   "statuses": {
@@ -1818,10 +1810,8 @@
       },
       "alerts": {
         "button": "Avvisi",
-        "none": "Non c'è niente da controllare",
         "missingCertificate": "senza certificato medico",
-        "expiringCertificate": "certificato in scadenza entro 30 giorni",
-        "unpaid": "non in regola con il pagamento"
+        "expiringCertificate": "certificato in scadenza entro 30 giorni"
       }
     },
     "invitation": {
