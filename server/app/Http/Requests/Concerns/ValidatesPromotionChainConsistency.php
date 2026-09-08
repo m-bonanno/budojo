@@ -113,14 +113,27 @@ trait ValidatesPromotionChainConsistency
      * The nearest same-kind row on one side of `$recordedAt`. A same-day
      * existing row counts as the earlier one — the new row is treated as
      * appended after whatever already happened that day, which is the
-     * only ordering a date-only backfill can express.
+     * only ordering a date-only backfill can express. Compares whole
+     * calendar days (`whereDate`), not raw datetimes: a backfilled or
+     * edited row is always stored at midnight, but a LIVE row written by
+     * `AthleteObserver` carries a real time-of-day (`now()`) — without
+     * this, a live row from later the same day would wrongly compare as
+     * "after" a same-day backfill instead of sharing its day.
      */
     private function neighbour(Athlete $athlete, string $kind, CarbonInterface $recordedAt, bool $earlier): ?AthletePromotion
     {
-        $query = $athlete->promotions()->where('kind', $kind);
+        // `Athlete::promotions()` bakes in its own `recorded_at DESC, id
+        // DESC` default order for the read-timeline use case. `orderBy()`
+        // APPENDS rather than replaces an existing order, so without
+        // `reorder()` first, the "later" branch's ascending order below
+        // would never actually take effect — id is unique, so the
+        // inherited DESC pair alone would always decide the row, handing
+        // back the FARTHEST future row instead of the nearest one.
+        $query = $athlete->promotions()->reorder()->where('kind', $kind);
+        $day = $recordedAt->toDateString();
 
         return $earlier
-            ? $query->where('recorded_at', '<=', $recordedAt)->orderByDesc('recorded_at')->orderByDesc('id')->first()
-            : $query->where('recorded_at', '>', $recordedAt)->orderBy('recorded_at')->orderBy('id')->first();
+            ? $query->whereDate('recorded_at', '<=', $day)->orderByDesc('recorded_at')->orderByDesc('id')->first()
+            : $query->whereDate('recorded_at', '>', $day)->orderBy('recorded_at')->orderBy('id')->first();
     }
 }

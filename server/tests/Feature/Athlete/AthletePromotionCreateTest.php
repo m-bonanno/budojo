@@ -92,6 +92,33 @@ it("never changes the athlete's current belt or stripes, and never fires the obs
         ->and(CommunityPost::count())->toBe(0);
 });
 
+it('treats a same-day row as the earlier neighbour even when it carries a real time-of-day', function (): void {
+    // A row written live by AthleteObserver carries now() — a real
+    // time-of-day — not the midnight a date-only backfill always
+    // compares at. Comparing raw datetimes would put this AFTER a
+    // same-day backfill (10:00 > 00:00); the rule is that a same-day
+    // existing row always counts as earlier, so the chain check has to
+    // compare whole calendar days, not the raw timestamps.
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'belt',
+        'from_belt' => 'white',
+        'to_belt' => 'blue',
+        'belt_at_event' => 'blue',
+        'recorded_at' => '2020-06-01 10:00:00',
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+
+    $this->actingAs($this->owner)
+        ->postJson("/api/v1/athletes/{$this->athlete->id}/promotions", [
+            'kind' => 'belt',
+            'from_belt' => 'blue',
+            'to_belt' => 'purple',
+            'recorded_at' => '2020-06-01',
+        ])
+        ->assertCreated();
+});
+
 it('refuses a backfill whose from_belt disagrees with the previous belt promotion', function (): void {
     AthletePromotion::factory()->create([
         'athlete_id' => $this->athlete->id,
@@ -137,6 +164,56 @@ it('refuses a backfill whose to_belt disagrees with the next belt promotion', fu
             // Should be 'purple' to hand off to the 2021 row above.
             'to_belt' => 'black',
             'recorded_at' => '2020-01-01',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['to_belt']);
+});
+
+it('checks against the NEAREST future belt promotion, not the farthest one', function (): void {
+    // Two rows after the backfill date, on purpose: `neighbour()` reads
+    // `Athlete::promotions()`, which bakes in its own `recorded_at DESC,
+    // id DESC` order for the read-timeline use case — a query that
+    // merely appends an ascending order on top (rather than resetting
+    // it first) would keep returning the farthest of the two rather
+    // than the nearest, and a single-future-row test can't see that.
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'belt',
+        'from_belt' => 'purple',
+        'to_belt' => 'brown',
+        'belt_at_event' => 'brown',
+        'recorded_at' => '2021-01-01', // the NEAR one
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'belt',
+        'from_belt' => 'brown',
+        'to_belt' => 'black',
+        'belt_at_event' => 'black',
+        'recorded_at' => '2023-01-01', // the FAR one
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+
+    // Hands off correctly to the NEAR row (purple) — must be refused if
+    // checked against the far row instead.
+    $this->actingAs($this->owner)
+        ->postJson("/api/v1/athletes/{$this->athlete->id}/promotions", [
+            'kind' => 'belt',
+            'from_belt' => 'blue',
+            'to_belt' => 'purple',
+            'recorded_at' => '2020-01-01',
+        ])
+        ->assertCreated();
+
+    // Hands off correctly to the FAR row (brown) instead — must be
+    // refused if checked against the near row (purple).
+    $this->actingAs($this->owner)
+        ->postJson("/api/v1/athletes/{$this->athlete->id}/promotions", [
+            'kind' => 'belt',
+            'from_belt' => 'blue',
+            'to_belt' => 'brown',
+            'recorded_at' => '2020-06-01',
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['to_belt']);
@@ -195,6 +272,74 @@ it('refuses a stripe backfill whose from_stripes disagrees with the previous str
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['from_stripes']);
+});
+
+it('refuses a stripe backfill whose to_stripes disagrees with the next stripe promotion', function (): void {
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'stripe',
+        'from_stripes' => 2,
+        'to_stripes' => 3,
+        'belt_at_event' => 'blue',
+        'recorded_at' => '2021-01-01',
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+
+    $this->actingAs($this->owner)
+        ->postJson("/api/v1/athletes/{$this->athlete->id}/promotions", [
+            'kind' => 'stripe',
+            'from_stripes' => 0,
+            // Should be 2 to hand off to the 2021 row above.
+            'to_stripes' => 1,
+            'belt_at_event' => 'blue',
+            'recorded_at' => '2020-01-01',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['to_stripes']);
+});
+
+it('accepts a stripe backfill that correctly bridges an existing gap, checking the NEAREST neighbours', function (): void {
+    // Same shape as the belt gap-bridging test, plus a second future row
+    // (regression coverage for the reorder()/nearest-neighbour fix).
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'stripe',
+        'from_stripes' => 0,
+        'to_stripes' => 1,
+        'belt_at_event' => 'blue',
+        'recorded_at' => '2019-01-01',
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'stripe',
+        'from_stripes' => 3,
+        'to_stripes' => 4,
+        'belt_at_event' => 'blue',
+        'recorded_at' => '2020-08-01', // the NEAR future row
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+    AthletePromotion::factory()->create([
+        'athlete_id' => $this->athlete->id,
+        'kind' => 'stripe',
+        'from_stripes' => 0,
+        'to_stripes' => 1,
+        'belt_at_event' => 'purple',
+        'recorded_at' => '2022-01-01', // the FAR future row
+        'recorded_by_user_id' => $this->owner->id,
+    ]);
+
+    $this->actingAs($this->owner)
+        ->postJson("/api/v1/athletes/{$this->athlete->id}/promotions", [
+            'kind' => 'stripe',
+            'from_stripes' => 1,
+            'to_stripes' => 3,
+            'belt_at_event' => 'blue',
+            'recorded_at' => '2020-06-01',
+        ])
+        ->assertCreated();
+
+    expect(AthletePromotion::where('kind', 'stripe')->count())->toBe(4);
 });
 
 it('rejects a belt promotion where from_belt equals to_belt', function (): void {
