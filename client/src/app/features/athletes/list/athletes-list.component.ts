@@ -641,6 +641,125 @@ export class AthletesListComponent implements OnInit {
   });
 
   /**
+   * 4-state cycle on the Attendance column (#1447).
+   *
+   * The same shape as `cycleFullNameSort` above, and for the same reason:
+   * this is one column carrying two related scalars, so a single sort would
+   * only ever answer half of what the column shows. The cycle:
+   *
+   *   none/other → month desc → month asc → total desc → total asc → month desc
+   *
+   * **Descending first**, unlike the name column. "Who trains most" is the
+   * question a count column is opened with — every leaderboard the user has
+   * ever seen starts at the top, and Jakob's law says not to be the one that
+   * does not. Names start at A because that is the convention there.
+   */
+  cycleAttendanceSort(): void {
+    const f = this.sortField();
+    const o = this.sortOrder();
+
+    let nextField: AthleteSortField;
+    let nextOrder: AthleteSortOrder;
+    if (f === 'attendance_month' && o === 'desc') {
+      nextField = 'attendance_month';
+      nextOrder = 'asc';
+    } else if (f === 'attendance_month' && o === 'asc') {
+      nextField = 'attendance_total';
+      nextOrder = 'desc';
+    } else if (f === 'attendance_total' && o === 'desc') {
+      nextField = 'attendance_total';
+      nextOrder = 'asc';
+    } else {
+      // Any other state — null, belt, a name, or total asc — restarts the
+      // cycle at the most-this-month view.
+      nextField = 'attendance_month';
+      nextOrder = 'desc';
+    }
+
+    this.sortField.set(nextField);
+    this.sortOrder.set(nextOrder);
+    this.resetPage();
+    this.load();
+  }
+
+  /** True while either attendance sort is the active one. */
+  private isAttendanceSort(field: AthleteSortField | null): boolean {
+    return field === 'attendance_month' || field === 'attendance_total';
+  }
+
+  /**
+   * Compact signifier for the Attendance header, mirroring the name column's
+   * `F↑` / `L↓`: the letter says which number leads (`M` this month, `T`
+   * total), the arrow says the direction. Null when the sort is elsewhere, so
+   * the template can fall back to the neutral `↕`.
+   */
+  readonly attendanceSortLabel = computed<string | null>(() => {
+    const f = this.sortField();
+    if (!this.isAttendanceSort(f)) return null;
+    const lead = f === 'attendance_month' ? 'M' : 'T';
+    return `${lead}${this.sortOrder() === 'asc' ? '↑' : '↓'}`;
+  });
+
+  /** Plain English for what the signifier abbreviates. Same pairing as the name header. */
+  readonly attendanceSortTooltip = computed<string>(() => {
+    this.languageService.currentLang();
+    const f = this.sortField();
+    const o = this.sortOrder();
+    if (!this.isAttendanceSort(f)) {
+      return this.translate.instant('athletes.list.tooltip.attendanceSortInitial');
+    }
+    const key =
+      f === 'attendance_month'
+        ? o === 'desc'
+          ? 'athletes.list.tooltip.attendanceSortMonthDesc'
+          : 'athletes.list.tooltip.attendanceSortMonthAsc'
+        : o === 'desc'
+          ? 'athletes.list.tooltip.attendanceSortTotalDesc'
+          : 'athletes.list.tooltip.attendanceSortTotalAsc';
+    return this.translate.instant(key);
+  });
+
+  /** Same contract as `fullNameAriaSort` — direction here, lead in the aria-label. */
+  readonly attendanceAriaSort = computed<'ascending' | 'descending' | 'none'>(() => {
+    if (!this.isAttendanceSort(this.sortField())) return 'none';
+    return this.sortOrder() === 'asc' ? 'ascending' : 'descending';
+  });
+
+  /**
+   * Whether the roster has attendance numbers to show at all.
+   *
+   * `null`/absent means the payload never carried them — a pre-#1447 server,
+   * or any endpoint other than the index. Rendering "0" in that case would
+   * report that nobody has ever trained, which is a different and much worse
+   * lie than showing nothing.
+   */
+  readonly hasAttendanceCounts = computed<boolean>(() =>
+    this.athletes().some((a) => this.hasAttendance(a)),
+  );
+
+  /**
+   * Whether THIS athlete's row carries counts. Separate from
+   * `hasAttendanceCounts` above, which asks the same of the page: the column
+   * appears once for the whole table, but a card renders per athlete.
+   *
+   * A method rather than `!= null` in the template — the template lint rule
+   * forbids loose equality, and spelling out both halves at the call site
+   * reads worse than naming the question.
+   */
+  protected hasAttendance(athlete: Athlete): boolean {
+    return athlete.attendance_month_count !== null && athlete.attendance_month_count !== undefined;
+  }
+
+  /** "6 · 214", read out in full for anyone who cannot see the layout. */
+  protected attendanceAria(athlete: Athlete): string {
+    this.languageService.currentLang();
+    return this.translate.instant('athletes.list.attendance.aria', {
+      month: athlete.attendance_month_count ?? 0,
+      total: athlete.attendance_total_count ?? 0,
+    });
+  }
+
+  /**
    * Belt sort cycle (#210, follow-up to #205). Same pattern as the
    * Full-name column but with only 2 states (asc / desc), since Belt
    * isn't a synthetic column — there's no first-vs-last lead to choose,

@@ -1612,3 +1612,193 @@ describe('AthletesListComponent — what is paying for the month (#1402)', () =>
     expect(cmp['paymentMenuItems']().map((i) => i.label)).not.toContain('Sell a carnet');
   });
 });
+
+describe('AthletesListComponent — how often they actually turn up (#1447)', () => {
+  function makeAthlete(over: Partial<Athlete> = {}): Athlete {
+    return {
+      id: 42,
+      first_name: 'Mario',
+      last_name: 'Rossi',
+      email: null,
+      phone_country_code: null,
+      phone_national_number: null,
+      address: null,
+      date_of_birth: null,
+      belt: 'white',
+      stripes: 0,
+      status: 'active',
+      joined_at: '2026-01-01',
+      created_at: '2026-01-01T00:00:00Z',
+      attendance_month_count: 0,
+      attendance_total_count: 0,
+      ...over,
+    } as Athlete;
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [AthletesListComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: AthleteService, useClass: FakeAthleteService },
+        { provide: PaymentService, useClass: FakePaymentService },
+        ...provideI18nTesting(),
+      ],
+    });
+  });
+
+  function render(rows: Athlete[]) {
+    const athleteService = TestBed.inject(AthleteService) as unknown as FakeAthleteService;
+    athleteService.list.mockReturnValue(
+      of({
+        data: rows,
+        meta: { total: rows.length, current_page: 1, per_page: 20, last_page: 1 },
+      }),
+    );
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+
+    return fixture;
+  }
+
+  function el(
+    fixture: ComponentFixture<AthletesListComponent>,
+    selector: string,
+  ): HTMLElement | null {
+    return (fixture.nativeElement as HTMLElement).querySelector(selector);
+  }
+
+  it('shows this month loudly and the all-time count as context', () => {
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 6, attendance_total_count: 214 }),
+    ]);
+
+    expect(el(fixture, '.athlete-attendance__month')?.textContent?.trim()).toBe('6');
+    expect(el(fixture, '.athlete-attendance__total')?.textContent).toContain('214');
+  });
+
+  it('hides the column entirely when the payload never carried the counts', () => {
+    // A pre-#1447 server, or any payload that did not select them. Rendering
+    // "0" there would report that nobody has ever trained — a worse lie than
+    // showing nothing, and one the reader cannot tell from the truth.
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: undefined, attendance_total_count: undefined }),
+    ]);
+
+    expect(el(fixture, '[data-cy="athletes-th-attendance"]')).toBeNull();
+    expect(el(fixture, '.athlete-attendance')).toBeNull();
+  });
+
+  it('still shows a genuine zero, which is a real answer', () => {
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 0, attendance_total_count: 0 }),
+    ]);
+
+    expect(el(fixture, '[data-cy="athletes-th-attendance"]')).not.toBeNull();
+    expect(el(fixture, '.athlete-attendance__month')?.textContent?.trim()).toBe('0');
+  });
+
+  it('cycles month desc → month asc → total desc → total asc → month desc', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+
+    // Descending first: a count column is opened with "who trains most", and
+    // every leaderboard the user has seen starts at the top.
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'desc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'asc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_total', 'desc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_total', 'asc']);
+
+    cmp.cycleAttendanceSort();
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'desc']);
+  });
+
+  it('restarts the cycle when the sort is currently on another column', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+    cmp.sortField.set('belt');
+    cmp.sortOrder.set('asc');
+
+    cmp.cycleAttendanceSort();
+
+    expect([cmp.sortField(), cmp.sortOrder()]).toEqual(['attendance_month', 'desc']);
+  });
+
+  it('sends the alias on the wire, not a column name', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    // `as Mock` for the args, the way the sibling describes read them — the
+    // fake's own `vi.fn()` signature takes no parameters.
+    const list = TestBed.inject(AthleteService).list as unknown as Mock;
+
+    fixture.componentInstance.cycleAttendanceSort();
+
+    expect(list.mock.calls.at(-1)?.[0]).toMatchObject({
+      sortBy: 'attendance_month',
+      sortOrder: 'desc',
+    });
+  });
+
+  it('says which of the two numbers leads, and which way', () => {
+    // Same signifier contract as the Full name header's F↑/L↓: the letter is
+    // the lead, the arrow the direction, and `↕` means the sort is elsewhere.
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+
+    expect(cmp.attendanceSortLabel()).toBeNull();
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceSortLabel()).toBe('M↓');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceSortLabel()).toBe('M↑');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceSortLabel()).toBe('T↓');
+  });
+
+  it('reports the direction to assistive tech, and nothing when it is not sorting', () => {
+    const fixture = render([makeAthlete({ id: 1 })]);
+    const cmp = fixture.componentInstance;
+
+    expect(cmp.attendanceAriaSort()).toBe('none');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceAriaSort()).toBe('descending');
+
+    cmp.cycleAttendanceSort();
+    expect(cmp.attendanceAriaSort()).toBe('ascending');
+  });
+
+  it('gives the cell an aria-label with both numbers spelled out', () => {
+    // The separator between them is `aria-hidden`, so without this a screen
+    // reader would read "6 214" and leave the listener to guess.
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 6, attendance_total_count: 214 }),
+    ]);
+
+    const label = el(fixture, '.athlete-attendance')?.getAttribute('aria-label');
+    expect(label).toContain('6');
+    expect(label).toContain('214');
+    expect(label).not.toBe('');
+  });
+
+  it('puts only this month on the mobile card, where there is no header to sort from', () => {
+    const fixture = render([
+      makeAthlete({ id: 1, attendance_month_count: 6, attendance_total_count: 214 }),
+    ]);
+
+    const card = el(fixture, '[data-cy="athlete-card-attendance-1"]');
+    expect(card?.textContent).toContain('6');
+    // An all-time count nobody can order is reference material, not a chip.
+    expect(card?.textContent).not.toContain('214');
+  });
+});

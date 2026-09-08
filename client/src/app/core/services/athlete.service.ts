@@ -191,6 +191,17 @@ export interface Athlete {
    * fixture-compat; readers fall back to `paid_current_month`.
    */
   payment_coverage?: PaymentCoverage;
+  /**
+   * Sessions attended in the current calendar month, and since the athlete
+   * joined (#1447).
+   *
+   * Present only on the roster index, which selects them as `withCount`
+   * aliases. `null` on `show` and absent on any pre-#1447 payload —
+   * both mean **not asked for**, never zero, which is a real answer about
+   * someone who has not trained. The column renders only where it has one.
+   */
+  attendance_month_count?: number | null;
+  attendance_total_count?: number | null;
 }
 
 /** The shapes `payment_coverage` takes. Mirrors `App\Enums\PaymentCoverage`. */
@@ -209,7 +220,16 @@ export interface AthleteListResponse {
   meta: AthleteMeta;
 }
 
-export type AthleteSortField = 'first_name' | 'last_name' | 'belt' | 'joined_at' | 'created_at';
+export type AthleteSortField =
+  | 'first_name'
+  | 'last_name'
+  | 'belt'
+  | 'joined_at'
+  | 'created_at'
+  // Query aliases, not columns (#1447) — the two attendance counts the roster
+  // index selects. The server whitelists them separately for that reason.
+  | 'attendance_month'
+  | 'attendance_total';
 
 export type AthleteSortOrder = 'asc' | 'desc';
 
