@@ -36,6 +36,31 @@
   border: 1px solid var(--p-content-border-color);
   border-radius: var(--p-border-radius-md);
 
+  // Sections (#1459). The form was a flat run of fields in the order they
+  // were added, and the whole was unreadable however correct each field was.
+  // Each block answers one question about the athlete now, and the rule is
+  // spacing rather than boxes: a card inside a card is chrome, and the
+  // headings already say where one group ends.
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    & + & {
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--p-content-border-color);
+    }
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--p-text-muted-color);
+  }
+
   &__row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -45,7 +70,11 @@
       grid-template-columns: 1fr 1fr 1fr;
     }
 
-    @media (max-width: 640px) {
+    // One column below the tablet breakpoint — and the canon's 768, not the
+    // 640 this file invented before the breakpoints were settled. A form at
+    // half a window on a desktop lands here too, which is the case #1459 was
+    // asked to hold up in.
+    @media (max-width: 767px) {
       grid-template-columns: 1fr;
     }
   }
@@ -245,5 +274,22 @@
     color: var(--p-primary-color);
     text-decoration: underline;
     white-space: nowrap;
+  }
+}
+
+// Fields sized to what goes in them (#1459). Every input used to be the width
+// of its grid column, so a postcode got the same room as a street and read as
+// an invitation to type more than four digits. Norman § constraints: the
+// shape of the control is part of what it tells you to put in it.
+.athlete-form {
+  // By id, because these controls carry no class of their own and inventing
+  // one for each would be three classes that exist only to be selected.
+  #athlete-address-postal-code {
+    max-width: 8rem;
+  }
+
+  :has(> #stripes),
+  :has(> #athlete-address-province) {
+    max-width: 10rem;
   }
 }
