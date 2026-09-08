@@ -49,21 +49,26 @@ describe('Athlete desktop social rail (#1110)', () => {
     cy.intercept('GET', '/api/v1/auth/me*', ATHLETE_ME);
   });
 
-  it('renders the rail with the bottom-nav destinations + a prominent Create', () => {
+  it('renders the destinations, with no Create button (#1462)', () => {
     cy.visitAuthenticated('/dashboard/me/feed');
     cy.get('[data-cy="athlete-rail"]').should('be.visible');
     cy.get('[data-cy="athlete-rail"] a[href="/dashboard/me/feed"]').should('be.visible');
     cy.get('[data-cy="athlete-rail"] a[href="/dashboard/me/academy"]').should('be.visible');
     cy.get('[data-cy="athlete-rail"] a[href="/dashboard/me/attendance"]').should('be.visible');
     cy.get('[data-cy="athlete-rail"] a[href="/dashboard/me/more"]').should('be.visible');
-    cy.get('[data-cy="rail-create"]').should('be.visible');
+    // Went with the owner's (#1462): they share the component, and the
+    // argument — everything behind it is reachable from its own section —
+    // is the same on both shells.
+    cy.get('[data-cy="rail-create"]').should('not.exist');
   });
 
-  it('opens the ➕ create sheet from the rail and dismisses it', () => {
+  it('still opens the create sheet from the phone bar (#1462)', () => {
+    // The rail lost the button; the bottom bar keeps it, because a bar has
+    // no sections to reach the same things from.
     cy.visitAuthenticated('/dashboard/me/feed');
     cy.get('[role="dialog"]').should('not.exist');
 
-    cy.get('[data-cy="rail-create"]').click();
+    cy.get('[data-cy="bottomnav-create"]').click({ force: true });
     cy.get('[role="dialog"]').should('exist');
 
     cy.get('body').type('{esc}');
