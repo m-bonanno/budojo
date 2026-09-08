@@ -121,7 +121,6 @@
         [value]="monthRows()"
         [tableStyle]="{ 'min-width': '32rem' }"
         responsiveLayout="scroll"
-        styleClass="payments-list__table"
         data-cy="payments-list"
       >
         <ng-template #header>
@@ -132,7 +131,7 @@
             <th scope="col" class="payments-list__th-status">
               {{ 'athletes.detail.payments.columns.status' | translate }}
             </th>
-            <th scope="col" class="payments-list__th-amount">
+            <th scope="col">
               {{ 'athletes.detail.payments.columns.amount' | translate }}
             </th>
             <th scope="col" class="payments-list__th-paid-at">

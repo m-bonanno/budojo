@@ -72,6 +72,24 @@
     gap: 0.5rem;
   }
 
+  // The tooltip's text, for anyone who cannot hover it (#1473).
+  //
+  // It wore a bare `sr-only`, which nothing in this app defines — there is no
+  // global utility layer for it, only a per-component `&__sr-only` that the
+  // profile page declares for itself. So the text was not hidden at all: it
+  // rendered inline beside the icon, in a row sized for an icon.
+  &__sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   &__row-where {
     display: inline-flex;
     align-items: center;

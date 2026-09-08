@@ -156,7 +156,6 @@
                   tooltipPosition="left"
                   [ariaLabel]="'profile.editName.edit' | translate"
                   (onClick)="startEditName()"
-                  styleClass="profile-page__row-edit-button"
                   data-cy="profile-first-name-edit"
                 />
               </div>
@@ -177,7 +176,6 @@
                   tooltipPosition="left"
                   [ariaLabel]="'profile.editName.edit' | translate"
                   (onClick)="startEditName()"
-                  styleClass="profile-page__row-edit-button"
                   data-cy="profile-last-name-edit"
                 />
               </div>
@@ -192,7 +190,7 @@
               [formGroup]="handleForm"
               (ngSubmit)="submitEditHandle()"
               novalidate
-              class="profile-page__row profile-page__row--edit profile-page__row--edit-handle"
+              class="profile-page__row profile-page__row--edit"
               data-cy="profile-handle-edit-form"
             >
               <label for="profileHandle" class="profile-page__label">
@@ -275,7 +273,6 @@
                   tooltipPosition="left"
                   [ariaLabel]="'profile.editHandle.edit' | translate"
                   (onClick)="startEditHandle()"
-                  styleClass="profile-page__row-edit-button"
                   data-cy="profile-handle-edit"
                 />
               </div>
@@ -386,7 +383,6 @@
                     tooltipPosition="left"
                     [ariaLabel]="'account.emailChange.profile.edit' | translate"
                     (onClick)="startEditEmail()"
-                    styleClass="profile-page__row-edit-button"
                     data-cy="profile-email-edit"
                   />
                 }

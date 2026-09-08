@@ -20,7 +20,7 @@
       [attr.aria-current]="rla.isActive ? 'page' : null"
     >
       <i [class]="tab.icon" aria-hidden="true"></i>
-      <span class="rail__label">{{ tab.label }}</span>
+      <span>{{ tab.label }}</span>
     </a>
   }
 </div>
@@ -42,7 +42,7 @@
       [attr.data-cy]="item.dataCy"
     >
       <i [class]="item.icon" aria-hidden="true"></i>
-      <span class="rail__label">{{ item.label }}</span>
+      <span>{{ item.label }}</span>
     </a>
   }
 
@@ -66,7 +66,7 @@
           >
         }
       </span>
-      <span class="rail__label">{{ notif.label }}</span>
+      <span>{{ notif.label }}</span>
     </a>
   }
 </div>
