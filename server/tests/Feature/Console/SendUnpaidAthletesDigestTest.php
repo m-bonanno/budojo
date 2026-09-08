@@ -61,8 +61,8 @@ it('queues a digest with only the active unpaid athletes for this month (golden 
     // 1 active but PAID for May 2026 (not in digest)
     makeAthleteForUnpaid($academy, AthleteStatus::Active, ['year' => 2026, 'month' => 5]);
 
-    // 1 suspended unpaid (not in digest — they don't owe a fee)
-    makeAthleteForUnpaid($academy, AthleteStatus::Suspended);
+    // 1 inactive unpaid (not in digest — they don't owe a fee)
+    makeAthleteForUnpaid($academy, AthleteStatus::Inactive);
     // 1 inactive unpaid (not in digest)
     makeAthleteForUnpaid($academy, AthleteStatus::Inactive);
 
@@ -87,11 +87,11 @@ it('does not queue a mail when an academy has zero unpaid active athletes (no sp
     Mail::assertNothingQueued();
 });
 
-it('does not queue a mail when the only unpaid athletes are suspended / inactive', function (): void {
+it('does not queue a mail when the only unpaid athletes are inactive', function (): void {
     $academy = makeAcademyForUnpaid();
 
     // 2 unpaid but NOT active — they don't owe a fee.
-    makeAthleteForUnpaid($academy, AthleteStatus::Suspended);
+    makeAthleteForUnpaid($academy, AthleteStatus::Inactive);
     makeAthleteForUnpaid($academy, AthleteStatus::Inactive);
 
     \Artisan::call('budojo:send-unpaid-athletes-digest');

@@ -47,7 +47,7 @@ export const MAX_STRIPES_PER_BELT: Record<Belt, number> = {
   'red-and-white': 4,
   red: 4,
 };
-export type AthleteStatus = 'active' | 'suspended' | 'inactive';
+export type AthleteStatus = 'active' | 'inactive';
 
 /**
  * Filter token for the athletes-list `?status=` query (#700). Extends
@@ -325,6 +325,47 @@ export interface AthleteInvitationSummary {
   accepted_at: string | null;
 }
 
+/**
+ * The report `POST /athletes/import` answers with (#1346).
+ *
+ * Identical in shape whether or not anything was written — `dry_run` says
+ * which it was. That symmetry is deliberate: the preview and the result are
+ * the same screen, so the owner reads the same table before and after.
+ */
+export interface AthleteImportRow {
+  row: number;
+  status: 'ok' | 'invalid' | 'duplicate';
+  values: Record<string, unknown>;
+  errors: Record<string, string[]>;
+}
+
+export interface AthleteImportReport {
+  dry_run: boolean;
+  delimiter: string;
+  /** The header row, exactly as the file spells it. */
+  columns: string[];
+  /** field → the column carrying it. The server's guess, with any correction applied. */
+  mapping: Record<string, string>;
+  /** Every field the import can fill, in the order to show them. */
+  fields: string[];
+  imported: number;
+  skipped: number;
+  rows: AthleteImportRow[];
+}
+
+/**
+ * The 422 the server sends when a required column is not mapped. Distinct
+ * from an ordinary validation error because it is **actionable on the screen
+ * the user is already looking at**: they pick the right column and retry,
+ * with no need to touch the file.
+ */
+export interface AthleteImportMappingError {
+  message: string;
+  missing: string[];
+  columns: string[];
+  mapping: Record<string, string>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AthleteService {
   private readonly http = inject(HttpClient);
@@ -385,6 +426,35 @@ export class AthleteService {
 
     return this.http
       .post<AthleteResponse>(`${this.base}/${athleteId}/photo`, form)
+      .pipe(map((res) => res.data));
+  }
+
+  /**
+   * `POST /api/v1/athletes/import` (#1346).
+   *
+   * Called twice for one import: once to preview, once to write. The file is
+   * uploaded both times — a second upload of a 60-row CSV over a loopback
+   * socket costs nothing measurable against a server-side temp file that
+   * would have to be expired, secured and cleaned up.
+   *
+   * `dryRun` is passed explicitly every time rather than relying on the
+   * server's default. The default is the safe one, but a caller that reads
+   * `importAthletes(file)` should not have to know that to know what it does.
+   */
+  importAthletes(
+    file: File,
+    options: { dryRun: boolean; mapping?: Record<string, string> } = { dryRun: true },
+  ): Observable<AthleteImportReport> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('validate_only', options.dryRun ? '1' : '0');
+
+    for (const [field, column] of Object.entries(options.mapping ?? {})) {
+      form.append(`mapping[${field}]`, column);
+    }
+
+    return this.http
+      .post<{ data: AthleteImportReport }>(`${this.base}/import`, form)
       .pipe(map((res) => res.data));
   }
 
@@ -474,6 +544,49 @@ export class AthleteService {
     const params = new HttpParams().set('page', page.toString());
     return this.http.get<AthletePromotionPage>(`${this.base}/${athleteId}/promotions`, { params });
   }
+
+  /**
+   * Corrects when a promotion actually happened, not when it was typed
+   * into Budojo (#1431 PR 1 of 2). `recordedAt` is date-only (YYYY-MM-DD),
+   * matching the timeline's display precision — the server rejects a
+   * future date. Only the date moves; the belt/stripe transition the row
+   * describes and who recorded it are untouched.
+   */
+  updatePromotionRecordedAt(
+    athleteId: number,
+    promotionId: number,
+    recordedAt: string,
+  ): Observable<AthletePromotion> {
+    return this.http
+      .patch<{ data: AthletePromotion }>(`${this.base}/${athleteId}/promotions/${promotionId}`, {
+        recorded_at: recordedAt,
+      })
+      .pipe(map((res) => res.data));
+  }
+
+  /**
+   * Backfills a historical promotion (#1431 PR 2 of 2) — transcribing a
+   * paper register for a promotion that happened before Budojo existed.
+   * The server refuses (422) a row that contradicts a same-kind
+   * neighbour already on the timeline; the caller surfaces that message
+   * rather than a generic failure, since it names exactly what to fix.
+   */
+  createPromotion(
+    athleteId: number,
+    payload: AthletePromotionCreatePayload,
+  ): Observable<AthletePromotion> {
+    return this.http
+      .post<{ data: AthletePromotion }>(`${this.base}/${athleteId}/promotions`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  /**
+   * Undoes a promotion entered by mistake (#1431 PR 2 of 2). Hard delete
+   * — no restore, matching the server side.
+   */
+  deletePromotion(athleteId: number, promotionId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${athleteId}/promotions/${promotionId}`);
+  }
 }
 
 export interface AthletePromotion {
@@ -502,6 +615,28 @@ export interface AthletePromotionPage {
     readonly last_page: number;
   };
 }
+
+/**
+ * Body for `createPromotion` (#1431 PR 2 of 2). Mirrors
+ * `AthletePromotionCreateRequest` in docs/api/v1.yaml: belt fields only
+ * for `kind=belt`, stripe fields only for `kind=stripe` — the server
+ * enforces the split; this type just keeps the caller from mixing them
+ * up by construction.
+ */
+export type AthletePromotionCreatePayload =
+  | {
+      readonly kind: 'belt';
+      readonly recorded_at: string;
+      readonly from_belt: Belt | null;
+      readonly to_belt: Belt;
+    }
+  | {
+      readonly kind: 'stripe';
+      readonly recorded_at: string;
+      readonly from_stripes: number;
+      readonly to_stripes: number;
+      readonly belt_at_event: Belt;
+    };
 
 /**
  * State discriminator returned from `POST /athletes/{id}/email` (#476).

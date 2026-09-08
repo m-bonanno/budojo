@@ -1675,7 +1675,6 @@
   "statuses": {
     "all": "All statuses",
     "active": "Active",
-    "suspended": "Suspended",
     "inactive": "Inactive",
     "trashed": "Deleted"
   },
@@ -1712,9 +1711,7 @@
         "beltSortAsc": "Sorted by belt (white → black). Click to flip.",
         "beltSortDesc": "Sorted by belt (black → white). Click to flip.",
         "edit": "Edit",
-        "delete": "Delete",
         "editAria": "Edit {{name}}",
-        "deleteAria": "Delete {{name}}",
         "openMenuAria": "Open menu for {{name}}",
         "paid": "Paid",
         "unpaid": "Unpaid",
@@ -1796,7 +1793,10 @@
         "undoPaid": "Undo the payment",
         "sellCarnet": "Sell a carnet",
         "openPayments": "Open payments"
-      }
+      },
+      "importButton": "Import",
+      "showTrashed": "Show deleted athletes",
+      "hideTrashed": "Back to the roster"
     },
     "invitation": {
       "title": "Account & invitation",
@@ -1933,7 +1933,47 @@
         "stripes": "stripes",
         "recordedBy": "Recorded by {{name}}",
         "prevPage": "Previous page",
-        "nextPage": "Next page"
+        "nextPage": "Next page",
+        "editDate": "Correct the date",
+        "editDateAria": "Correct the recorded date",
+        "editDialog": {
+          "title": "Correct the date",
+          "body": "Only the date moves. What was promoted, and who recorded it, stay the same.",
+          "label": "Recorded on",
+          "confirm": "Save",
+          "cancel": "Cancel"
+        },
+        "addPast": "Add a past promotion",
+        "deleteAria": "Delete this promotion",
+        "confirmDelete": "Delete this promotion? This can't be undone.",
+        "deleteConfirm": "Delete",
+        "createDialog": {
+          "title": "Add a past promotion",
+          "body": "For a promotion that happened before Budojo existed. It must line up with any promotions already recorded around it.",
+          "kindLabel": "Type",
+          "kindBelt": "Belt",
+          "kindStripe": "Stripe",
+          "dateLabel": "Recorded on",
+          "fromBelt": "From belt",
+          "toBelt": "To belt",
+          "firstBelt": "First belt (no prior)",
+          "beltAtEvent": "Belt at the time",
+          "fromStripes": "From stripes",
+          "toStripes": "To stripes",
+          "confirm": "Add promotion",
+          "error": "Couldn't add this promotion. Try again."
+        },
+        "toast": {
+          "updatedSummary": "Date updated",
+          "updatedDetail": "The promotion history has been corrected.",
+          "createdSummary": "Promotion added",
+          "createdDetail": "The promotion history has been updated.",
+          "deletedSummary": "Promotion deleted",
+          "deletedDetail": "The promotion history has been updated.",
+          "deleteErrorDetail": "Couldn't delete this promotion. Try again.",
+          "errorSummary": "Something went wrong",
+          "errorGeneric": "Couldn't update the date. Try again."
+        }
       },
       "attendance": {
         "eyebrow": "Attendance",
@@ -2125,6 +2165,17 @@
         "quarterly": "Quarterly",
         "halfYearly": "Half-yearly",
         "annual": "Annual"
+      },
+      "dangerZone": {
+        "title": "Danger zone",
+        "delete": {
+          "heading": "Delete this athlete",
+          "hint": "Removes them from the roster. Their documents are permanently deleted and cannot be restored — only the athlete row itself can be undone.",
+          "button": "Delete athlete",
+          "buttonAria": "Delete {{name}}"
+        },
+        "selfNote": "This is your own row, so it can't be deleted from here. To stop training at this academy, use the toggle on your",
+        "selfNoteLink": "Profile page"
       }
     },
     "photo": {
@@ -2151,6 +2202,68 @@
         "tooLargeSummary": "File too large",
         "tooLargeDetail": "The photo cannot exceed 2 MB."
       }
+    },
+    "import": {
+      "title": "Import athletes",
+      "subtitle": "Bring your roster in from a spreadsheet, once, instead of typing it in.",
+      "back": "Back to athletes",
+      "pick": {
+        "title": "Choose a CSV file",
+        "hint": "It needs a header row, and a column for the first name, the surname and the belt.",
+        "button": "Choose a file",
+        "excelNote": "Exporting from Excel? File → Save as → CSV. Semicolons, accents and Italian dates are all handled."
+      },
+      "mapping": {
+        "title": "Columns",
+        "hint": "This is how your columns were read. Change anything that is wrong before importing.",
+        "missing": "No column was matched for:",
+        "none": "— not imported —"
+      },
+      "fields": {
+        "first_name": "First name",
+        "last_name": "Surname",
+        "belt": "Belt",
+        "stripes": "Stripes",
+        "status": "Status",
+        "joined_at": "Joined on",
+        "email": "Email",
+        "phone": "Phone",
+        "date_of_birth": "Date of birth"
+      },
+      "table": {
+        "row": "Row",
+        "name": "Name",
+        "outcome": "Outcome"
+      },
+      "status": {
+        "ok": "Will be imported",
+        "invalid": "Skipped",
+        "duplicate": "Already on the roster"
+      },
+      "reason": {
+        "duplicate": "Someone with this name is already here."
+      },
+      "summary": {
+        "willOne": "1 athlete will be imported.",
+        "willOther": "{{count}} athletes will be imported.",
+        "doneOne": "1 athlete imported.",
+        "doneOther": "{{count}} athletes imported.",
+        "skippedOne": "1 row was skipped.",
+        "skippedOther": "{{count}} rows were skipped."
+      },
+      "confirmOne": "Import 1 athlete",
+      "confirmOther": "Import {{count}} athletes",
+      "seeRoster": "See the roster",
+      "error": {
+        "title": "The file could not be read",
+        "generic": "Check that it is a CSV and try again."
+      },
+      "toast": {
+        "title": "Import complete",
+        "bodyOne": "1 athlete added to the roster.",
+        "bodyOther": "{{count}} athletes added to the roster."
+      },
+      "another": "Choose another file"
     }
   },
   "month": {

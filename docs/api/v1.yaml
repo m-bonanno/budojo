@@ -3071,7 +3071,7 @@ paths:
             returns only athletes with a row in `athlete_payments` for the
             current calendar (year, month); `no` returns only those without
             AND whose `status` is `active` (#805 — payment is not expected
-            from suspended / inactive athletes, so they're excluded from
+            from inactive athletes, so they're excluded from
             the "owes" view). The asymmetry is deliberate: `paid=yes`
             does NOT carry the same status gate, because an athlete who
             paid earlier in the month and went inactive is still factually
@@ -3157,6 +3157,164 @@ paths:
           $ref: '#/components/responses/ForbiddenAthleteWrite'
         '422':
           $ref: '#/components/responses/ValidationError'
+
+  /athletes/import:
+    post:
+      tags: [athletes]
+      summary: Import a roster from a CSV file
+      description: |
+        Bulk-create athletes from a spreadsheet (#1346). Guarded by the same
+        capability as creating one by hand — anyone who may add an athlete may
+        add sixty.
+
+        **Called twice for one import.** The first call sends the file alone
+        and answers with the columns found, the mapping guessed, and what every
+        row *would* do. The second sends the same file with
+        `validate_only=false`, plus a corrected `mapping` if the guess was
+        wrong. Nothing is written until that second call.
+
+        `validate_only` **defaults to `true`**, deliberately: a missing flag
+        must never be the one that creates sixty athletes.
+
+        The two-step shape is the feature, not caution. A real file's dates are
+        ambiguous (`03/04/2019` is 3 April in Europe and 4 March in the US),
+        its belts are in another language, and its columns are named by
+        whoever made the sheet. No parser settles that reliably — showing the
+        owner exactly what would be written does.
+
+        **What the server works out on its own:**
+
+        - The delimiter. Excel in an Italian locale writes `;`, because the
+          comma is the decimal separator.
+        - A UTF-8 BOM, which Excel writes and never mentions.
+        - Which column is which, from Italian or English header names.
+        - Belts written as `Blu`, `cintura blu` or `blue`.
+        - Dates as `gg/mm/aaaa`, `gg-mm-aa`, ISO, with or without a time.
+        - A phone in one column, split into the stored pair. A number with no
+          prefix takes the academy's own dial code.
+
+        **Defaults:** `status` is `active` and `joined_at` is today when the
+        column is absent; `stripes` is `0`. `belt`, `first_name` and
+        `last_name` have none — a request whose mapping lacks any of them is
+        refused with `422` naming the missing ones, rather than returning one
+        identical error per row.
+
+        **Rows are numbered as Excel shows them**, so the header is row 1 and
+        the first athlete is row 2.
+
+        Every row is validated against the same rules as `POST /athletes`. The
+        write is one transaction: an import either lands whole or not at all,
+        because a half-imported roster cannot be re-run without duplicating
+        whatever did land.
+      operationId: athletesImport
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: |
+                    The CSV, max 2 MB and 2000 rows. `.xlsx` is not read —
+                    "Save as CSV" is one menu item, and a spreadsheet library
+                    is a heavy thing to ship inside a desktop installer.
+                validate_only:
+                  type: boolean
+                  default: true
+                  description: |
+                    `true` (the default) reports what would happen and writes
+                    nothing. `false` performs the import.
+                mapping:
+                  type: object
+                  description: |
+                    Field → the header name carrying it. Optional: absent
+                    fields fall back to the server's guess, so correcting one
+                    wrong column does not mean restating the ones already
+                    right. Only the field names in `fields` are accepted; an
+                    unknown key is a validation error rather than a silently
+                    ignored instruction.
+                  additionalProperties:
+                    type: string
+      responses:
+        '200':
+          description: |
+            The import report. Identical in shape whether or not anything was
+            written — `dry_run` says which it was.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [dry_run, delimiter, columns, mapping, fields, imported, skipped, rows]
+                    properties:
+                      dry_run:
+                        type: boolean
+                      delimiter:
+                        type: string
+                        description: The separator detected in the file.
+                        example: ';'
+                      columns:
+                        type: array
+                        description: The header row, as written in the file.
+                        items: { type: string }
+                      mapping:
+                        type: object
+                        description: The mapping actually used — the caller's, filled out with the guess.
+                        additionalProperties: { type: string }
+                      fields:
+                        type: array
+                        description: Every field the import can fill, for building the mapping UI.
+                        items: { type: string }
+                      imported:
+                        type: integer
+                        description: Rows written, or that would be written on a dry run.
+                      skipped:
+                        type: integer
+                      rows:
+                        type: array
+                        items:
+                          type: object
+                          required: [row, status, values, errors]
+                          properties:
+                            row:
+                              type: integer
+                              description: The line number as Excel shows it; the header is row 1.
+                            status:
+                              type: string
+                              enum: [ok, invalid, duplicate]
+                              description: |
+                                `duplicate` means an athlete of that name is
+                                already on the roster, or appeared earlier in
+                                this same file. A known date of birth on both
+                                sides that differs makes them two people.
+                            values:
+                              type: object
+                              description: The parsed athlete, as it would be created.
+                              additionalProperties: true
+                            errors:
+                              type: object
+                              description: Field → messages, for an `invalid` row.
+                              additionalProperties:
+                                type: array
+                                items: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/ForbiddenAthleteWrite'
+        '422':
+          description: |
+            The upload failed validation, or the file cannot be imported as
+            mapped — no header row, more rows than one import takes, or a
+            required column left unmapped. The last carries `missing`,
+            `columns` and `mapping` so the caller can fix the mapping without
+            re-reading the file.
 
   /athletes/{id}:
     parameters:
@@ -4342,6 +4500,150 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorMessage' }
               example: { message: Forbidden. }
+
+    post:
+      tags: [athletes]
+      summary: Backfill a historical promotion (#1431 PR 2 of 2)
+      description: |
+        Transcribes a promotion that happened before Budojo existed, for
+        either belts or stripes. Writes straight to the row; never touches
+        the athlete's current `belt` or `stripes`, so it cannot fire the
+        `AthleteObserver` — no spurious `CommunityPost`, no notification
+        fanout. `recorded_by_user_id` on the created row is always the
+        caller, never a guess at who recorded the real-world event.
+
+        A backfill that contradicts an existing same-kind neighbour in the
+        athlete's timeline (its `from_*` doesn't match the nearest earlier
+        row's `to_*`, or its `to_*` doesn't match the nearest later row's
+        `from_*`) is refused with a 422 naming the row it disagrees with.
+        A row with no same-kind neighbour on one side is unconstrained on
+        that side — the athlete's earliest or latest known event of that
+        kind. Belt and stripe chains are checked independently; a stripe
+        row is never cross-checked against belt rows.
+
+        `belt_at_event` is not accepted for `kind=belt` — it always equals
+        `to_belt` and is derived server-side.
+      operationId: athletePromotionCreate
+      parameters:
+        - name: athlete
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AthletePromotionCreateRequest'
+      responses:
+        '201':
+          description: The created promotion row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AthletePromotion'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: Athlete is not in the authenticated academy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorMessage' }
+              example: { message: Forbidden. }
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /athletes/{athlete}/promotions/{promotion}:
+    patch:
+      tags: [athletes]
+      summary: Correct when a promotion actually happened (#1431 PR 1 of 2)
+      description: |
+        The only editable field on a promotion row: `kind`, the belt/stripe
+        transition, and who recorded it describe the event itself and stay
+        put. Fixes the common case where a promotion was entered after the
+        fact — the row carries the date it was *typed*, not the date it
+        *happened*.
+
+        Writes straight to the row; never touches the athlete's current
+        `belt` or `stripes`, so it cannot fire the `AthleteObserver` or spawn
+        another promotion row. `recorded_at` may not be set in the future.
+
+        403 when the promotion does not belong to the athlete in the path.
+      operationId: athletePromotionUpdateRecordedAt
+      parameters:
+        - name: athlete
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: promotion
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AthletePromotionRecordedAtUpdateRequest'
+      responses:
+        '200':
+          description: The updated promotion row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AthletePromotion'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: Athlete is not in the authenticated academy, or the promotion does not belong to it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorMessage' }
+              example: { message: Forbidden. }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [athletes]
+      summary: Undo a promotion entered by mistake (#1431 PR 2 of 2)
+      description: |
+        Hard delete — a promotion row has no downstream ledger to
+        reconcile, so there is no restore concept here (unlike athletes
+        or carnets).
+
+        403 when the promotion does not belong to the athlete in the path.
+      operationId: athletePromotionDelete
+      parameters:
+        - name: athlete
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: promotion
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204':
+          description: Promotion deleted
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: Athlete is not in the authenticated academy, or the promotion does not belong to it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorMessage' }
+              example: { message: Forbidden. }
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /athletes/{athlete}/attendance:
     get:
@@ -5844,7 +6146,7 @@ components:
     AthleteStatus:
       type: string
       description: Enrollment status for an athlete
-      enum: [active, suspended, inactive]
+      enum: [active, inactive]
 
     # ── Generic envelopes ─────────────────────────────────────────────────
 
@@ -7350,6 +7652,49 @@ components:
           description: |
             The new validity start. The expiry moves with it and the ledger is
             rebuilt: sessions are claimed or released at either end.
+
+    AthletePromotionRecordedAtUpdateRequest:
+      type: object
+      required: [recorded_at]
+      properties:
+        recorded_at:
+          type: string
+          format: date
+          description: |
+            Date-only, matching the timeline's display precision. Must not be
+            in the future — a promotion can't be recorded ahead of today.
+
+    AthletePromotionCreateRequest:
+      type: object
+      description: |
+        `from_belt`/`to_belt` are only accepted (and `to_belt` required)
+        when `kind=belt`; `from_stripes`/`to_stripes`/`belt_at_event` are
+        only accepted (and required) when `kind=stripe`. Sending a
+        belt-shaped field with `kind=stripe`, or vice versa, is a 422.
+      required: [kind, recorded_at]
+      properties:
+        kind:
+          type: string
+          enum: [belt, stripe]
+        recorded_at:
+          type: string
+          format: date
+          description: Date-only. Must not be in the future.
+        from_belt:
+          allOf:
+            - $ref: '#/components/schemas/Belt'
+          nullable: true
+          description: Null on the athlete's first belt assignment. `kind=belt` only.
+        to_belt:
+          $ref: '#/components/schemas/Belt'
+        from_stripes: { type: integer, minimum: 0, maximum: 6 }
+        to_stripes: { type: integer, minimum: 0, maximum: 6 }
+        belt_at_event:
+          allOf:
+            - $ref: '#/components/schemas/Belt'
+          description: |
+            `kind=stripe` only — the belt this stripe happened on. Not
+            accepted for `kind=belt`; the server derives it as `to_belt`.
 
     AthleteEnvelope:
       type: object

@@ -456,14 +456,11 @@ describe('AthletesListComponent', () => {
       expect(fixture.nativeElement.querySelector('[data-cy="athletes-th-paid"]')).not.toBeNull();
     });
 
-    it('Paid column header carries the current month abbreviation (#282)', () => {
-      // Header should read "Paid · Apr" (or whatever the current month
-      // is) so an instructor doesn't have to guess which month the
-      // status refers to. We don't pin a specific month here — that
-      // would make the test break every time the wall clock crosses
-      // a month boundary — but we DO assert the prefix + the
-      // separator + a 3-letter abbreviation matching the component's
-      // own derivation.
+    it('names the payment column without a month, because most cells are not about one (#1425)', () => {
+      // It read "Payment · Sep" from #282, when the column answered "has this
+      // athlete paid for September". Since #1402 it answers HOW the month is
+      // covered — and a Quarterly bought in February or an Annual bought in
+      // January are exactly the cells the month suffix contradicted.
       const academyService = TestBed.inject(AcademyService);
       academyService.academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
 
@@ -473,14 +470,9 @@ describe('AthletesListComponent', () => {
       const headerText = fixture.nativeElement
         .querySelector('[data-cy="athletes-th-paid"]')
         ?.textContent?.trim();
-      const expected = `Payment · ${fixture.componentInstance.currentMonthShort()}`;
-      expect(headerText).toBe(expected);
 
-      // Sanity-check that the derived month is a recognisable
-      // 3-letter English abbreviation — guards against a future
-      // refactor that changes the format token (e.g. "month: 'numeric'")
-      // and silently breaks the contract.
-      expect(fixture.componentInstance.currentMonthShort()).toMatch(/^[A-Z][a-z]{2}$/);
+      expect(headerText).toBe('Payment');
+      expect(headerText).not.toContain('·');
     });
 
     function makeAthlete(over: Partial<Athlete> = {}): Athlete {
@@ -763,7 +755,7 @@ describe('AthletesListComponent', () => {
       } as Athlete;
     }
 
-    it('openCardMenu populates cardMenuItems with the expanded quick-actions set (#985)', () => {
+    it('openCardMenu populates cardMenuItems with the quick-actions set (#985, #1430)', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       fixture.detectChanges();
       const component = fixture.componentInstance as unknown as {
@@ -777,20 +769,14 @@ describe('AthletesListComponent', () => {
 
       const items = component.cardMenuItems();
       // No monthly_fee + no handle on the default makeAthlete fixture →
-      // 5 items: attendance, documents, promotions, edit, delete. The
-      // conditional Payments + Public profile entries are exercised in
-      // the follow-up assertions below.
-      expect(items).toHaveLength(5);
+      // 4 items: attendance, documents, promotions, edit. The conditional
+      // Payments + Public profile entries are exercised in the follow-up
+      // assertions below. Delete moved off this menu entirely (#1430) — the
+      // danger zone on the edit page is the only place it lives now.
+      expect(items).toHaveLength(4);
       const icons = items.map((it) => it.icon);
-      expect(icons).toEqual([
-        'pi pi-calendar',
-        'pi pi-file',
-        'pi pi-trophy',
-        'pi pi-pencil',
-        'pi pi-trash',
-      ]);
-      const last = items[items.length - 1];
-      expect(last?.styleClass).toBe('menu-item--danger');
+      expect(icons).toEqual(['pi pi-calendar', 'pi pi-file', 'pi pi-trophy', 'pi pi-pencil']);
+      expect(icons).not.toContain('pi pi-trash');
       expect(component.cardMenu?.toggle).toHaveBeenCalledTimes(1);
     });
 
@@ -871,39 +857,6 @@ describe('AthletesListComponent', () => {
 
         expect(root.querySelectorAll('a[href*="/dashboard/u/"]').length).toBeGreaterThan(0);
       });
-    });
-
-    it('confirmDeleteFromCardMenu routes through ConfirmationService with the mobile dialog key', () => {
-      const fixture = TestBed.createComponent(AthletesListComponent);
-      fixture.detectChanges();
-      // ConfirmationService is declared in the component's `providers: []`
-      // (component-scoped), so resolve it through the component's element
-      // injector rather than the TestBed root.
-      const confirmationService = fixture.debugElement.injector.get(ConfirmationService);
-      const confirmSpy = vi.spyOn(confirmationService, 'confirm');
-
-      const component = fixture.componentInstance as unknown as {
-        confirmDeleteFromCardMenu: (athlete: Athlete) => void;
-      };
-
-      component.confirmDeleteFromCardMenu(makeAthlete({ id: 99, first_name: 'Anna' }));
-
-      expect(confirmSpy).toHaveBeenCalledTimes(1);
-      const config = confirmSpy.mock.calls[0]![0] as {
-        key?: string;
-        message?: string;
-        acceptButtonProps?: { severity?: string };
-        accept?: () => void;
-      };
-      expect(config.key).toBe('athlete-delete-mobile');
-      expect(config.message).toContain('Anna');
-      expect(config.acceptButtonProps?.severity).toBe('danger');
-
-      // The accept callback must reach the same delete(athlete) path the
-      // desktop popup uses; assert via the AthleteService spy.
-      const athleteService = TestBed.inject(AthleteService) as unknown as FakeAthleteService;
-      config.accept?.();
-      expect(athleteService.delete).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1009,7 +962,7 @@ describe('AthletesListComponent', () => {
         of({
           data: [
             makeAthlete({ id: 10, status: 'active', paid_current_month: false }),
-            makeAthlete({ id: 11, status: 'suspended', paid_current_month: false }),
+            makeAthlete({ id: 11, status: 'inactive', paid_current_month: false }),
             makeAthlete({ id: 12, status: 'inactive', paid_current_month: false }),
           ],
           meta: { total: 3, current_page: 1, per_page: 20, last_page: 1 },
@@ -1118,8 +1071,8 @@ describe('AthletesListComponent — who is expected to pay (#1381)', () => {
     expect(predicate()(athlete({ is_self: true }))).toBe(true);
   });
 
-  it('does not expect payment from a suspended athlete', () => {
-    expect(predicate()(athlete({ status: 'suspended' }))).toBe(true);
+  it('does not expect payment from an inactive athlete', () => {
+    expect(predicate()(athlete({ status: 'inactive' }))).toBe(true);
   });
 
   it('does not expect payment when no fee resolves for them', () => {
@@ -1235,14 +1188,15 @@ describe('AthletesListComponent — the roster shows who trains here (#1403)', (
     expect(list.mock.calls.at(-1)?.[0]).toMatchObject({ status: 'active' });
   });
 
-  it('picking a status from the menu lights the eye, so the two never disagree', () => {
+  it('lights the eye for any list that is wider than the actives', () => {
     const fixture = TestBed.createComponent(AthletesListComponent);
     fixture.detectChanges();
     const cmp = fixture.componentInstance;
 
-    // Two controls, one piece of state: "Suspended" is not "only the actives",
-    // and the eye has to say so or the grey rows have no explanation.
-    cmp.onStatusChange('suspended');
+    // The eye is derived, never held beside the state — so anything that is
+    // not "only the actives" has to light it, or the grey rows on screen have
+    // no explanation.
+    cmp.onStatusChange('inactive');
     expect(cmp.showingInactive()).toBe(true);
   });
 
@@ -1253,6 +1207,58 @@ describe('AthletesListComponent — the roster shows who trains here (#1403)', (
 
     cmp.onStatusChange('trashed');
     expect(cmp.canToggleInactive()).toBe(false);
+  });
+
+  it('has no status select left — the eye is the whole control (#1426)', () => {
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+
+    // Two controls answering the same question, wired so they could not
+    // contradict each other. The wiring existed because they were the same
+    // question; one of them had to go, and the eye is one gesture with a
+    // default state that answers what people open the page with.
+    const selects = fixture.nativeElement.querySelectorAll('p-select');
+    const labels = Array.from(selects).map((el) => (el as HTMLElement).getAttribute('placeholder'));
+    expect(labels).not.toContain('All statuses');
+  });
+
+  it('keeps the eye reachable on a phone, where the inline row is not (#1426)', () => {
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+
+    // The consequence the issue did not anticipate: the eye used to live
+    // inside `__filters-inline`, which is `display: none` below 768px, and the
+    // status select was what carried this job there. Removing the select with
+    // the eye still inside would have left a phone unable to see an inactive
+    // athlete at all.
+    const inline = fixture.nativeElement.querySelector('[data-cy="athletes-filters-inline"]');
+    const eye = fixture.nativeElement.querySelector('[data-cy="athletes-reveal-inactive"]');
+
+    expect(eye).not.toBeNull();
+    expect(inline?.contains(eye)).toBe(false);
+  });
+
+  it('reaches the deleted athletes without the select that used to hold them (#1426)', () => {
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance;
+
+    // The second consequence, and the one that would have broken a feature:
+    // `trashed` was a value in the status menu, so removing the menu removed
+    // the only way into the restore picker (#700).
+    const bin = fixture.nativeElement.querySelector(
+      '[data-cy="athletes-reveal-trashed"]',
+    ) as HTMLButtonElement;
+    expect(bin).not.toBeNull();
+
+    bin.click();
+    expect(cmp.isTrashedMode()).toBe(true);
+
+    bin.click();
+    // Back to the default list, not to whatever the eye was showing before:
+    // restoring someone is a finished errand, not a filter you were in.
+    expect(cmp.isTrashedMode()).toBe(false);
+    expect(cmp.selectedStatus()).toBe('active');
   });
 
   it('resets to the actives, not to everyone', () => {

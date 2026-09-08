@@ -17,11 +17,35 @@
     }
   }
 
+  // Mobile first: the search takes the full width and the rest wraps under it
+  // — four controls do not share 375px, and the canon is explicit that the
+  // base styles are the phone (#1428).
   &__filters {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+
+    // Desktop: one row. They are one control group doing one job — narrowing
+    // the list — and drawing them as two rows pushed the first athlete a row
+    // further down the page it exists to show.
+    @media (min-width: 768px) {
+      flex-wrap: nowrap;
+    }
+  }
+
+  // The search is the one control with unbounded input, so it takes the slack
+  // the selects do not need. `min-width: 0` because a flex item defaults to
+  // `min-width: auto` and would refuse to shrink below its content, pushing
+  // the row wider than its container.
+  .athletes-page__search {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    @media (min-width: 768px) {
+      max-width: 22rem;
+    }
   }
 
   // Desktop inline row (#704). Hidden on phone widths; the chip+sheet
@@ -30,7 +54,7 @@
   // breakpoints).
   &__filters-inline {
     display: flex;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     flex-wrap: wrap;
     gap: 0.5rem;
 
@@ -71,6 +95,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
 
   // Primary line — avatar link + name link + age badge inline.
   // Replaces the old single-row layout when socials were absent;
@@ -198,18 +229,13 @@
 .athlete-actions {
   text-align: right;
   white-space: nowrap;
-
-  // Hairline gap — canon permits 4px as the minimum inter-control spacing.
-  p-button + p-button {
-    margin-left: 0.25rem;
-  }
 }
 
 // Public-profile affordance on each row (post-v2.22.1). An id-card icon
-// link sits BEFORE the pencil + trash action buttons; visible only when
-// the athlete row's linked user has a handle. Plain <a> (not p-button) so
-// it carries the router link semantics without the button's hit-state +
-// loading affordances that don't apply.
+// link sits BEFORE the pencil action button; visible only when the athlete
+// row's linked user has a handle. Plain <a> (not p-button) so it carries
+// the router link semantics without the button's hit-state + loading
+// affordances that don't apply.
 .athletes-page__public-profile-link {
   display: inline-flex;
   align-items: center;
@@ -623,17 +649,6 @@ $athletes-mobile-breakpoint: 768px;
   background: transparent;
 }
 
-// Mobile-card menu Delete row turns red — affordance for destructive action
-// per the design canon (`<p-confirmpopup>` already exists for desktop, this
-// styles the menu link that opens the mobile confirm-dialog).
-:host ::ng-deep .menu-item--danger > a {
-  color: var(--p-red-500);
-
-  &:hover {
-    color: var(--p-red-600);
-  }
-}
-
 // A row the eye revealed (#1403). Muted rather than hidden: the point of
 // asking for it is to see it, and the point of greying it is that it is not
 // part of the answer to "who trains here".
@@ -705,4 +720,49 @@ $athletes-mobile-breakpoint: 768px;
     outline-offset: 2px;
     border-radius: var(--p-border-radius-lg);
   }
+}
+
+// The belt spine's anchor (#1429). `position: relative` goes on the CELL, not
+// the row: `position` on a `<tr>` is inconsistent across engines, and a `<td>`
+// is a reliable containing block. Absolute inset then measures the padding
+// box, which is exactly the row's height.
+.athlete-name-cell {
+  position: relative;
+}
+
+// The spine widened to 9px and sits close to the cell's own padding edge;
+// this reserves visible daylight before the avatar starts, independent of
+// whatever the table's native cell padding happens to be (#1429 review).
+.athlete-name {
+  margin-left: 0.5rem;
+}
+
+.athlete-row__spine {
+  position: absolute;
+  left: 0.375rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  pointer-events: none;
+}
+
+// The spine on the mobile card (#1429). The card already carries
+// `position: relative` for its own overlay, so this rides on it. Inset from
+// the rounded corner rather than flush, so a 12px radius does not clip the
+// bar's top and bottom into points.
+.athlete-card__spine {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  pointer-events: none;
+}
+
+// And the card's content clears it, so the bar is beside the name rather than
+// under the avatar. Wider than the spine's own footprint (9px bar starting
+// at 8px, ending at 17px) so there is visible daylight before the avatar,
+// not just enough to avoid touching it (#1429 review).
+.athlete-card {
+  padding-left: 1.875rem;
 }

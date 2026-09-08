@@ -1,4 +1,18 @@
+<p-toast position="top-right" />
+<p-confirmpopup />
+
 <section class="promotions">
+  <div class="promotions__header">
+    <p-button
+      [label]="'athletes.detail.promotions.addPast' | translate"
+      icon="pi pi-plus"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="openCreateDialog()"
+      data-cy="promotions-add"
+    />
+  </div>
+
   @if (loading()) {
     <ul class="promotions__list" data-cy="promotions-loading">
       @for (i of [1, 2, 3]; track i) {
@@ -21,9 +35,33 @@
     <ul class="promotions__list" data-cy="promotions-list">
       @for (p of promotions(); track p.id) {
         <li class="promotions__row" [attr.data-cy]="'promotion-' + p.id">
-          <time class="promotions__date" [dateTime]="p.recorded_at">
-            {{ p.recorded_at | date: 'mediumDate' }}
-          </time>
+          <div class="promotions__date-row">
+            <time class="promotions__date" [dateTime]="p.recorded_at">
+              {{ p.recorded_at | date: 'mediumDate' }}
+            </time>
+            <p-button
+              icon="pi pi-pencil"
+              severity="secondary"
+              [text]="true"
+              [rounded]="true"
+              size="small"
+              [ariaLabel]="'athletes.detail.promotions.editDateAria' | translate"
+              [pTooltip]="'athletes.detail.promotions.editDate' | translate"
+              tooltipPosition="top"
+              (onClick)="openEditDialog(p)"
+              [attr.data-cy]="'promotion-edit-' + p.id"
+            />
+            <app-confirm-destructive-button
+              [ariaLabel]="'athletes.detail.promotions.deleteAria' | translate"
+              [confirmMessage]="'athletes.detail.promotions.confirmDelete' | translate"
+              [acceptLabel]="'athletes.detail.promotions.deleteConfirm' | translate"
+              [rejectLabel]="'athletes.detail.promotions.editDialog.cancel' | translate"
+              confirmIcon="pi pi-exclamation-triangle"
+              [loading]="deletingId() === p.id"
+              (confirmed)="deletePromotion(p)"
+              [dataCy]="'promotion-delete-' + p.id"
+            />
+          </div>
           @switch (p.kind) {
             @case ('belt') {
               <div class="promotions__transition" data-cy="promotion-belt">
@@ -93,3 +131,193 @@
     }
   }
 </section>
+
+<p-dialog
+  [(visible)]="editDialogOpen"
+  [modal]="true"
+  [draggable]="false"
+  [breakpoints]="{ '768px': '92vw' }"
+  [style]="{ width: '24rem' }"
+  [header]="'athletes.detail.promotions.editDialog.title' | translate"
+  data-cy="promotion-edit-dialog"
+>
+  <p class="promotions__dialog-body">
+    {{ 'athletes.detail.promotions.editDialog.body' | translate }}
+  </p>
+
+  <label class="promotions__dialog-label" for="promotion-recorded-at">
+    {{ 'athletes.detail.promotions.editDialog.label' | translate }}
+  </label>
+  <form [formGroup]="editForm">
+    <p-datepicker
+      inputId="promotion-recorded-at"
+      formControlName="recorded_at"
+      [maxDate]="maxDate"
+      [showIcon]="true"
+      dateFormat="dd/mm/yy"
+      appendTo="body"
+      data-cy="promotion-edit-date"
+    />
+  </form>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      [label]="'athletes.detail.promotions.editDialog.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (onClick)="editDialogOpen.set(false)"
+      data-cy="promotion-edit-cancel"
+    />
+    <p-button
+      [label]="'athletes.detail.promotions.editDialog.confirm' | translate"
+      [loading]="saving()"
+      (onClick)="confirmEdit()"
+      data-cy="promotion-edit-confirm"
+    />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="createDialogOpen"
+  [modal]="true"
+  [draggable]="false"
+  [breakpoints]="{ '768px': '92vw' }"
+  [style]="{ width: '26rem' }"
+  [header]="'athletes.detail.promotions.createDialog.title' | translate"
+  data-cy="promotion-create-dialog"
+>
+  <p class="promotions__dialog-body">
+    {{ 'athletes.detail.promotions.createDialog.body' | translate }}
+  </p>
+
+  <form [formGroup]="createForm" class="promotions__create-form">
+    <label class="promotions__dialog-label" for="promotion-create-kind">
+      {{ 'athletes.detail.promotions.createDialog.kindLabel' | translate }}
+    </label>
+    <p-selectbutton
+      inputId="promotion-create-kind"
+      [options]="kindOptions()"
+      formControlName="kind"
+      optionLabel="label"
+      optionValue="value"
+      data-cy="promotion-create-kind"
+    />
+
+    <label class="promotions__dialog-label" for="promotion-create-date">
+      {{ 'athletes.detail.promotions.createDialog.dateLabel' | translate }}
+    </label>
+    <p-datepicker
+      inputId="promotion-create-date"
+      formControlName="recorded_at"
+      [maxDate]="maxDate"
+      [showIcon]="true"
+      dateFormat="dd/mm/yy"
+      appendTo="body"
+      data-cy="promotion-create-date"
+    />
+
+    @if (createForm.controls.kind.value === 'belt') {
+      <label class="promotions__dialog-label" for="promotion-create-from-belt">
+        {{ 'athletes.detail.promotions.createDialog.fromBelt' | translate }}
+      </label>
+      <p-select
+        inputId="promotion-create-from-belt"
+        [options]="fromBeltOptions()"
+        formControlName="from_belt"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        styleClass="w-full"
+        data-cy="promotion-create-from-belt"
+      />
+
+      <label class="promotions__dialog-label" for="promotion-create-to-belt">
+        {{ 'athletes.detail.promotions.createDialog.toBelt' | translate }}
+      </label>
+      <p-select
+        inputId="promotion-create-to-belt"
+        [options]="beltOptions()"
+        formControlName="to_belt"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        styleClass="w-full"
+        data-cy="promotion-create-to-belt"
+      />
+    } @else {
+      <label class="promotions__dialog-label" for="promotion-create-belt-at-event">
+        {{ 'athletes.detail.promotions.createDialog.beltAtEvent' | translate }}
+      </label>
+      <p-select
+        inputId="promotion-create-belt-at-event"
+        [options]="beltOptions()"
+        formControlName="belt_at_event"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        styleClass="w-full"
+        data-cy="promotion-create-belt-at-event"
+      />
+
+      <div class="promotions__create-stripes">
+        <div>
+          <label class="promotions__dialog-label" for="promotion-create-from-stripes">
+            {{ 'athletes.detail.promotions.createDialog.fromStripes' | translate }}
+          </label>
+          <p-select
+            inputId="promotion-create-from-stripes"
+            [options]="createStripesOptions()"
+            formControlName="from_stripes"
+            optionLabel="label"
+            optionValue="value"
+            [disabled]="createStripesOptions().length === 0"
+            appendTo="body"
+            styleClass="w-full"
+            data-cy="promotion-create-from-stripes"
+          />
+        </div>
+        <div>
+          <label class="promotions__dialog-label" for="promotion-create-to-stripes">
+            {{ 'athletes.detail.promotions.createDialog.toStripes' | translate }}
+          </label>
+          <p-select
+            inputId="promotion-create-to-stripes"
+            [options]="createStripesOptions()"
+            formControlName="to_stripes"
+            optionLabel="label"
+            optionValue="value"
+            [disabled]="createStripesOptions().length === 0"
+            appendTo="body"
+            styleClass="w-full"
+            data-cy="promotion-create-to-stripes"
+          />
+        </div>
+      </div>
+    }
+  </form>
+
+  @if (createError(); as error) {
+    <p-message
+      severity="error"
+      [text]="error"
+      styleClass="w-full"
+      data-cy="promotion-create-error"
+    />
+  }
+
+  <ng-template pTemplate="footer">
+    <p-button
+      [label]="'athletes.detail.promotions.editDialog.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (onClick)="createDialogOpen.set(false)"
+      data-cy="promotion-create-cancel"
+    />
+    <p-button
+      [label]="'athletes.detail.promotions.createDialog.confirm' | translate"
+      [loading]="creating()"
+      (onClick)="confirmCreate()"
+      data-cy="promotion-create-confirm"
+    />
+  </ng-template>
+</p-dialog>

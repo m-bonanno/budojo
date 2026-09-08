@@ -95,7 +95,7 @@ Everything that persists lives under Electron's **`userData`** directory (`%APPD
 |---|---|
 | `budojo.sqlite` | The database. SQLite in WAL mode (`+ -wal`, `-shm` siblings). |
 | `storage/` | Laravel's `storage/` — **the encrypted documents live here** (`app/private/`), alongside the publicly-served images in `app/public/`. |
-| `logs/` | Runtime logs — PHP, scheduler, notifier, backup, update, and `renderer.log` for faults in the window itself (#1317). Everything in `renderer.log` is passed through a redaction step first: the renderer holds the sign-in token, and this file travels inside support bundles. |
+| `logs/` | Runtime logs — PHP, scheduler, notifier, backup, update, `auth.log` for the sign-in vault, and `renderer.log` for faults in the window itself (#1317). Everything in `renderer.log` is passed through a redaction step first: the renderer holds the sign-in token, and this file travels inside support bundles. `auth.log` needs no redaction because it never carries the token — it is written on the paths where the token could *not* be stored, and naming it there would hand over the plaintext copy the vault exists to avoid (#1298). |
 | `backups/` | Local backup archives (see [`backup-restore.md`](./backup-restore.md)). |
 | `secrets.bin` | `APP_KEY` + `DOCUMENT_ENCRYPTION_KEY`, encrypted with the OS keychain (Electron `safeStorage` → DPAPI on Windows). |
 | `auth-token.bin` | The signed-in Sanctum token, same encryption. |
@@ -122,7 +122,7 @@ Two consequences worth knowing rather than rediscovering:
 
 The install directory holds only the read-only runtime: `resources/php/php.exe` (the bundled PHP), `resources/server/` (the Laravel app, `--no-dev`), and the renderer inside `app.asar`. Because nothing user-owned lives there, the NSIS uninstaller is configured with `deleteAppDataOnUninstall: false` — uninstalling removes the program and leaves every byte of the gym's data in place.
 
-That path comes from the `appId`/`productName`, **not** from where the executable sits, which has one consequence worth knowing while developing: a locally-built exe, the portable and the installed release all share the *same* `%APPDATA%\Budojo\`. Test builds with `--user-data-dir=<scratch>` (honoured by the packaged app) so a half-finished migration never meets real data.
+That path comes from the `appId`/`productName`, **not** from where the executable sits, which has one consequence worth knowing while developing: a locally-built exe and the installed release share the *same* `%APPDATA%\Budojo\`. Test builds with `--user-data-dir=<scratch>` (honoured by the packaged app) so a half-finished migration never meets real data.
 
 ## Secrets
 

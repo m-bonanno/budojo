@@ -70,7 +70,7 @@ describe('StatsOverviewComponent', () => {
     const athletes = [
       makeAthlete({ id: 1, belt: 'blue', status: 'active' }),
       makeAthlete({ id: 2, belt: 'blue', status: 'active' }),
-      makeAthlete({ id: 3, belt: 'white', status: 'suspended' }),
+      makeAthlete({ id: 3, belt: 'white', status: 'inactive' }),
       makeAthlete({ id: 4, belt: 'black', status: 'inactive' }),
     ];
     httpMock

@@ -1,4 +1,7 @@
 <p-toast position="top-right" />
+<!-- Mandatory popup surface for <app-confirm-destructive-button> (#1430) — the
+     service has no UI of its own, this is what it renders into. -->
+<p-confirmpopup />
 
 <div class="athlete-form-page">
   <!-- Title + subtitle resolve via the TranslatePipe so they re-render
@@ -564,6 +567,71 @@
           />
         </div>
       </form>
+
+      <!--
+        Danger zone (#1430) — the GitHub repository-settings pattern. Moved
+        here from the roster row + card menu on purpose: reaching this
+        button means the owner already chose THIS athlete and opened
+        THEIR page, so the ambiguity a list row carries ("who am I about
+        to delete") is gone before the button is even on screen.
+
+        Renders only once the athlete has actually loaded (`as athlete`),
+        so there is never a frame where a self-row's guaranteed-403 button
+        could flash on screen before `is_self` is known.
+      -->
+      @if (mode() === 'edit' && loadedAthlete(); as athlete) {
+        <section class="danger-zone" data-cy="athlete-danger-zone">
+          <h2 class="danger-zone__title">{{ 'athletes.form.dangerZone.title' | translate }}</h2>
+
+          @if (athlete.is_self) {
+            <!--
+              The owner's own row (#747): DeleteAthleteAction rejects this id
+              with a 403, so no destructive button renders here at all — a
+              confirm-gated button guaranteed to fail is worse than no button.
+              Their real equivalent action already exists, fully reversible
+              and un-gated by design (soft-delete, same row id on re-enroll —
+              see ProfileTrainHereComponent), so this points there instead of
+              re-implementing it with a scarier risk level for one identical
+              call.
+            -->
+            <p class="danger-zone__self-note" data-cy="danger-zone-self-note">
+              {{ 'athletes.form.dangerZone.selfNote' | translate }}
+              <a routerLink="/dashboard/profile" class="danger-zone__self-link">{{
+                'athletes.form.dangerZone.selfNoteLink' | translate
+              }}</a>
+            </p>
+          } @else {
+            <div class="danger-zone__row">
+              <div class="danger-zone__copy">
+                <p class="danger-zone__heading">
+                  {{ 'athletes.form.dangerZone.delete.heading' | translate }}
+                </p>
+                <p class="danger-zone__hint">
+                  {{ 'athletes.form.dangerZone.delete.hint' | translate }}
+                </p>
+              </div>
+              <app-confirm-destructive-button
+                [label]="'athletes.form.dangerZone.delete.button' | translate"
+                [ariaLabel]="
+                  'athletes.form.dangerZone.delete.buttonAria'
+                    | translate: { name: athleteFullName() }
+                "
+                [confirmMessage]="
+                  'athletes.list.confirm.deleteMessage' | translate: { name: athleteFullName() }
+                "
+                [acceptLabel]="'athletes.list.confirm.deleteAccept' | translate"
+                [rejectLabel]="'athletes.form.button.cancel' | translate"
+                confirmIcon="pi pi-exclamation-triangle"
+                [text]="false"
+                [outlined]="true"
+                [loading]="deleting()"
+                (confirmed)="deleteAthlete()"
+                dataCy="danger-zone-delete-btn"
+              />
+            </div>
+          }
+        </section>
+      }
     }
   </div>
 </div>

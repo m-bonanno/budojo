@@ -15,6 +15,19 @@ import { BELT_KEYS } from '../../utils/i18n-enum-keys';
  * belt label (#165). White-belt rows use dark tiles; coloured rows use
  * light tiles — so the stripe count is glanceable on every belt without
  * a separate column.
+ *
+ * Two **appearances** of the same fact (#1429):
+ *
+ * - `badge` — the pill, with the belt's name written on it.
+ * - `spine` — a vertical bar for the left edge of a roster row, with no
+ *   text at all. Rank is the first thing an instructor sorts people by, and
+ *   a colour down the side turns "who are my blue belts" from a scan into a
+ *   glance.
+ *
+ * One component rather than two, because the hard part is not the shape: it
+ * is the palette and the per-belt stripe cap, and having those in two places
+ * is how a promotion ends up rendering differently in two corners of the same
+ * screen. The spine is a second `appearance`, not a second source of truth.
  */
 @Component({
   selector: 'app-belt-badge',
@@ -32,6 +45,16 @@ export class BeltBadgeComponent {
    * value over 6 indicates corruption upstream.
    */
   readonly stripes = input<number>(0);
+
+  /**
+   * `badge` writes the belt's name; `spine` says it in colour alone.
+   *
+   * A spine never carries text, so it is **redundant encoding** — the belt is
+   * still readable as words elsewhere on the row. That is what keeps it
+   * accessible rather than decorative, and it is why adopting it must not
+   * remove the badge from the same row.
+   */
+  readonly appearance = input<'badge' | 'spine'>('badge');
 
   readonly labelKey = computed(() => BELT_KEYS[this.belt()]);
 
@@ -59,6 +82,23 @@ export class BeltBadgeComponent {
     const belt = this.belt();
     return {
       background: `var(--budojo-belt-${belt}-bg)`,
+      color: `var(--budojo-belt-${belt}-fg)`,
+    };
+  });
+
+  /**
+   * The spine's own paint.
+   *
+   * The coral belts cannot reuse `--budojo-belt-*-bg`: those gradients split
+   * left-to-right, which on a 6px-wide bar would put half a colour in three
+   * pixels and read as neither. A vertical bar splits along its length, the
+   * way the physical belt does — so the halves are composed here from the
+   * `-a` / `-b` pair, which is the same palette written once and read twice.
+   */
+  readonly spineStyle = computed<Record<string, string>>(() => {
+    const belt = this.belt();
+    return {
+      background: `linear-gradient(180deg, var(--budojo-belt-${belt}-a) 0 50%, var(--budojo-belt-${belt}-b) 50% 100%)`,
       color: `var(--budojo-belt-${belt}-fg)`,
     };
   });

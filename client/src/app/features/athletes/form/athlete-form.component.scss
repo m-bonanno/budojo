@@ -179,3 +179,71 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+
+// Danger zone (#1430) — the GitHub repository-settings pattern. A separated,
+// red-bordered block that holds the one action on this page you cannot undo
+// casually. Deliberately NOT inside `.athlete-form` / the `<form>` element:
+// it is not a field, it does not submit, and grouping it with the rest of
+// the form would blur the one distinction this whole feature exists to draw.
+.danger-zone {
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--budojo-danger);
+  border-radius: var(--p-border-radius-md);
+
+  &__title {
+    margin: 0 0 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--budojo-danger);
+  }
+
+  // Mobile-first: copy stacks above the button, full width. The button is
+  // the one thing on this whole page you should never reach without meaning
+  // to, so it does not get to share a row with a paragraph on a narrow
+  // screen where a stray tap is one thumb-width away.
+  &__row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    @media (min-width: 768px) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+  }
+
+  &__copy {
+    min-width: 0;
+  }
+
+  &__heading {
+    margin: 0 0 0.25rem;
+    font-weight: 500;
+    color: var(--p-surface-900);
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
+  }
+
+  // The self-row note reuses the same body-text sizing as the hint above —
+  // one voice for "here is what this zone can and can't do", whichever
+  // branch renders.
+  &__self-note {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
+  }
+
+  &__self-link {
+    color: var(--p-primary-color);
+    text-decoration: underline;
+    white-space: nowrap;
+  }
+}

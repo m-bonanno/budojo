@@ -443,6 +443,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
             Route::apiResource('athletes', \App\Http\Controllers\Athlete\AthleteController::class)
                 ->only(['store', 'update', 'destroy']);
 
+            // Bulk roster import from a CSV (#1346). Declared beside `store`
+            // because it is the same operation at a different scale, and
+            // guarded by the same capability. POST-only, so it cannot collide
+            // with `GET /athletes/{athlete}`.
+            //
+            // Called twice for one import: once with `validate_only` (the
+            // default) to get the preview, once without to write. The dry run
+            // is the default on purpose — a missing flag must never be the one
+            // that creates sixty athletes.
+            Route::post('/athletes/import', \App\Http\Controllers\Athlete\AthleteImportController::class);
+
             // Athlete restore (#700). Brings a soft-deleted athlete back into
             // the active roster. `->withTrashed()` lets the route-model binding
             // resolve a soft-deleted id; without it the binding would 404
@@ -504,6 +515,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
         // specific athlete (post-v2.9.0). Same academy-scope gate as
         // documents; lives in the controller's first line.
         Route::get('/athletes/{athlete}/promotions', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'index']);
+        // Editing recorded_at (#1431 PR 1 of 2) — corrects a promotion
+        // entered late without touching the belt/stripe transition it
+        // describes. 403 when the promotion doesn't belong to the
+        // athlete in the path, same double-check as carnets below.
+        Route::patch('/athletes/{athlete}/promotions/{promotion}', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'update']);
+        // Backfilling historical rows + undoing a mistaken one (#1431 PR 2
+        // of 2) — transcribing a paper register from before Budojo existed.
+        Route::post('/athletes/{athlete}/promotions', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'store']);
+        Route::delete('/athletes/{athlete}/promotions/{promotion}', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'destroy']);
         // Documents — flat routes for operations that target a single document.
         // `/expiring` must come before `/{document}` routes or Laravel tries to
         // bind the literal "expiring" as a document id.

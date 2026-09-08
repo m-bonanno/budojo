@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, protocol, safeStorage, shell } from 'electron';
-import { createWriteStream, existsSync } from 'node:fs';
+import { createWriteStream, existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,6 +57,29 @@ const APP_SCHEME = 'app';
 const APP_ORIGIN = `${APP_SCHEME}://bundle`;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The packaged app's own `package.json` (#1331).
+ *
+ * This is where `electron-builder`'s `extraMetadata` lands — the same channel
+ * the release already uses to stamp the version, so values baked at package
+ * time travel through one mechanism rather than two.
+ *
+ * Best-effort by design: a development run has no injected values and a
+ * malformed file must not stop the app booting. Either way the caller gets an
+ * empty object and the feature that asked simply reports itself unavailable.
+ */
+function appMetadata(): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(
+      readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8'),
+    );
+
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
 
 /**
  * The Angular production build. `dist/` sits next to this file once compiled,
@@ -431,7 +454,14 @@ async function startRuntime(): Promise<{
   });
   // Drive sync (#1301). Off unless the owner connected an account, and off
   // entirely when the build carries no OAuth client.
-  const driveConfig = driveClientConfig();
+  //
+  // The environment is handed over **only** in development (#1331). In a
+  // shipped build this is an empty object, so the client can come from one
+  // place and one place only: what the packaging step baked into the
+  // artefact's own package.json. Passing `process.env` here unconditionally is
+  // how the feature spent every release reading variables that exist on no
+  // user's machine.
+  const driveConfig = driveClientConfig(appMetadata(), DEV ? process.env : {});
   const driveService =
     driveConfig === null
       ? null
@@ -439,7 +469,9 @@ async function startRuntime(): Promise<{
           createDriveSyncIO({
             config: driveConfig,
             layout,
-            vault: new TokenVault(layout.driveTokenFile, safeStorage),
+            vault: new TokenVault(layout.driveTokenFile, safeStorage, (line) =>
+              backupLog.write(`${new Date().toISOString()} drive ${line}`),
+            ),
             backupService,
             openExternal: (url) => shell.openExternal(url),
             log: (line) => backupLog.write(`${new Date().toISOString()} ${line}`),
@@ -538,7 +570,18 @@ function showNativeNotification(notification: PendingNotification): void {
  * decrypt cache. Registered once, before any window exists.
  */
 function registerTokenVault(): void {
-  const vault = new TokenVault(dataLayout(app.getPath('userData')).authTokenFile, safeStorage);
+  const layout = dataLayout(app.getPath('userData'));
+  // Opened here rather than beside the other logs, because this is the
+  // function that needs it — a `RotatingLog | null` assigned from somewhere
+  // else is how `renderer.log` shipped inert (#1317). Its own file, and named
+  // for what someone would be looking for: the vault's only failure modes both
+  // surface as "it asks me to log in every time" (#1298).
+  const authLog = new RotatingLog(path.join(layout.logsDir, 'auth.log'));
+  authLog.open();
+
+  const vault = new TokenVault(layout.authTokenFile, safeStorage, (line) =>
+    authLog.write(`${new Date().toISOString()} ${line}`),
+  );
   ipcMain.on('budojo:token:get', (event) => {
     event.returnValue = vault.get();
   });
@@ -627,9 +670,18 @@ function registerFolderBridge(folderOf: () => FolderCopyService | null): void {
       return { ok: false };
     }
 
+    // Open where the current folder is, when there is one. Electron 43 changed
+    // an absent `defaultPath` from "the last directory you used" to "Downloads"
+    // — and Downloads is the one place a backup copy should not go. Someone
+    // pressing this a second time is almost always moving the folder, not
+    // choosing an unrelated one, so starting from the current answer is a
+    // shorter walk than either default. Left absent on the first pick, where
+    // there is nothing to be near.
+    const current = await service.state();
     const picked = await dialog.showOpenDialog({
       title: 'Choose a folder for backup copies',
       properties: ['openDirectory', 'createDirectory'],
+      ...(current.folder === null ? {} : { defaultPath: current.folder }),
     });
 
     if (picked.canceled || picked.filePaths[0] === undefined) {
@@ -756,7 +808,7 @@ function registerUpdateBridge(): void {
   // indistinguishable downstream — which is the point.
   ipcMain.handle('budojo:update:check', async () => {
     if (updaterRef === null) {
-      // No updater at all: development, unpackaged, portable, or version
+      // No updater at all: development, unpackaged, or version
       // 0.0.0. `planUpdateCheck` has already logged which. Saying so lets the
       // button explain itself instead of spinning against nothing.
       return { ok: false, reason: 'unavailable' };
@@ -876,7 +928,6 @@ function registerAutoUpdate(log: (line: string) => void): PeriodicTask | null {
   const decision = planUpdateCheck({
     packaged: app.isPackaged,
     dev: DEV,
-    portableDir: process.env['PORTABLE_EXECUTABLE_DIR'],
     version: app.getVersion(),
   });
 

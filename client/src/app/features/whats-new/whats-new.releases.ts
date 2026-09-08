@@ -60,6 +60,54 @@ export function localised(value: Localised, lang: string): string {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: 'v2.50.0',
+    date: '2026-09-07',
+    headline: {
+      en: 'Your roster, imported from a spreadsheet.',
+      it: 'La tua lista atleti, importata da un foglio.',
+    },
+    sections: [
+      {
+        heading: { en: '📥 Sixty athletes, once', it: '📥 Sessanta atleti, una volta sola' },
+        bullets: [
+          {
+            en: 'Until today there was one way to bring your gym into Budojo: the "New athlete" form, one person at a time. With sixty members that is sixty forms before you see a single benefit — which is the most common reason a new program stays closed after the first day. There is an Import button at the top of the roster now.',
+            it: "Fino a ieri, per portare la tua palestra dentro Budojo c'era una strada sola: il modulo «Nuovo atleta», una persona alla volta. Con sessanta iscritti sono sessanta moduli prima di vedere il primo vantaggio — che è il motivo più comune per cui un programma nuovo resta chiuso dopo il primo giorno. Adesso in cima alla lista atleti c'è Importa.",
+          },
+          {
+            en: "It works with the file you actually have, with nothing to prepare. Italian Excel separates with a semicolon, not a comma, because the comma is the decimal separator — it works that out on its own. Italian headers are recognised, and Cognome is not mistaken for Nome, which is less obvious than it sounds. Belts however you write them: blu, Blu, cintura blu, and bianco as well as bianca. Dates the Italian way, 15/03/2019 — and 31/02 is refused rather than quietly becoming 3 March. A phone in one column is split as it needs to be, taking your gym's own dialling code when the number has none.",
+            it: "Funziona col file che hai davvero, senza preparare niente. Excel in italiano separa con il punto e virgola e non con la virgola, perché la virgola è il separatore decimale: se ne accorge da solo. Le intestazioni in italiano le riconosce, e Cognome non viene scambiato per Nome, che è meno ovvio di quanto sembri. Le cinture come le scrivi tu: blu, Blu, cintura blu, e anche bianco oltre a bianca. Le date all'italiana, 15/03/2019 — e 31/02 viene rifiutata invece di diventare il 3 marzo. Il telefono in una colonna sola lo divide come serve, e se manca il prefisso usa quello della tua palestra.",
+          },
+          {
+            en: 'And it shows you before it writes. Choosing the file imports nothing: you see the columns as it read them — correctable even when it guessed right — and every row with its outcome, the belt in your language and the date in your format. Will be imported, skipped and why, or already on the roster. Only pressing Import writes anything, and it writes all of it at once: a half-import is the worst thing that can happen, because you cannot tell which rows landed without reading the roster against the sheet.',
+            it: 'E ti fa vedere prima di scrivere. Scegliere il file non importa niente: vedi le colonne come le ha lette — correggibili anche quando ha indovinato tutto — e ogni riga con il suo esito, la cintura nella tua lingua e la data nel tuo formato. Verrà importata, scartata e perché, oppure già in lista. Solo premendo Importa scrive qualcosa, e scrive tutto insieme: mezzo import è la cosa peggiore che possa succedere, perché non sapresti quali righe sono passate senza rileggere la lista contro il foglio.',
+          },
+          {
+            en: 'Running it twice does not double the roster. Anyone already there comes back as "already on the roster" and is not rewritten — that is the case it is built for, since someone unsure the first run worked will run it again. Two people with the same name but different dates of birth, a father and son who train together, both get in.',
+            it: "Lanciarlo due volte non raddoppia la lista. Chi c'è già torna indietro come «già in lista» e non viene riscritto — è il caso per cui è pensato, visto che chi non è sicuro che il primo import sia andato a buon fine lo rilancia. Due persone con lo stesso nome ma date di nascita diverse, un padre e un figlio che si allenano insieme, entrano tutti e due.",
+          },
+          {
+            en: 'The minimum is a header row and three columns: first name, surname, belt. If one is missing it tells you which, instead of giving sixty identical errors. Status and joining date default to active and today when the columns are absent. CSV for now — from Excel, File → Save as → CSV.',
+            it: 'Il minimo è una riga di intestazione e tre colonne: nome, cognome, cintura. Se una manca ti dice quale, invece di dare sessanta errori uguali. Stato e data di iscrizione, se non ci sono, diventano «attivo» e «oggi». Per ora legge i CSV — da Excel, File → Salva con nome → CSV.',
+          },
+        ],
+      },
+      {
+        heading: { en: '🗑️ The portable build is gone', it: '🗑️ Via la versione «portable»' },
+        bullets: [
+          {
+            en: 'Every release published two files: the installer and a portable build that needed no installation. From this release there is only the installer. The portable re-extracted itself from scratch on every launch — 450 MB into a temporary folder, about two minutes, with no window and no progress bar. It looked broken. The installer needs no administrator rights, which is what portable was there for, and opens in a couple of seconds.',
+            it: "Ogni rilascio pubblicava due file: l'installer e una versione portable che non richiedeva installazione. Da questo rilascio c'è solo l'installer. La portable si riestraeva da capo a ogni avvio — 450 MB in una cartella temporanea, circa due minuti, senza finestra e senza barra di avanzamento. Sembrava rotta. L'installer non chiede permessi di amministratore, che era la cosa per cui la portable esisteva, e si apre in un paio di secondi.",
+          },
+          {
+            en: 'If you are running one: install Budojo-Setup-2.50.0.exe and delete the old file. Nothing is lost — your data was never inside the executable, it lives in %APPDATA%\\Budojo\\ on the computer.',
+            it: "Se ne stai usando una: installa Budojo-Setup-2.50.0.exe e cancella il vecchio file. Non perdi niente — i tuoi dati non sono mai stati dentro l'eseguibile, stanno in %APPDATA%\\Budojo\\ sul computer.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: 'v2.49.0',
     date: '2026-09-06',
     headline: {

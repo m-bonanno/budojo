@@ -44,6 +44,8 @@ for p in $prs; do gh pr view "$p" --json body -q .body \
 
 Every issue that list yields goes into a `## Auto-closes` block at the end of the release PR body, **with the keyword repeated before each one**: `Closes #N1, closes #N2, …`.
 
+> **Trap:** that grep matches the keyword anywhere in the body, **including inside a sentence that says the opposite.** A PR body reading *"This does **not** close #1298"* yields `#1298` — and #1298 was an issue whose whole scope was still outstanding, so pasting the output unread would have closed a job nobody had done. Real, on the v2.50.0 release. **Read the context of every hit before it goes in the block**, and prefer `grep -n "#N"` on the body over trusting the one-liner: the script finds candidates, it does not decide them. Sentences like "does not close", "will close once", and "closes the fanout half of" all match.
+
 > **Trap:** `Closes #N1, #N2` closes only `#N1`. GitHub takes one issue per closing keyword and ignores the rest of the comma list. v2.47.0 shipped this way and left its epic open.
 
 > **Trap:** GitHub only auto-closes from a PR merged into the **default branch**. Feature PRs target `develop`, so their own `Closes #N` never fires. Without this block the leaf issues stay open forever. Verify afterwards (step 6) — a long list occasionally drops one.
@@ -86,10 +88,14 @@ Close any auto-close stragglers by hand with a comment saying which release deli
 Then **smoke-test the artefact users actually download** — a green build and a correct unpacked layout are not evidence that the installer runs (that assumption held for two releases before anyone checked, and the portable turned out to need ~2 minutes to open):
 
 ```bash
-gh release download vX.Y.Z --pattern "Budojo-X.Y.Z.exe" --dir <scratch>
+gh release download vX.Y.Z --pattern "Budojo-Setup-X.Y.Z.exe" --dir <scratch>
+"<scratch>/Budojo-Setup-X.Y.Z.exe"          # assisted installer (oneClick: false) — click through it
+# Then launch the INSTALLED exe, not the installer. Per-user install, so:
 # --user-data-dir keeps the test off the real %APPDATA%\Budojo — the packaged app honours it
-"<scratch>/Budojo-X.Y.Z.exe" --user-data-dir="<scratch>/userdata"
+"%LOCALAPPDATA%/Programs/Budojo/Budojo.exe" --user-data-dir="<scratch>/userdata"
 ```
+
+> **Trap:** this used to download `Budojo-X.Y.Z.exe` — the *portable* — so the step that exists to test "what users actually download" was testing the one build the install guide told them to avoid. The portable was removed in #1272; `Budojo-Setup-X.Y.Z.exe` is now the only executable on the Release.
 
 Then confirm, from outside the app: a window titled `Budojo` exists, a `php.exe` child is listening on `127.0.0.1:<port>`, `GET /api/v1/health` returns `{"status":"ok"}`, and the scratch userData holds `budojo.sqlite` + `secrets.bin` + `bootstrap.json` while `%APPDATA%\Budojo` stays untouched. Kill the process tree when done.
 

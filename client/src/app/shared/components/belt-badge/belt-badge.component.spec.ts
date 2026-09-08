@@ -6,11 +6,12 @@ import { Belt } from '../../../core/services/athlete.service';
 
 @Component({
   imports: [BeltBadgeComponent],
-  template: `<app-belt-badge [belt]="belt" [stripes]="stripes" />`,
+  template: `<app-belt-badge [belt]="belt" [stripes]="stripes" [appearance]="appearance" />`,
 })
 class HostComponent {
   belt: Belt = 'white';
   stripes = 0;
+  appearance: 'badge' | 'spine' = 'badge';
 }
 
 describe('BeltBadgeComponent', () => {
@@ -157,5 +158,94 @@ describe('BeltBadgeComponent', () => {
       const group = fixture.nativeElement.querySelector('.belt-badge__stripes');
       expect(group?.getAttribute('aria-label')).toBe('1 stripe');
     });
+  });
+
+  describe('spine appearance (#1429)', () => {
+    it('defaults to the badge — every existing caller is unaffected', () => {
+      TestBed.configureTestingModule({
+        imports: [BeltBadgeComponent, HostComponent],
+        providers: [...provideI18nTesting()],
+      });
+      const fixture = TestBed.createComponent(HostComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('p-tag')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-cy="belt-spine"]')).toBeNull();
+    });
+
+    it('renders a spine instead of the pill when asked', () => {
+      TestBed.configureTestingModule({
+        imports: [BeltBadgeComponent, HostComponent],
+        providers: [...provideI18nTesting()],
+      });
+      const fixture = TestBed.createComponent(HostComponent);
+      fixture.componentInstance.belt = 'blue';
+      fixture.componentInstance.appearance = 'spine';
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('p-tag')).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-cy="belt-spine"]')).not.toBeNull();
+    });
+
+    it('carries the belt name on aria-label rather than as visible text', () => {
+      // Redundant encoding, not decoration: colour alone would carry the fact
+      // for nobody using a screen reader, and the words are still written
+      // elsewhere on the row — so the spine itself stays silent to the eye
+      // and speaks only to assistive tech.
+      TestBed.configureTestingModule({
+        imports: [BeltBadgeComponent, HostComponent],
+        providers: [...provideI18nTesting()],
+      });
+      const fixture = TestBed.createComponent(HostComponent);
+      fixture.componentInstance.belt = 'purple';
+      fixture.componentInstance.appearance = 'spine';
+      fixture.detectChanges();
+
+      const spine = fixture.nativeElement.querySelector('[data-cy="belt-spine"]') as HTMLElement;
+      expect(spine.getAttribute('aria-label')).toBe('Purple');
+      expect(spine.textContent?.trim()).toBe('');
+    });
+
+    it('shares the same clamped stripe count as the badge', () => {
+      // One source of truth, not two: MAX_STRIPES_PER_BELT is read once, by
+      // `stripeTiles()`, and both appearances consume it — a bogus 99 on a
+      // non-black belt must clamp to 4 here exactly as it does on the pill.
+      TestBed.configureTestingModule({
+        imports: [BeltBadgeComponent, HostComponent],
+        providers: [...provideI18nTesting()],
+      });
+      const fixture = TestBed.createComponent(HostComponent);
+      fixture.componentInstance.belt = 'white';
+      fixture.componentInstance.stripes = 99;
+      fixture.componentInstance.appearance = 'spine';
+      fixture.detectChanges();
+
+      const bands = fixture.nativeElement.querySelectorAll('[data-cy="belt-spine-stripe"]');
+      expect(bands.length).toBe(4);
+      bands.forEach((band: Element) => expect(band.getAttribute('aria-hidden')).toBe('true'));
+    });
+
+    it.each<Belt>(['blue', 'black', 'red-and-black', 'red-and-white'])(
+      'composes spineStyle() from the -a/-b halves for %s',
+      (belt) => {
+        // `style()` (the badge) reads `-bg`/`-fg` directly; `spineStyle()` is
+        // the vertical composition from the SAME palette's `-a`/`-b` pair, so
+        // a colour lives in one place and the two shapes cannot drift apart.
+        TestBed.configureTestingModule({
+          imports: [BeltBadgeComponent, HostComponent],
+          providers: [...provideI18nTesting()],
+        });
+        const fixture = TestBed.createComponent(HostComponent);
+        fixture.componentInstance.belt = belt;
+        fixture.detectChanges();
+
+        const badge = fixture.debugElement.query((el) => el.name === 'app-belt-badge');
+        const spineStyle = badge.componentInstance.spineStyle();
+        expect(spineStyle['background']).toBe(
+          `linear-gradient(180deg, var(--budojo-belt-${belt}-a) 0 50%, var(--budojo-belt-${belt}-b) 50% 100%)`,
+        );
+        expect(spineStyle['color']).toBe(`var(--budojo-belt-${belt}-fg)`);
+      },
+    );
   });
 });

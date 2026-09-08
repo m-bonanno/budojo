@@ -1,24 +1,43 @@
-<p-tag [style]="style()" [rounded]="true">
-  <span class="belt-badge__inner">
-    <span class="belt-badge__label">{{ labelKey() | translate }}</span>
-    @if (stripeTiles().length > 0) {
-      <span
-        class="belt-badge__stripes"
-        [attr.aria-label]="
-          (stripeTiles().length === 1
-            ? 'shared.beltBadge.stripeOne'
-            : 'shared.beltBadge.stripeMany'
-          ) | translate: { count: stripeTiles().length }
-        "
-      >
-        @for (_ of stripeTiles(); track $index) {
-          <span
-            class="belt-badge__stripe-tile"
-            data-cy="belt-stripe-tile"
-            aria-hidden="true"
-          ></span>
-        }
-      </span>
+@if (appearance() === 'spine') {
+  <!--
+    No text, by design (#1429). The belt is written in words elsewhere on the
+    row; this is the glanceable half of saying it twice, and colour alone
+    would not be enough on its own. The label rides on `aria-label` so a
+    screen reader gets the same fact the eye does.
+  -->
+  <span
+    class="belt-spine"
+    [style]="spineStyle()"
+    [attr.aria-label]="labelKey() | translate"
+    data-cy="belt-spine"
+  >
+    @for (_ of stripeTiles(); track $index) {
+      <span class="belt-spine__stripe" data-cy="belt-spine-stripe" aria-hidden="true"></span>
     }
   </span>
-</p-tag>
+} @else {
+  <p-tag [style]="style()" [rounded]="true">
+    <span class="belt-badge__inner">
+      <span class="belt-badge__label">{{ labelKey() | translate }}</span>
+      @if (stripeTiles().length > 0) {
+        <span
+          class="belt-badge__stripes"
+          [attr.aria-label]="
+            (stripeTiles().length === 1
+              ? 'shared.beltBadge.stripeOne'
+              : 'shared.beltBadge.stripeMany'
+            ) | translate: { count: stripeTiles().length }
+          "
+        >
+          @for (_ of stripeTiles(); track $index) {
+            <span
+              class="belt-badge__stripe-tile"
+              data-cy="belt-stripe-tile"
+              aria-hidden="true"
+            ></span>
+          }
+        </span>
+      }
+    </span>
+  </p-tag>
+}

@@ -53,7 +53,7 @@ describe('i18n enum-key bindings (#357)', () => {
 
   describe('STATUS_ORDER', () => {
     it('lists active → suspended → inactive (dropdown order)', () => {
-      expect(STATUS_ORDER).toEqual(['active', 'suspended', 'inactive']);
+      expect(STATUS_ORDER).toEqual(['active', 'inactive']);
     });
   });
 });

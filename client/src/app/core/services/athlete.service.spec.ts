@@ -5,6 +5,7 @@ import {
   Athlete,
   AthleteInvitation,
   AthletePayload,
+  AthletePromotion,
   AthleteService,
   AthleteUpdatePayload,
 } from './athlete.service';
@@ -177,6 +178,99 @@ describe('AthleteService', () => {
     it('DELETEs /api/v1/athletes/:athleteId/invitations/:invitationId to revoke', () => {
       service.revokeInvite(7, 99).subscribe();
       const req = httpMock.expectOne('/api/v1/athletes/7/invitations/99');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+
+  describe('updatePromotionRecordedAt (#1431 PR 1 of 2)', () => {
+    it('PATCHes /api/v1/athletes/:athleteId/promotions/:promotionId with the new date and unwraps the data envelope', () => {
+      const updated: AthletePromotion = {
+        id: 12,
+        kind: 'stripe',
+        from_belt: null,
+        to_belt: null,
+        from_stripes: 1,
+        to_stripes: 2,
+        belt_at_event: 'blue',
+        recorded_at: '2026-03-15T00:00:00+00:00',
+        recorded_by: { id: 1, full_name: 'Owner User' },
+      };
+      let result: AthletePromotion | null = null;
+      service.updatePromotionRecordedAt(7, 12, '2026-03-15').subscribe((p) => (result = p));
+
+      const req = httpMock.expectOne('/api/v1/athletes/7/promotions/12');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ recorded_at: '2026-03-15' });
+      req.flush({ data: updated });
+
+      expect(result).toEqual(updated);
+    });
+  });
+
+  describe('createPromotion (#1431 PR 2 of 2)', () => {
+    it('POSTs the belt payload as-is and unwraps the data envelope', () => {
+      const created: AthletePromotion = {
+        id: 50,
+        kind: 'belt',
+        from_belt: 'white',
+        to_belt: 'blue',
+        from_stripes: null,
+        to_stripes: null,
+        belt_at_event: 'blue',
+        recorded_at: '2019-03-15T00:00:00+00:00',
+        recorded_by: { id: 1, full_name: 'Owner User' },
+      };
+      let result: AthletePromotion | null = null;
+      service
+        .createPromotion(7, {
+          kind: 'belt',
+          recorded_at: '2019-03-15',
+          from_belt: 'white',
+          to_belt: 'blue',
+        })
+        .subscribe((p) => (result = p));
+
+      const req = httpMock.expectOne('/api/v1/athletes/7/promotions');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({
+        kind: 'belt',
+        recorded_at: '2019-03-15',
+        from_belt: 'white',
+        to_belt: 'blue',
+      });
+      req.flush({ data: created });
+
+      expect(result).toEqual(created);
+    });
+
+    it('POSTs the stripe payload as-is', () => {
+      service
+        .createPromotion(7, {
+          kind: 'stripe',
+          recorded_at: '2020-06-01',
+          from_stripes: 1,
+          to_stripes: 2,
+          belt_at_event: 'blue',
+        })
+        .subscribe();
+
+      const req = httpMock.expectOne('/api/v1/athletes/7/promotions');
+      expect(req.request.body).toEqual({
+        kind: 'stripe',
+        recorded_at: '2020-06-01',
+        from_stripes: 1,
+        to_stripes: 2,
+        belt_at_event: 'blue',
+      });
+      req.flush({ data: {} });
+    });
+  });
+
+  describe('deletePromotion (#1431 PR 2 of 2)', () => {
+    it('DELETEs /api/v1/athletes/:athleteId/promotions/:promotionId', () => {
+      service.deletePromotion(7, 12).subscribe();
+      const req = httpMock.expectOne('/api/v1/athletes/7/promotions/12');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
     });

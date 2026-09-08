@@ -21,9 +21,10 @@ use Illuminate\Support\Facades\Storage;
  * `created_by` carries the author's identity flair shape so the SPA's
  * `<app-user-flair>` component (PR-D) can render the
  * "Mario Rossi · @mariobjj · 🟦 Blue" line. Belt comes from the
- * linked athlete row; for owner-authored posts (events,
- * announcements) the `belt` field is null and the SPA renders the
- * owner variant of the flair.
+ * linked athlete row — which since #747 an OWNER can have too, by
+ * opting into "train at this academy". Null means only "this person
+ * has no athlete row here", and the SPA renders the owner variant of
+ * the flair; it does not mean "this person is staff".
  *
  * Reactions / comments / rsvps counts are surfaced from the
  * `withCount()` aggregations the Action eager-loads. PR-C (reactions)
@@ -55,9 +56,13 @@ class CommunityPostResource extends JsonResource
                 'full_name' => $author->full_name,
                 'handle' => $author->handle,
                 'avatar_url' => $author->avatar_url,
-                // Athletes carry a belt via their linked row; owners
-                // don't. Surface as null when no athlete row exists so
-                // the SPA renders the owner flair variant.
+                // The belt comes from whatever athlete row this user has in
+                // this academy. Owners used to have none by construction;
+                // since #747 the head coach who also trains has one, and
+                // their posts carry the belt like anyone else's — including
+                // promotions, because this reads the row rather than a copy
+                // of it. Null when there is no row, which is still the common
+                // case for a manager or a co-founder.
                 'belt' => $author->athlete?->belt?->value,
             ],
             'reactions_count' => $post->reactions_count ?? 0,
