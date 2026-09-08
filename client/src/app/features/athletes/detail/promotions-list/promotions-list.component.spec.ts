@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { of, throwError } from 'rxjs';
 import { provideI18nTesting } from '../../../../../test-utils/i18n-test';
 import { type AthletePromotion, AthleteService } from '../../../../core/services/athlete.service';
@@ -14,10 +15,24 @@ class FakeAthleteService {
       meta: { current_page: 1, per_page: 20, total: 0, last_page: 1 },
     }),
   );
+  readonly updatePromotionRecordedAt = vi.fn(() =>
+    of({
+      id: 1,
+      kind: 'stripe',
+      from_belt: null,
+      to_belt: null,
+      from_stripes: 1,
+      to_stripes: 2,
+      belt_at_event: 'blue',
+      recorded_at: '2026-03-15T00:00:00Z',
+      recorded_by: null,
+    } as AthletePromotion),
+  );
 }
 
 function setup(opts: { athleteId?: string } = {}): {
   fixture: ReturnType<typeof TestBed.createComponent<PromotionsListComponent>>;
+  component: PromotionsListComponent;
   el: HTMLElement;
   svc: FakeAthleteService;
 } {
@@ -41,6 +56,7 @@ function setup(opts: { athleteId?: string } = {}): {
   const fixture = TestBed.createComponent(PromotionsListComponent);
   return {
     fixture,
+    component: fixture.componentInstance,
     el: fixture.nativeElement as HTMLElement,
     svc: TestBed.inject(AthleteService) as unknown as FakeAthleteService,
   };
@@ -170,5 +186,96 @@ describe('PromotionsListComponent (#799)', () => {
     fixture.detectChanges();
 
     expect(svc.promotions).toHaveBeenCalledWith(42, 2);
+  });
+
+  describe('editing recorded_at (#1431 PR 1 of 2)', () => {
+    it('opens the edit dialog seeded with the row date on pencil click', () => {
+      const { fixture, component, el, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({
+          data: [makePromotion({ id: 5, recorded_at: '2026-03-15T00:00:00Z' })],
+          meta: { current_page: 1, per_page: 20, total: 1, last_page: 1 },
+        }),
+      );
+      fixture.detectChanges();
+      const dialogOpen = component as unknown as { editDialogOpen: () => boolean };
+
+      expect(dialogOpen.editDialogOpen()).toBe(false);
+      (el.querySelector('[data-cy="promotion-edit-5"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(dialogOpen.editDialogOpen()).toBe(true);
+    });
+
+    it('confirming calls the service with the athlete/promotion ids and reloads the current page', () => {
+      const { fixture, component, el, svc } = setup({ athleteId: '7' });
+      svc.promotions.mockReturnValue(
+        of({
+          data: [makePromotion({ id: 5, recorded_at: '2026-03-15T00:00:00Z' })],
+          meta: { current_page: 2, per_page: 20, total: 25, last_page: 2 },
+        }),
+      );
+      fixture.detectChanges();
+      svc.promotions.mockClear();
+
+      (el.querySelector('[data-cy="promotion-edit-5"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (component as unknown as { confirmEdit: () => void }).confirmEdit();
+
+      expect(svc.updatePromotionRecordedAt).toHaveBeenCalledWith(7, 5, '2026-03-15');
+      // Reloads the SAME page it was on, not page 1 — the row may have been
+      // reached via next/prev and the correction shouldn't reset the reader.
+      expect(svc.promotions).toHaveBeenCalledWith(7, 2);
+    });
+
+    it('cancel closes the dialog without calling the service', () => {
+      const { fixture, component, el, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({
+          data: [makePromotion({ id: 5 })],
+          meta: { current_page: 1, per_page: 20, total: 1, last_page: 1 },
+        }),
+      );
+      fixture.detectChanges();
+      const dialogOpen = component as unknown as { editDialogOpen: () => boolean };
+
+      (el.querySelector('[data-cy="promotion-edit-5"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(dialogOpen.editDialogOpen()).toBe(true);
+
+      (el.querySelector('[data-cy="promotion-edit-cancel"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(dialogOpen.editDialogOpen()).toBe(false);
+      expect(svc.updatePromotionRecordedAt).not.toHaveBeenCalled();
+    });
+
+    it('toasts an error and leaves the dialog open when the update fails', () => {
+      const { fixture, component, svc } = setup();
+      svc.promotions.mockReturnValue(
+        of({
+          data: [makePromotion({ id: 5 })],
+          meta: { current_page: 1, per_page: 20, total: 1, last_page: 1 },
+        }),
+      );
+      svc.updatePromotionRecordedAt.mockReturnValue(throwError(() => new Error('boom')));
+      fixture.detectChanges();
+      // MessageService is component-level (own `<p-toast>` per top-level tab,
+      // same convention as athletes-list / payments-list) — resolve it off
+      // the component's own injector, not TestBed's root.
+      const add = vi.spyOn(fixture.componentRef.injector.get(MessageService), 'add');
+
+      (component as unknown as { openEditDialog: (p: AthletePromotion) => void }).openEditDialog(
+        makePromotion({ id: 5 }),
+      );
+      (component as unknown as { confirmEdit: () => void }).confirmEdit();
+
+      expect(add).toHaveBeenCalledWith(
+        expect.objectContaining({
+          severity: 'error',
+          detail: "Couldn't update the date. Try again.",
+        }),
+      );
+    });
   });
 });

@@ -1,3 +1,5 @@
+<p-toast position="top-right" />
+
 <section class="promotions">
   @if (loading()) {
     <ul class="promotions__list" data-cy="promotions-loading">
@@ -21,9 +23,23 @@
     <ul class="promotions__list" data-cy="promotions-list">
       @for (p of promotions(); track p.id) {
         <li class="promotions__row" [attr.data-cy]="'promotion-' + p.id">
-          <time class="promotions__date" [dateTime]="p.recorded_at">
-            {{ p.recorded_at | date: 'mediumDate' }}
-          </time>
+          <div class="promotions__date-row">
+            <time class="promotions__date" [dateTime]="p.recorded_at">
+              {{ p.recorded_at | date: 'mediumDate' }}
+            </time>
+            <p-button
+              icon="pi pi-pencil"
+              severity="secondary"
+              [text]="true"
+              [rounded]="true"
+              size="small"
+              [ariaLabel]="'athletes.detail.promotions.editDateAria' | translate"
+              [pTooltip]="'athletes.detail.promotions.editDate' | translate"
+              tooltipPosition="top"
+              (onClick)="openEditDialog(p)"
+              [attr.data-cy]="'promotion-edit-' + p.id"
+            />
+          </div>
           @switch (p.kind) {
             @case ('belt') {
               <div class="promotions__transition" data-cy="promotion-belt">
@@ -93,3 +109,48 @@
     }
   }
 </section>
+
+<p-dialog
+  [(visible)]="editDialogOpen"
+  [modal]="true"
+  [draggable]="false"
+  [breakpoints]="{ '768px': '92vw' }"
+  [style]="{ width: '24rem' }"
+  [header]="'athletes.detail.promotions.editDialog.title' | translate"
+  data-cy="promotion-edit-dialog"
+>
+  <p class="promotions__dialog-body">
+    {{ 'athletes.detail.promotions.editDialog.body' | translate }}
+  </p>
+
+  <label class="promotions__dialog-label" for="promotion-recorded-at">
+    {{ 'athletes.detail.promotions.editDialog.label' | translate }}
+  </label>
+  <form [formGroup]="editForm">
+    <p-datepicker
+      inputId="promotion-recorded-at"
+      formControlName="recorded_at"
+      [maxDate]="maxDate"
+      [showIcon]="true"
+      dateFormat="dd/mm/yy"
+      appendTo="body"
+      data-cy="promotion-edit-date"
+    />
+  </form>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      [label]="'athletes.detail.promotions.editDialog.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (onClick)="editDialogOpen.set(false)"
+      data-cy="promotion-edit-cancel"
+    />
+    <p-button
+      [label]="'athletes.detail.promotions.editDialog.confirm' | translate"
+      [loading]="saving()"
+      (onClick)="confirmEdit()"
+      data-cy="promotion-edit-confirm"
+    />
+  </ng-template>
+</p-dialog>

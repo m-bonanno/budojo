@@ -22,7 +22,7 @@
     gap: 0.25rem;
 
     @media (min-width: 768px) {
-      grid-template-columns: 9rem 1fr auto;
+      grid-template-columns: minmax(9rem, auto) 1fr auto;
       align-items: center;
       gap: 1rem;
     }
@@ -30,6 +30,12 @@
     &--skeleton {
       gap: 0.5rem;
     }
+  }
+
+  &__date-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 
   &__date {
@@ -83,5 +89,19 @@
   &__pager-label {
     color: var(--p-text-muted-color);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__dialog-body {
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    color: var(--p-text-muted-color);
+  }
+
+  &__dialog-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--p-text-color);
   }
 }

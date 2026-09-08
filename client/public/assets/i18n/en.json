@@ -1933,7 +1933,22 @@
         "stripes": "stripes",
         "recordedBy": "Recorded by {{name}}",
         "prevPage": "Previous page",
-        "nextPage": "Next page"
+        "nextPage": "Next page",
+        "editDate": "Correct the date",
+        "editDateAria": "Correct the recorded date",
+        "editDialog": {
+          "title": "Correct the date",
+          "body": "Only the date moves. What was promoted, and who recorded it, stay the same.",
+          "label": "Recorded on",
+          "confirm": "Save",
+          "cancel": "Cancel"
+        },
+        "toast": {
+          "updatedSummary": "Date updated",
+          "updatedDetail": "The promotion history has been corrected.",
+          "errorSummary": "Something went wrong",
+          "errorGeneric": "Couldn't update the date. Try again."
+        }
       },
       "attendance": {
         "eyebrow": "Attendance",
