@@ -206,7 +206,7 @@ describe('AthletesListComponent', () => {
       expect(component.sortOrder()).toBe('asc');
     });
 
-    it('flips asc → desc → asc on subsequent clicks of the same column', () => {
+    it('cycles asc → desc → off, so the toolbar control can also stop sorting (#1443)', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
@@ -217,8 +217,33 @@ describe('AthletesListComponent', () => {
       component.cycleBeltSort();
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'desc']);
 
+      // Third press releases the sort entirely. While this was a column
+      // header, clicking a different header was the way out; standing alone
+      // in the toolbar it needs its own off state, or a belt sort could only
+      // be escaped by sorting on something else.
+      component.cycleBeltSort();
+      expect(component.sortField()).toBeNull();
+
+      // And a fourth starts the cycle over.
       component.cycleBeltSort();
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'asc']);
+    });
+
+    it('drops sort_by from the request once the cycle reaches off', () => {
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
+
+      component.cycleBeltSort();
+      component.cycleBeltSort();
+      listSpy.mockClear();
+      component.cycleBeltSort();
+
+      // Not "belt with some default direction" — absent, which hands the
+      // order back to the server rather than inventing a third one here.
+      expect(listSpy.mock.calls[0][0].sortBy).toBeUndefined();
+      expect(listSpy.mock.calls[0][0].sortOrder).toBeUndefined();
     });
 
     it('restarts at asc when the active sort is on a different column', () => {
@@ -235,23 +260,31 @@ describe('AthletesListComponent', () => {
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'asc']);
     });
 
-    it('renders the signifier as ↑/↓ when active and ↕ when inactive', () => {
+    it('shows the direction on the toolbar button icon, neutral when the sort is elsewhere', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
 
-      // Neutral.
-      expect(component.beltSortLabel()).toBe('↕');
+      const icon = (): DOMTokenList =>
+        (fixture.nativeElement.querySelector('[data-cy="athletes-sort-belt"] i') as HTMLElement)
+          .classList;
+
+      expect(icon()).toContain('pi-sort-alt');
 
       component.cycleBeltSort();
-      expect(component.beltSortLabel()).toBe('↑');
+      fixture.detectChanges();
+      expect(icon()).toContain('pi-sort-amount-up-alt');
 
       component.cycleBeltSort();
-      expect(component.beltSortLabel()).toBe('↓');
+      fixture.detectChanges();
+      expect(icon()).toContain('pi-sort-amount-down');
 
-      // Move to a different column — Belt signifier returns to neutral.
+      // Sorting by something else returns this control to neutral — the
+      // signal is the source, so it cannot be left highlighted the way
+      // PrimeNG's own sort icon was (#205).
       component.cycleFullNameSort();
-      expect(component.beltSortLabel()).toBe('↕');
+      fixture.detectChanges();
+      expect(icon()).toContain('pi-sort-alt');
     });
 
     it('forwards sort_by=belt + sort_order to the backend filter', () => {
@@ -428,6 +461,51 @@ describe('AthletesListComponent', () => {
       component.onPaidChange('');
       await fixture.whenStable();
       expect(listSpy.mock.calls[0][0].paid).toBeUndefined();
+    });
+
+    it('cycles all → paid → unpaid → all on the toolbar button (#1446)', async () => {
+      TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
+
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.selectedPaid()).toBe('yes');
+      expect(listSpy.mock.calls.at(-1)?.[0].paid).toBe('yes');
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.selectedPaid()).toBe('no');
+      expect(listSpy.mock.calls.at(-1)?.[0].paid).toBe('no');
+
+      listSpy.mockClear();
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.selectedPaid()).toBe('');
+      expect(listSpy.mock.calls.at(-1)?.[0].paid).toBeUndefined();
+    });
+
+    it('the button says which state it is in, not only what colour it is', async () => {
+      TestBed.inject(AcademyService).academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
+
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      // Resolved EN copy, not the key — a missing key renders the key and
+      // still passes an assertion written against it.
+      expect(component.paidCycleLabel()).toBe('Payment');
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.paidCycleLabel()).toBe('Paid');
+
+      component.cyclePaid();
+      await fixture.whenStable();
+      expect(component.paidCycleLabel()).toBe('Unpaid');
     });
 
     it('hasMonthlyFee=false when academy.monthly_fee_cents is null or absent', () => {

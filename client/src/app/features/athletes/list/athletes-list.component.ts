@@ -58,6 +58,7 @@ import { IconButtonComponent } from '../../../shared/components/icon-button/icon
 import { OnboardingChecklistComponent } from '../../onboarding/onboarding-checklist.component';
 import { OnboardingService } from '../../../core/services/onboarding.service';
 import { academyChargesAFee } from '../../../shared/utils/academy-fee';
+import { BELT_KEYS } from '../../../shared/utils/i18n-enum-keys';
 import { CarnetService } from '../../../core/services/carnet.service';
 
 interface SelectOption<T extends string> {
@@ -361,17 +362,11 @@ export class AthletesListComponent implements OnInit {
     if (this.selectedBelt() !== '') count += 1;
     // The default is `active`, so that is what counts as "no filter" now.
     if (this.selectedStatus() !== 'active') count += 1;
-    if (this.selectedPaid() !== '') count += 1;
+    // Payment is deliberately NOT counted any more (#1446): the sheet no
+    // longer contains that control — it moved to the shared row beside the
+    // eye — and a badge counting a filter the sheet cannot show or clear
+    // points at the wrong place.
     return count;
-  });
-
-  readonly paidOptions = computed<SelectOption<AthletePaidFilter>[]>(() => {
-    this.languageService.currentLang();
-    return [
-      { label: this.translate.instant('athletes.list.paidOptions.all'), value: '' },
-      { label: this.translate.instant('athletes.list.paidOptions.yes'), value: 'yes' },
-      { label: this.translate.instant('athletes.list.paidOptions.no'), value: 'no' },
-    ];
   });
 
   ngOnInit(): void {
@@ -698,36 +693,38 @@ export class AthletesListComponent implements OnInit {
     const f = this.sortField();
     const o = this.sortOrder();
 
-    let nextOrder: AthleteSortOrder;
+    // asc → desc → OFF. The third leg is what a toolbar control needs and a
+    // column header did not: while this lived in a `<th>` there was always
+    // another header to click to move the sort elsewhere, so "stop sorting by
+    // belt" needed no state of its own. Standing on its own in the toolbar it
+    // does — otherwise the only way out of a belt sort is to sort by name.
+    //
+    // `load()` omits both sort params when the field is null, which hands the
+    // order back to the server's default rather than inventing a third one
+    // here.
     if (f === 'belt' && o === 'asc') {
-      nextOrder = 'desc';
+      this.sortOrder.set('desc');
+    } else if (f === 'belt' && o === 'desc') {
+      this.sortField.set(null);
     } else {
-      // First click on the column or coming in from any other state
-      // (null, name sort, etc.) → start at asc, the conventional default.
-      nextOrder = 'asc';
+      // Coming in from any other state (null, a name sort) → asc, the
+      // conventional default.
+      this.sortField.set('belt');
+      this.sortOrder.set('asc');
     }
 
-    this.sortField.set('belt');
-    this.sortOrder.set(nextOrder);
     this.resetPage();
     this.load();
   }
 
   /**
-   * Compact direction signifier for the Belt header. `↑` when asc,
-   * `↓` when desc, `↕` when the sort is on a different column. Matches
-   * the visual rhythm of the Full-name signifier.
+   * Plain-English tooltip — Norman § signifier. Says what the NEXT press
+   * does, which a tri-state control has to, since two of its three states
+   * look alike from the outside.
    */
-  readonly beltSortLabel = computed<string>(() => {
-    if (this.sortField() !== 'belt') return '↕';
-    return this.sortOrder() === 'asc' ? '↑' : '↓';
-  });
-
-  /** Plain-English tooltip — Norman § signifier. */
   readonly beltSortTooltip = computed<string>(() => {
     this.languageService.currentLang(); // signal dep — recompute on toggle
-    const f = this.sortField();
-    if (f !== 'belt') {
+    if (this.sortField() !== 'belt') {
       return this.translate.instant('athletes.list.tooltip.beltSortInitial');
     }
     return this.translate.instant(
@@ -737,10 +734,64 @@ export class AthletesListComponent implements OnInit {
     );
   });
 
-  /** WAI-ARIA sort state for the Belt <th>. */
-  readonly beltAriaSort = computed<'ascending' | 'descending' | 'none'>(() => {
-    if (this.sortField() !== 'belt') return 'none';
-    return this.sortOrder() === 'asc' ? 'ascending' : 'descending';
+  /**
+   * all → paid → unpaid → all (#1446).
+   *
+   * Routed through `onPaidChange` deliberately: the URL is the source of
+   * truth for this filter and the signal is set by the `queryParamMap`
+   * subscription, so reading `selectedPaid()` back immediately after this
+   * returns the OLD value. Compute the next state from the current one
+   * BEFORE handing over, never after.
+   */
+  cyclePaid(): void {
+    const current = this.selectedPaid();
+    const next: AthletePaidFilter | '' = current === '' ? 'yes' : current === 'yes' ? 'no' : '';
+    this.onPaidChange(next);
+  }
+
+  /** The button carries its current state as a word, not only as a colour. */
+  readonly paidCycleLabel = computed<string>(() => {
+    this.languageService.currentLang();
+    const paid = this.selectedPaid();
+    if (paid === 'yes') return this.translate.instant('athletes.list.paidOptions.yes');
+    if (paid === 'no') return this.translate.instant('athletes.list.paidOptions.no');
+    return this.translate.instant('athletes.list.paidFilter.any');
+  });
+
+  /**
+   * The belt as words, for the spine's tooltip on the desktop row (#1443).
+   *
+   * With the Belt column gone the spine is the only belt on that row, and a
+   * 9px stripe does not separate brown from black — nor the two corals —
+   * for everyone. The name stays reachable here and on the spine's own
+   * `aria-label`; the mobile card still writes it out in full.
+   */
+  beltName(athlete: Athlete): string {
+    this.languageService.currentLang();
+    return this.translate.instant(BELT_KEYS[athlete.belt]);
+  }
+
+  /**
+   * The payment button's glyph, which carries the STATE and not just the
+   * subject. Below 768px the label is hidden to keep the control row on one
+   * line, so on a phone this icon and the highlight are the whole signal —
+   * a wallet that never changed shape would leave "paid" and "unpaid"
+   * distinguishable by colour alone.
+   */
+  readonly paidCycleIcon = computed<string>(() => {
+    const paid = this.selectedPaid();
+    if (paid === 'yes') return 'pi-check-circle';
+    if (paid === 'no') return 'pi-times-circle';
+    return 'pi-wallet';
+  });
+
+  /** Same contract as the belt tooltip: what the next press does. */
+  readonly paidCycleTooltip = computed<string>(() => {
+    this.languageService.currentLang();
+    const paid = this.selectedPaid();
+    if (paid === 'yes') return this.translate.instant('athletes.list.tooltip.paidCyclePaid');
+    if (paid === 'no') return this.translate.instant('athletes.list.tooltip.paidCycleUnpaid');
+    return this.translate.instant('athletes.list.tooltip.paidCycleAll');
   });
 
   goToNew(): void {

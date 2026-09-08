@@ -27,24 +27,39 @@ describe('athletes table — column sorting', () => {
     cy.intercept('GET', '/api/v1/athletes*', { statusCode: 200, body: EMPTY_PAGE }).as('athletes');
   });
 
-  it('sends sort_by + sort_order on the wire when a sortable header is clicked', () => {
+  it('sends sort_by + sort_order on the wire from the toolbar belt control', () => {
     cy.visitAuthenticated('/dashboard/athletes');
     cy.wait('@athletes');
 
-    // PrimeNG p-table sorts ascending on the first header click and toggles
-    // to descending on a second click — same as every other Material/AG-Grid
-    // table the user has muscle memory for (Jakob's law).
-    cy.get('[data-cy="athletes-th-belt"]').click();
+    // Belt sorting left the table header in #1443 — the header did not exist
+    // on a phone, so this was desktop-only while it was a column. Ascending
+    // first, the direction every table the user has muscle memory for starts
+    // with (Jakob's law).
+    cy.get('[data-cy="athletes-sort-belt"]').click();
     cy.wait('@athletes')
       .its('request.url')
       .should('include', 'sort_by=belt')
       .and('include', 'sort_order=asc');
 
-    cy.get('[data-cy="athletes-th-belt"]').click();
+    cy.get('[data-cy="athletes-sort-belt"]').click();
     cy.wait('@athletes')
       .its('request.url')
       .should('include', 'sort_by=belt')
       .and('include', 'sort_order=desc');
+
+    // Third press releases it. A column header could hand the sort to a
+    // neighbour; a control standing on its own has to be able to let go.
+    cy.get('[data-cy="athletes-sort-belt"]').click();
+    cy.wait('@athletes').its('request.url').should('not.include', 'sort_by=belt');
+  });
+
+  it('the belt control reaches a phone, which the column header never did (#1443)', () => {
+    cy.viewport(375, 667);
+    cy.visitAuthenticated('/dashboard/athletes');
+    cy.wait('@athletes');
+
+    cy.get('[data-cy="athletes-sort-belt"]').should('be.visible').click();
+    cy.wait('@athletes').its('request.url').should('include', 'sort_by=belt');
   });
 
   it('cycles the Full name header through 4 states (#196)', () => {
