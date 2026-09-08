@@ -8,7 +8,12 @@ import { MOBILE_VIEWPORTS } from '../support/viewports';
 // so a CSS regression like #238 (phone-cc ellipsis on Pixel 8 Pro)
 // gets caught before reaching production.
 
-const ACADEMY_OK = { statusCode: 200, body: { data: MOCK_ACADEMY } };
+// A fee is configured so the card renders its payment chip — the control
+// that turned out to be sitting under the card's stretched link (#1444).
+const ACADEMY_OK = {
+  statusCode: 200,
+  body: { data: { ...MOCK_ACADEMY, monthly_fee_cents: 9500 } },
+};
 
 const ATHLETES_TWO = {
   statusCode: 200,
@@ -33,6 +38,11 @@ const ATHLETES_TWO = {
         // sitting next to a card that does not.
         facebook: 'https://facebook.com/mario',
         instagram: 'https://instagram.com/mario',
+<<<<<<< HEAD
+=======
+        paid_current_month: true,
+        payment_coverage: 'monthly',
+>>>>>>> origin/develop
       },
       {
         id: 2,
@@ -121,6 +131,25 @@ MOBILE_VIEWPORTS.forEach(({ name, width, height }) => {
       });
     });
 
+<<<<<<< HEAD
+=======
+    it('opens the payment menu instead of navigating when the chip is tapped (#1444)', () => {
+      // The card's stretched link covers the whole surface at `z-index: 1`,
+      // and every other control on it — the 3-dot, the avatar, the socials —
+      // lifts itself above with `z-index: 2`. The payment chip never did, so
+      // since #1402 it has been the one badge-row control the overlay
+      // swallowed: tapping "Monthly" navigated to the athlete instead of
+      // opening its menu, on the form factor this app is built for.
+      cy.visitAuthenticated('/dashboard/athletes');
+      cy.wait(['@academy', '@athletes']);
+
+      cy.get('[data-cy="athlete-card-coverage-1"]').click();
+
+      cy.get('.p-menu').should('be.visible');
+      cy.location('pathname').should('eq', '/dashboard/athletes');
+    });
+
+>>>>>>> origin/develop
     it('shows the belt spine on the card without widening the layout (#1429)', () => {
       // The same durable check as above, specific to the spine: it is
       // `position: absolute` on the card, so a regression here (e.g. a

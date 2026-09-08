@@ -392,9 +392,22 @@
                        hand — and that row rendered for some athletes and not
                        others, so the roster's rhythm depended on who had filled
                        the field in.
+<<<<<<< HEAD
                        Conditional render, no empty placeholder. stopPropagation
                        keeps the row's primary nav target (the name link) from
                        firing when a social link is tapped. -->
+=======
+                       Conditional render, no empty placeholder.
+
+                       The `stopPropagation` below is belt-and-braces, not
+                       load-bearing: this `<tr>` has no click handler and the
+                       table has no selectionMode, so a social tap has nothing
+                       to bubble into. It stays — pinned by its own spec — so
+                       that adding a row-level handler later cannot silently
+                       start swallowing these taps. The mobile card solves the
+                       same problem with `z-index` instead, because there the
+                       thing to beat is a stretched link. -->
+>>>>>>> origin/develop
                   @if (athlete.facebook || athlete.instagram) {
                     <div class="athlete-name__socials">
                       @if (athlete.facebook) {
@@ -808,6 +821,7 @@
                     />
                   </button>
                 }
+<<<<<<< HEAD
                 <!--
                   The month count only (#1447). The card has no header to sort
                   from, so a number the reader cannot order is worth showing
@@ -826,6 +840,8 @@
                     <span aria-hidden="true">{{ athlete.attendance_month_count }}</span>
                   </span>
                 }
+=======
+>>>>>>> origin/develop
                 <!-- Inside the badge row since #1445, not on a line of its own
                      under it. The row already wraps, so two icons cost nothing
                      when they fit and fall gracefully when they do not — which
