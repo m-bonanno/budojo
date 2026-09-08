@@ -111,6 +111,12 @@ test-client: ## Angular gates: prettier + eslint + vitest
 test-desktop: ## Desktop gates: tsc + vitest
 	$(SCRIPTS)/test-desktop.sh
 
+e2e: ## Cypress against the dev server, waiting out the ng-serve rebuild (SPEC=athletes-sort)
+	$(SCRIPTS)/e2e.sh $(SPEC)
+
+shot: ## Screenshot a route at 1280 and 375 against the dev backend (PAGE=/dashboard/athletes)
+	$(SCRIPTS)/shot.sh $(PAGE)
+
 quick: ## Same gates, skipping the --write formatters (re-runs mid-session)
 	$(SCRIPTS)/test-server.sh quick
 	$(SCRIPTS)/test-client.sh quick
