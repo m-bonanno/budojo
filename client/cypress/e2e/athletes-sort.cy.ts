@@ -38,6 +38,8 @@ const ONE_BROWN_BELT = {
         status: 'active',
         joined_at: '2023-01-10',
         created_at: '2026-04-22T10:00:00+00:00',
+        attendance_month_count: 6,
+        attendance_total_count: 214,
       },
     ],
     links: { first: null, last: null, prev: null, next: null },
@@ -101,6 +103,43 @@ describe('athletes table — column sorting', () => {
 
     cy.get('[data-cy="athletes-sort-belt"]').should('be.visible').click();
     cy.wait('@athletes').its('request.url').should('include', 'sort_by=belt');
+  });
+
+  it('cycles the Attendance header through its own 4 states (#1447)', () => {
+    // Counts sort descending first, unlike the names beside them: a count
+    // column is opened with "who trains most". The column only exists when
+    // the payload carried counts, so the fixture has to supply them.
+    cy.intercept('GET', '/api/v1/athletes*', ONE_BROWN_BELT).as('athletes');
+    cy.visitAuthenticated('/dashboard/athletes');
+    cy.wait('@athletes');
+
+    cy.get('[data-cy="athletes-th-attendance"]').click();
+    cy.wait('@athletes')
+      .its('request.url')
+      .should('include', 'sort_by=attendance_month')
+      .and('include', 'sort_order=desc');
+
+    cy.get('[data-cy="athletes-th-attendance"]').click();
+    cy.wait('@athletes')
+      .its('request.url')
+      .should('include', 'sort_by=attendance_month')
+      .and('include', 'sort_order=asc');
+
+    // Third press hands the lead to the all-time count — the second number
+    // the column shows, which a 2-state cycle could never reach.
+    cy.get('[data-cy="athletes-th-attendance"]').click();
+    cy.wait('@athletes')
+      .its('request.url')
+      .should('include', 'sort_by=attendance_total')
+      .and('include', 'sort_order=desc');
+  });
+
+  it('drops the Attendance column when the payload has no counts (#1447)', () => {
+    // A pre-#1447 server. Showing zeroes would say nobody has ever trained.
+    cy.visitAuthenticated('/dashboard/athletes');
+    cy.wait('@athletes');
+
+    cy.get('[data-cy="athletes-th-attendance"]').should('not.exist');
   });
 
   it('cycles the Full name header through 4 states (#196)', () => {
