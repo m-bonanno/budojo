@@ -45,6 +45,19 @@ class AthleteController extends Controller
         'created_at' => 'created_at',
     ];
 
+    /**
+     * Sortable AGGREGATES (#1447) — separate from the whitelist above because
+     * these are not columns on `athletes`. They are the `withCount` aliases
+     * the index selects, so they exist only inside this query and can be
+     * ordered by name the same way a column can.
+     *
+     * @var array<string, string>
+     */
+    private const SORTABLE_AGGREGATES = [
+        'attendance_month' => 'attendance_month_count',
+        'attendance_total' => 'attendance_total_count',
+    ];
+
     public function __construct(
         private readonly CreateAthleteAction $createAthlete,
         private readonly UpdateAthleteAction $updateAthlete,
@@ -76,6 +89,14 @@ class AthleteController extends Controller
         // February pays for April, and asking for a row whose `month` is 4
         // would report that athlete unpaid all quarter.
         $currentMonthScope = fn ($q) => $q->covering($currentYear, $currentMonth);
+
+        // The roster's attendance column (#1447). `whereYear` + `whereMonth`
+        // rather than a `between` on two computed dates: `attended_on` is a
+        // DATE, the comparison is calendar-month membership, and expressing it
+        // as a range is how an off-by-one at a month boundary gets in.
+        $currentMonthAttendanceScope = fn ($q) => $q
+            ->whereYear('attended_on', $currentYear)
+            ->whereMonth('attended_on', $currentMonth);
 
         $paid = $request->input('paid');
 
@@ -121,6 +142,21 @@ class AthleteController extends Controller
             // would fall back to initials regardless of whether the
             // linked user actually has an avatar uploaded.
             ->with(['user:id,handle,avatar_path,updated_at'])
+            // Attendance, twice, as counts rather than rows (#1447): the
+            // roster shows how often someone has turned up this month and in
+            // total, and loading their sessions to count them would be a
+            // second N+1 on the busiest screen in the app. Two subqueries for
+            // the page.
+            //
+            // `count(*)` is the right count because there is at most one live
+            // record per (athlete, day): `MarkAttendanceAction` enforces it on
+            // insert, and the SoftDeletes global scope keeps a corrected-by-
+            // delete-and-reinsert day from being counted twice. See the
+            // uniqueness note in the create_attendance_records migration.
+            ->withCount([
+                'attendanceRecords as attendance_total_count',
+                'attendanceRecords as attendance_month_count' => $currentMonthAttendanceScope,
+            ])
             ->when($request->filled('belt'), fn ($q) => $q->where('belt', $request->input('belt')))
             ->when(
                 ! $trashedMode && $request->filled('status'),
@@ -164,6 +200,17 @@ class AthleteController extends Controller
             // picks which name leads (first / last) and the order
             // (asc / desc); the controller honors both consistently.
             $this->applyNameSort($query, $sortBy, $sortOrder);
+        } elseif ($sortBy !== null && \array_key_exists($sortBy, self::SORTABLE_AGGREGATES)) {
+            // Names as the tiebreaker, always ascending (#1447). A count is a
+            // small integer over a roster of hundreds, so ties are the common
+            // case, not the edge one — half a class shares "0 this month".
+            // Without a stable second key the tied block reorders itself
+            // between pages and an athlete can appear on both page 1 and 2, or
+            // on neither. Same reasoning as the name sort's own tiebreak
+            // (#196).
+            $query->orderBy(self::SORTABLE_AGGREGATES[$sortBy], $sortOrder)
+                ->orderBy('last_name')
+                ->orderBy('first_name');
         } elseif ($sortBy !== null && \array_key_exists($sortBy, self::SORTABLE_COLUMNS)) {
             $query->orderBy(self::SORTABLE_COLUMNS[$sortBy], $sortOrder);
         } else {
