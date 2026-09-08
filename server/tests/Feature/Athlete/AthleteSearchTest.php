@@ -95,7 +95,7 @@ it('combines q with belt and status filters (AND)', function (): void {
     Athlete::factory()->create([
         'academy_id' => $this->academy->id,
         'first_name' => 'Mario', 'last_name' => 'Verdi',
-        'belt' => Belt::White, 'stripes' => 0, 'status' => AthleteStatus::Suspended,
+        'belt' => Belt::White, 'stripes' => 0, 'status' => AthleteStatus::Inactive,
     ]);
 
     // Search "mario" + belt=white + status=active → only "Mario Rossi" qualifies.

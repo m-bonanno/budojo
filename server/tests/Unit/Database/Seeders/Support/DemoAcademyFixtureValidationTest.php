@@ -163,8 +163,8 @@ it('defaults missing status to Active', function (): void {
 });
 
 it('parses an explicit status string into the enum', function (): void {
-    $row = baseAthleteRow(['status' => 'suspended']);
-    expect(DemoAcademyAthleteFixture::fromArray($row)->status)->toBe(AthleteStatus::Suspended);
+    $row = baseAthleteRow(['status' => 'inactive']);
+    expect(DemoAcademyAthleteFixture::fromArray($row)->status)->toBe(AthleteStatus::Inactive);
 
     $row = baseAthleteRow(['status' => 'inactive']);
     expect(DemoAcademyAthleteFixture::fromArray($row)->status)->toBe(AthleteStatus::Inactive);

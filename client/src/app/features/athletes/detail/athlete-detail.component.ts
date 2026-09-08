@@ -128,12 +128,10 @@ export class AthleteDetailComponent implements OnInit {
     return 'documents';
   }
 
-  statusSeverity(status: AthleteStatus): 'success' | 'warn' | 'secondary' {
+  statusSeverity(status: AthleteStatus): 'success' | 'secondary' {
     switch (status) {
       case 'active':
         return 'success';
-      case 'suspended':
-        return 'warn';
       case 'inactive':
         return 'secondary';
     }

@@ -97,6 +97,9 @@ Format: `→` separates the symptom from the action.
 
 ## Tests — Cypress
 
+- A screenshot taken right after editing a component can capture **`ng serve`'s stale error overlay** — a red box naming a symbol that no longer exists, over a page that is otherwise correct. It is not a real failure: the Angular builder had not finished recompiling, and the same code compiles clean under vitest. Cost three re-captures across two sessions before it was written down. → When an overlay names something you just changed, **confirm against the file and the gate** (`grep` it, and check `test-client.sh` was green) before chasing it; then `touch` the file and wait ~25s for the rebuild. The tell is that vitest is green and the overlay is not — a real error fails both.
+
+
 ### Cypress
 
 - Added a fetch-on-mount to a page already covered by other Cypress specs → sweep every spec whose flow routes through that page and add a defensive `cy.intercept` in its `beforeEach`. Grep the cypress dir for `cy.visitAuthenticated.*<route>`.

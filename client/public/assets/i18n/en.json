@@ -1675,7 +1675,6 @@
   "statuses": {
     "all": "All statuses",
     "active": "Active",
-    "suspended": "Suspended",
     "inactive": "Inactive",
     "trashed": "Deleted"
   },

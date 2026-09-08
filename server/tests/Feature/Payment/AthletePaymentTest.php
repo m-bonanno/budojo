@@ -223,9 +223,8 @@ it('filters athletes by ?paid=no — returns only those NOT paid for the current
     expect($ids)->not->toContain($paid->id);
 });
 
-it('?paid=no excludes suspended and inactive athletes — payment not expected from non-active rows (#805)', function (): void {
+it('?paid=no excludes inactive athletes — payment not expected from non-active rows (#805)', function (): void {
     $active = Athlete::factory()->for($this->user->academy)->create(['status' => 'active']);
-    $suspended = Athlete::factory()->for($this->user->academy)->create(['status' => 'suspended']);
     $inactive = Athlete::factory()->for($this->user->academy)->create(['status' => 'inactive']);
     // None have current-month payments — under the pre-#805 filter all three
     // would surface as "unpaid" and inflate the unpaid-this-month widget's
@@ -239,11 +238,10 @@ it('?paid=no excludes suspended and inactive athletes — payment not expected f
         ->all();
 
     expect($ids)->toContain($active->id);
-    expect($ids)->not->toContain($suspended->id);
     expect($ids)->not->toContain($inactive->id);
 });
 
-it('?paid=yes deliberately INCLUDES suspended/inactive athletes who paid earlier in the month (#805 asymmetry)', function (): void {
+it('?paid=yes deliberately INCLUDES inactive athletes who paid earlier in the month (#805 asymmetry)', function (): void {
     // The asymmetric contract: `paid=no` gates on `status=active` (an
     // inactive athlete owes nothing) but `paid=yes` does NOT — an
     // athlete who paid earlier in the month and then went inactive is
