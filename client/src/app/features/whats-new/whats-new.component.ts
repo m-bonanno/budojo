@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -51,7 +51,25 @@ export class WhatsNewComponent {
   private readonly router = inject(Router);
   private readonly languageService = inject(LanguageService);
 
-  protected readonly releases: readonly Release[] = RELEASES;
+  /**
+   * How many releases the page opens with, and how many each press adds
+   * (#1464).
+   *
+   * All 95 rendered at once is a wall, and the entry anyone actually came
+   * for is the one at the top. Ten is about a screen and a half — enough to
+   * see that there IS a history without having to scroll past it.
+   */
+  private readonly PAGE = 10;
+
+  private readonly shown = signal(this.PAGE);
+
+  protected readonly releases = computed<readonly Release[]>(() => RELEASES.slice(0, this.shown()));
+
+  protected readonly remaining = computed<number>(() => RELEASES.length - this.shown());
+
+  protected showMore(): void {
+    this.shown.update((n) => n + this.PAGE);
+  }
 
   /**
    * Release copy is data, not template text, so it cannot go through

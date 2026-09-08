@@ -528,7 +528,8 @@
     "eyebrow": "What's new",
     "title": "Recent updates",
     "subtitle": "What's changed in Budojo lately, in plain language. Newest at the top.",
-    "back": "Back to dashboard"
+    "back": "Back to dashboard",
+    "showMore": "Show {{count}} more releases"
   },
   "notificationOnboarding": {
     "title": "Stay in the loop",
