@@ -82,8 +82,18 @@ export class PromotionsListComponent implements OnInit {
   protected readonly editDialogOpen = signal(false);
   protected readonly saving = signal(false);
   protected readonly editing = signal<AthletePromotion | null>(null);
-  /** A promotion can't be recorded ahead of today — same rule the server enforces. */
-  protected readonly maxDate = new Date();
+  /**
+   * A promotion can't be recorded ahead of today — same rule the server
+   * enforces (`before_or_equal:today`, evaluated in the app's UTC
+   * timezone). Built via `utcCalendarDayAsLocalMidnight` rather than a
+   * bare `new Date()` so the picker's upper bound matches what the
+   * server will actually accept: a bare `new Date()` reads the
+   * BROWSER's local calendar day, which runs up to a day ahead of
+   * UTC's for any timezone east of Greenwich (Italy included) during
+   * the first hours of the local day — the picker would let the owner
+   * choose a date the server then rejects as "in the future".
+   */
+  protected readonly maxDate = utcCalendarDayAsLocalMidnight(new Date());
   protected readonly editForm = this.fb.group({
     recorded_at: this.fb.control<Date | null>(null),
   });
@@ -126,10 +136,22 @@ export class PromotionsListComponent implements OnInit {
     if (this.currentPage() > 1) this.load(this.currentPage() - 1);
   }
 
-  /** Seeded from the row's current date so the picker opens where the owner is correcting, not on today. */
+  /**
+   * Seeded from the row's current date so the picker opens where the
+   * owner is correcting, not on today. `promotion.recorded_at` is a
+   * UTC instant (the server stores date-only edits at UTC midnight);
+   * converting it through `utcCalendarDayAsLocalMidnight` before
+   * handing it to the picker keeps the calendar day the owner SEES,
+   * and the day `toIsoDate` reads back on confirm, aligned with the
+   * day the server actually stored — a raw `new Date(iso)` would
+   * render (and silently re-save) the previous calendar day for any
+   * browser timezone west of Greenwich.
+   */
   protected openEditDialog(promotion: AthletePromotion): void {
     this.editing.set(promotion);
-    this.editForm.reset({ recorded_at: new Date(promotion.recorded_at) });
+    this.editForm.reset({
+      recorded_at: utcCalendarDayAsLocalMidnight(new Date(promotion.recorded_at)),
+    });
     this.editDialogOpen.set(true);
   }
 
@@ -173,4 +195,17 @@ function toIsoDate(date: Date): string {
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Re-anchors a UTC instant's calendar day onto local midnight — the Date
+ * this returns has the SAME year/month/day when read with local getters
+ * (`getFullYear`/`getMonth`/`getDate`, what PrimeNG's datepicker and
+ * `toIsoDate` both use) as `instant` has when read with UTC getters.
+ * Without this, `new Date(anIsoString)` fed straight to a date-only
+ * picker renders and round-trips the wrong calendar day for any browser
+ * timezone that isn't UTC itself.
+ */
+function utcCalendarDayAsLocalMidnight(instant: Date): Date {
+  return new Date(instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate());
 }
