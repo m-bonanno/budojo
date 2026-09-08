@@ -1642,7 +1642,8 @@
         "unmarked": "{{name}} non più segnato.",
         "markError": "Impossibile segnare {{name}} come presente. Riprova.",
         "unmarkError": "Impossibile rimuovere il segno per {{name}}. Riprova."
-      }
+      },
+      "monthlySummary": "Riepilogo del mese"
     },
     "summary": {
       "eyebrow": "Riepilogo presenze",
