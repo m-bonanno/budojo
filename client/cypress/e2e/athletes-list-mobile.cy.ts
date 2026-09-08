@@ -97,5 +97,21 @@ MOBILE_VIEWPORTS.forEach(({ name, width, height }) => {
         cy.contains('Luigi').should('be.visible');
       });
     });
+
+    it('shows the belt spine on the card without widening the layout (#1429)', () => {
+      // The same durable check as above, specific to the spine: it is
+      // `position: absolute` on the card, so a regression here (e.g. a
+      // width or inset that pushes past the card edge) would not be caught
+      // by the generic scrollWidth check unless the card itself grows —
+      // asserting the spine is actually visible closes that gap.
+      cy.visitAuthenticated('/dashboard/athletes');
+      cy.wait(['@academy', '@athletes']);
+
+      cy.get('[data-cy="athlete-card-1"] [data-cy="belt-spine"]').should('be.visible');
+      cy.document().then((doc) => {
+        const root = doc.documentElement;
+        expect(root.scrollWidth, 'document.scrollWidth').to.be.lte(root.clientWidth);
+      });
+    });
   });
 });
