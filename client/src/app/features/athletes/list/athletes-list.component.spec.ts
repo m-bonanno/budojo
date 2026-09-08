@@ -766,7 +766,10 @@ describe('AthletesListComponent', () => {
       ]);
       const link = fixture.nativeElement.querySelector('[data-cy="athlete-social-facebook-20"]');
 
-      expect(link.closest('.athlete-name__primary')).not.toBeNull();
+      // The line itself moved into the shared identity block in #1458, so
+      // the parent to assert moved with it — the contract is unchanged: the
+      // icons are ON the name's line, not on a row of their own.
+      expect(link.closest('.athlete-identity__body')).not.toBeNull();
       expect(fixture.nativeElement.querySelector('.athlete-name__body')).toBeNull();
     });
 

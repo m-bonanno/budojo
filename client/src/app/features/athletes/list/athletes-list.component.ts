@@ -44,6 +44,7 @@ import {
 } from '../../../core/services/athlete.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { RuntimeService } from '../../../core/services/runtime.service';
+import { AthleteIdentityComponent } from '../../../shared/components/athlete-identity/athlete-identity.component';
 import { BeltBadgeComponent } from '../../../shared/components/belt-badge/belt-badge.component';
 import { UserAvatarComponent } from '../../../shared/components/user-avatar/user-avatar.component';
 import { AgeBadgeComponent } from '../../../shared/components/age-badge/age-badge.component';
@@ -95,6 +96,7 @@ interface SelectOption<T extends string> {
     AgeBadgeComponent,
     FilterSheetComponent,
     BeltBadgeComponent,
+    AthleteIdentityComponent,
     UserAvatarComponent,
     UnpaidThisMonthWidgetComponent,
     PaidBadgeComponent,

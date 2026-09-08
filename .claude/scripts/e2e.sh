@@ -68,4 +68,4 @@ exec docker run --rm --network host \
   -v "$CLIENT":/e2e -w /e2e \
   -e "CYPRESS_PAGE=${CYPRESS_PAGE:-}" \
   "$CYPRESS_IMAGE" \
-  $spec_arg --config video=false --browser electron
+  $spec_arg --config video=false,trashAssetsBeforeRuns=false --browser electron
