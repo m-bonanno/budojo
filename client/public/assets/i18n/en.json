@@ -1797,7 +1797,9 @@
         "sellCarnet": "Sell a carnet",
         "openPayments": "Open payments"
       },
-      "importButton": "Import"
+      "importButton": "Import",
+      "showTrashed": "Show deleted athletes",
+      "hideTrashed": "Back to the roster"
     },
     "invitation": {
       "title": "Account & invitation",

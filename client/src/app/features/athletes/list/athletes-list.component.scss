@@ -17,11 +17,35 @@
     }
   }
 
+  // Mobile first: the search takes the full width and the rest wraps under it
+  // — four controls do not share 375px, and the canon is explicit that the
+  // base styles are the phone (#1428).
   &__filters {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+
+    // Desktop: one row. They are one control group doing one job — narrowing
+    // the list — and drawing them as two rows pushed the first athlete a row
+    // further down the page it exists to show.
+    @media (min-width: 768px) {
+      flex-wrap: nowrap;
+    }
+  }
+
+  // The search is the one control with unbounded input, so it takes the slack
+  // the selects do not need. `min-width: 0` because a flex item defaults to
+  // `min-width: auto` and would refuse to shrink below its content, pushing
+  // the row wider than its container.
+  .athletes-page__search {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    @media (min-width: 768px) {
+      max-width: 22rem;
+    }
   }
 
   // Desktop inline row (#704). Hidden on phone widths; the chip+sheet
@@ -30,7 +54,7 @@
   // breakpoints).
   &__filters-inline {
     display: flex;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     flex-wrap: wrap;
     gap: 0.5rem;
 

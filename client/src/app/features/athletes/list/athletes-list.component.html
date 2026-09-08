@@ -93,15 +93,6 @@
         [placeholder]="'athletes.list.beltPlaceholder' | translate"
         styleClass="filter-select"
       />
-      <p-select
-        [options]="statusOptions()"
-        [ngModel]="selectedStatus()"
-        (ngModelChange)="onStatusChange($event)"
-        optionLabel="label"
-        optionValue="value"
-        [placeholder]="'athletes.list.statusPlaceholder' | translate"
-        styleClass="filter-select"
-      />
       @if (hasMonthlyFee()) {
         <p-select
           [options]="paidOptions()"
@@ -113,38 +104,6 @@
           styleClass="filter-select"
           data-cy="athletes-paid-filter"
         />
-      }
-      <!--
-        The eye (#1403). The list answers "who trains here", so it shows the
-        actives; this reveals the rest. It writes the same signal the status
-        dropdown does — a shortcut for two of its values, not a second switch
-        that could disagree with it, which is why picking "Suspended" from the
-        menu also lights this up.
-      -->
-      @if (canToggleInactive()) {
-        <button
-          type="button"
-          class="athletes-page__reveal"
-          [class.athletes-page__reveal--on]="showingInactive()"
-          [attr.aria-pressed]="showingInactive()"
-          [pTooltip]="
-            (showingInactive() ? 'athletes.list.hideInactive' : 'athletes.list.showInactive')
-              | translate
-          "
-          [attr.aria-label]="
-            (showingInactive() ? 'athletes.list.hideInactive' : 'athletes.list.showInactive')
-              | translate
-          "
-          (click)="toggleInactive()"
-          data-cy="athletes-reveal-inactive"
-        >
-          <i
-            class="pi"
-            [class.pi-eye]="showingInactive()"
-            [class.pi-eye-slash]="!showingInactive()"
-            aria-hidden="true"
-          ></i>
-        </button>
       }
     </div>
 
@@ -171,16 +130,6 @@
         styleClass="filter-select"
         appendTo="body"
       />
-      <p-select
-        [options]="statusOptions()"
-        [ngModel]="selectedStatus()"
-        (ngModelChange)="onStatusChange($event)"
-        optionLabel="label"
-        optionValue="value"
-        [placeholder]="'athletes.list.statusPlaceholder' | translate"
-        styleClass="filter-select"
-        appendTo="body"
-      />
       @if (hasMonthlyFee()) {
         <p-select
           [options]="paidOptions()"
@@ -194,6 +143,64 @@
         />
       }
     </app-filter-sheet>
+
+    <!--
+      The eye (#1403) and the bin, lifted OUT of `__filters-inline` (#1426).
+      That container is `display: none` below 768px, and while the status
+      select existed it carried both of these jobs on a phone. Removing the
+      select would have left a phone with no way to see an inactive athlete
+      and no way to reach a deleted one — so these live in the shared row and
+      render once, on both layouts.
+    -->
+    @if (canToggleInactive()) {
+      <button
+        type="button"
+        class="athletes-page__reveal"
+        [class.athletes-page__reveal--on]="showingInactive()"
+        [attr.aria-pressed]="showingInactive()"
+        [pTooltip]="
+          (showingInactive() ? 'athletes.list.hideInactive' : 'athletes.list.showInactive')
+            | translate
+        "
+        [attr.aria-label]="
+          (showingInactive() ? 'athletes.list.hideInactive' : 'athletes.list.showInactive')
+            | translate
+        "
+        (click)="toggleInactive()"
+        data-cy="athletes-reveal-inactive"
+      >
+        <i
+          class="pi"
+          [class.pi-eye]="showingInactive()"
+          [class.pi-eye-slash]="!showingInactive()"
+          aria-hidden="true"
+        ></i>
+      </button>
+    }
+
+    <!--
+      Deleted athletes (#700). This was the status select's one job the eye
+      does NOT cover — restoring someone is a different question from "who
+      trains here", not a wider answer to it. Its own control rather than a
+      value hidden in a filter menu, because it switches the page into a
+      restore picker.
+    -->
+    <button
+      type="button"
+      class="athletes-page__reveal"
+      [class.athletes-page__reveal--on]="isTrashedMode()"
+      [attr.aria-pressed]="isTrashedMode()"
+      [pTooltip]="
+        (isTrashedMode() ? 'athletes.list.hideTrashed' : 'athletes.list.showTrashed') | translate
+      "
+      [attr.aria-label]="
+        (isTrashedMode() ? 'athletes.list.hideTrashed' : 'athletes.list.showTrashed') | translate
+      "
+      (click)="toggleTrashed()"
+      data-cy="athletes-reveal-trashed"
+    >
+      <i class="pi pi-trash" aria-hidden="true"></i>
+    </button>
   </div>
 
   @if (loadError()) {
@@ -275,7 +282,7 @@
                  status refers to without hovering. The full month+year
                  lives in the per-row tooltip below. -->
               <th data-cy="athletes-th-paid">
-                {{ 'athletes.list.table.payment' | translate }} · {{ currentMonthShort() }}
+                {{ 'athletes.list.table.payment' | translate }}
               </th>
             }
             <th style="width: 8rem"></th>

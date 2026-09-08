@@ -1797,7 +1797,9 @@
         "sellCarnet": "Vendi un carnet",
         "openPayments": "Apri i pagamenti"
       },
-      "importButton": "Importa"
+      "importButton": "Importa",
+      "showTrashed": "Mostra atleti cancellati",
+      "hideTrashed": "Torna alla lista"
     },
     "invitation": {
       "title": "Account & invito",
