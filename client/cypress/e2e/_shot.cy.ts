@@ -1,0 +1,86 @@
+/**
+ * The visual-verification harness (#1460), driven by `make shot`.
+ *
+ * Every UI change is supposed to get a real-browser look before it is pushed
+ * — `docs/development/visual-verification.md` has said so for a long time —
+ * but the recipe was "write a throwaway spec", which meant inventing fixtures
+ * and remembering to delete it afterwards. Half the time the throwaway spec
+ * was the bug: a stale one shipped `<<<<<<< HEAD` to four mobile cards with
+ * both gates green.
+ *
+ * So this one is permanent, takes the route from the environment, and shoots
+ * the two widths the canon cares about. It runs against whatever the dev
+ * backend is serving, which is the point: real data, real empty states.
+ *
+ *   make shot PAGE=/dashboard/athletes
+ */
+const route = Cypress.env('PAGE') ?? '/dashboard/athletes';
+
+/**
+ * The shell's own calls, stubbed so the page renders at all.
+ *
+ * `visitAuthenticated` seeds a fake token, which the real dev backend
+ * rejects — the app then redirects to login and the shot is a blank page.
+ * That is exactly what the first version of this harness produced, and the
+ * filenames looked fine, which is how it nearly shipped.
+ *
+ * The catch-all keeps every other endpoint quiet. **Pages render their EMPTY
+ * state**: this harness is for chrome, spacing and responsive behaviour. A
+ * shot that needs rows still needs a spec with fixtures — say so rather than
+ * pretending otherwise.
+ */
+function stubShell(): void {
+  cy.intercept('GET', '/api/v1/**', { statusCode: 200, body: { data: [] } });
+  cy.intercept('GET', '/api/v1/me/onboarding', {
+    statusCode: 200,
+    body: {
+      data: { dismissed_at: '2026-01-01T00:00:00Z', completed_steps: [], available_steps: [] },
+    },
+  });
+  cy.intercept('GET', '/api/v1/documents/expiring*', {
+    statusCode: 200,
+    body: { data: [], missing_medical_certificate: [] },
+  });
+  cy.intercept('GET', '/api/v1/athletes*', {
+    statusCode: 200,
+    body: {
+      data: [],
+      links: { first: null, last: null, prev: null, next: null },
+      meta: {
+        current_page: 1,
+        from: null,
+        last_page: 1,
+        path: '',
+        per_page: 20,
+        to: null,
+        total: 0,
+      },
+    },
+  });
+}
+const slug =
+  String(route)
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-|-$/g, '') || 'page';
+
+describe(`shot ${route}`, () => {
+  it('desktop 1280', () => {
+    cy.viewport(1280, 800);
+    stubShell();
+    cy.visitAuthenticated(route);
+    // Give the page its data before the shutter — a screenshot of a skeleton
+    // is a screenshot of nothing.
+    cy.get('body').should('be.visible');
+    cy.wait(1200);
+    cy.screenshot(`${slug}-1280`, { overwrite: true, capture: 'viewport' });
+  });
+
+  it('mobile 375', () => {
+    cy.viewport(375, 800);
+    stubShell();
+    cy.visitAuthenticated(route);
+    cy.get('body').should('be.visible');
+    cy.wait(1200);
+    cy.screenshot(`${slug}-375`, { overwrite: true, capture: 'viewport' });
+  });
+});

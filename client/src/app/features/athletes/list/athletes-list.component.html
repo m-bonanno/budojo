@@ -42,17 +42,15 @@
     />
   </app-page-header>
 
+  <!--
+    The widget row is down to one card (#1455, #1456). The attendance summary
+    went with the Sessions column, which says the same thing per athlete
+    instead of for the top five; the documents card became the alert button in
+    the filter row below. What is left is the unpaid chase, which is a
+    different kind of thing — it appears only after the 16th, and it is a
+    prompt to act rather than a state to read.
+  -->
   <div class="athletes-page__widgets">
-    <!-- Document health signal — fetches on init, links to the full cross-athlete
-         expiring list. Its own state: the page never waits on it. -->
-    <app-expiring-documents-widget />
-
-    <!-- Monthly attendance pulse — same shape, different signal. -->
-    <app-monthly-summary-widget />
-
-    <!-- Unpaid-this-month chasing signal (#283) — only renders after the
-         16th of the month and only when the academy has a configured
-         monthly fee. Self-hides otherwise. -->
     <app-unpaid-this-month-widget />
   </div>
 
@@ -163,6 +161,58 @@
         <i class="pi {{ paidCycleIcon() }}" aria-hidden="true"></i>
         <span class="athletes-page__toggle-label">{{ paidCycleLabel() }}</span>
       </button>
+    }
+
+    <!--
+      Roster alerts (#1456). This was a full-width banner above the table —
+      a block of vertical space spent on a number that is usually small and
+      sometimes zero, on the page that exists to show athletes.
+
+      As a button it costs nothing when there is nothing to say, and the
+      panel answers "what" rather than only "how many": a count on its own
+      sends the reader looking for the ten people it is talking about.
+    -->
+    @if (alertCount() > 0) {
+      <button
+        type="button"
+        class="athletes-page__toggle athletes-page__toggle--alert"
+        [pTooltip]="'athletes.list.alerts.button' | translate"
+        tooltipPosition="top"
+        [attr.aria-label]="'athletes.list.alerts.button' | translate"
+        (click)="alertPanel.toggle($event)"
+        data-cy="athletes-alerts"
+      >
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <span class="athletes-page__toggle-count">{{ alertCount() }}</span>
+      </button>
+      <p-popover #alertPanel>
+        <div class="athletes-alerts" data-cy="athletes-alerts-panel">
+          @if (alertsMissing() > 0) {
+            <button
+              type="button"
+              class="athletes-alerts__row"
+              (click)="goToExpiringDocuments(); alertPanel.hide()"
+              data-cy="athletes-alerts-missing"
+            >
+              <span class="athletes-alerts__count">{{ alertsMissing() }}</span>
+              <span>{{ 'athletes.list.alerts.missingCertificate' | translate }}</span>
+              <i class="pi pi-angle-right" aria-hidden="true"></i>
+            </button>
+          }
+          @if (alertsExpiring() > 0) {
+            <button
+              type="button"
+              class="athletes-alerts__row"
+              (click)="goToExpiringDocuments(); alertPanel.hide()"
+              data-cy="athletes-alerts-expiring"
+            >
+              <span class="athletes-alerts__count">{{ alertsExpiring() }}</span>
+              <span>{{ 'athletes.list.alerts.expiringCertificate' | translate }}</span>
+              <i class="pi pi-angle-right" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+      </p-popover>
     }
 
     <!--
@@ -331,140 +381,91 @@
                 height of the row reads as "this row is a blue belt"; one the
                 height of an avatar reads as a mark beside the avatar.
 
-                It was redundant with the Belt column until #1443 removed it,
-                which makes this the only place the desktop row carries the
-                belt — so the words have to be reachable from here rather than
-                merely nearby. Three ways, because colour alone is not one:
-                the `aria-label` the spine has always had, the tooltip below
-                for a sighted reader who cannot tell brown from black in a
-                9px stripe, and the badge that still carries the name in text
-                on the mobile card, where there is room for it.
-              -->
-              <app-belt-badge
-                class="athlete-row__spine"
-                appearance="spine"
-                [belt]="athlete.belt"
-                [stripes]="athlete.stripes"
-                [pTooltip]="beltName(athlete)"
-                tooltipPosition="right"
-              />
-              <div class="athlete-name">
-                <div class="athlete-name__primary">
-                  @if (publicProfileHandle(athlete); as handle) {
-                    <a
-                      class="athlete-name__avatar-link"
-                      [routerLink]="['/dashboard/u', handle]"
-                      [attr.aria-label]="
-                        'athletes.list.tooltip.publicProfileAria'
-                          | translate: { name: athlete.first_name + ' ' + athlete.last_name }
-                      "
-                      [attr.data-cy]="'athlete-avatar-link-' + athlete.id"
-                    >
-                      <app-user-avatar
-                        [url]="avatarFor(athlete)"
-                        [name]="athlete.first_name + ' ' + athlete.last_name"
-                        size="chip"
-                      />
-                    </a>
-                  } @else {
-                    <span
-                      class="athlete-name__avatar-link athlete-name__avatar-link--inert"
-                      aria-hidden="true"
-                      [attr.data-cy]="'athlete-avatar-inert-' + athlete.id"
-                    >
-                      <app-user-avatar
-                        [url]="avatarFor(athlete)"
-                        [name]="athlete.first_name + ' ' + athlete.last_name"
-                        size="chip"
-                      />
-                    </span>
-                  }
-                  <a
-                    class="athlete-name__text"
-                    [routerLink]="['/dashboard/athletes', athlete.id]"
-                    data-cy="athlete-name-link"
-                    >{{ athlete.first_name }} {{ athlete.last_name }}</a
-                  >
-                  <app-age-badge [dateOfBirth]="athlete.date_of_birth" />
-                  <!-- On the name's own line since #1445, right after the age,
-                       rather than on a line of its own underneath. Two icons do
-                       not earn a row on a screen the instructor scrolls with one
-                       hand — and that row rendered for some athletes and not
-                       others, so the roster's rhythm depended on who had filled
-                       the field in.
-                       Conditional render, no empty placeholder.
+              <!--
+                The shared identity block (#1458): spine, avatar, name, age.
+                Both this page and the daily attendance list draw the same
+                people, and until now they drew them differently — same
+                person, two identities, and a reader moving between the two
+                screens had to re-learn the row.
 
-                       The `stopPropagation` below is belt-and-braces, not
-                       load-bearing: this `<tr>` has no click handler and the
-                       table has no selectionMode, so a social tap has nothing
-                       to bubble into. It stays — pinned by its own spec — so
-                       that adding a row-level handler later cannot silently
-                       start swallowing these taps. The mobile card solves the
-                       same problem with `z-index` instead, because there the
-                       thing to beat is a stretched link. -->
-                  @if (athlete.facebook || athlete.instagram) {
-                    <div class="athlete-name__socials">
-                      @if (athlete.facebook) {
-                        <a
-                          class="athlete-name__social-link"
-                          [href]="athlete.facebook"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          [pTooltip]="'athletes.list.social.facebookLabel' | translate"
-                          [attr.aria-label]="'athletes.list.social.facebookLabel' | translate"
-                          [attr.title]="'athletes.list.social.facebookLabel' | translate"
-                          [attr.data-cy]="'athlete-social-facebook-' + athlete.id"
-                          (click)="$event.stopPropagation()"
-                        >
-                          <i class="pi pi-facebook" aria-hidden="true"></i>
-                        </a>
-                      }
-                      @if (athlete.instagram) {
-                        <a
-                          class="athlete-name__social-link"
-                          [href]="athlete.instagram"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          [pTooltip]="'athletes.list.social.instagramLabel' | translate"
-                          [attr.aria-label]="'athletes.list.social.instagramLabel' | translate"
-                          [attr.title]="'athletes.list.social.instagramLabel' | translate"
-                          [attr.data-cy]="'athlete-social-instagram-' + athlete.id"
-                          (click)="$event.stopPropagation()"
-                        >
-                          <i class="pi pi-instagram" aria-hidden="true"></i>
-                        </a>
-                      }
-                    </div>
-                  }
-                  <!-- Owner-as-athlete chip (#750). Tells the user at a
-                   glance which roster rows are academy staff training
-                   in their own academy vs. regular students. The
-                   PrimeNG tag stays neutral severity to avoid
-                   competing with the belt-color chip beside it. -->
-                  @if (athlete.is_self) {
-                    <p-tag
-                      [value]="'athletes.list.ownerChip' | translate"
-                      severity="secondary"
-                      [rounded]="true"
-                      [attr.data-cy]="'athlete-owner-chip-' + athlete.id"
-                    />
-                  }
-                  <!--
+                `linkToDetail` is on here because the name is this page's
+                primary affordance (#281). What is projected below is what
+                only the roster has to say about a row.
+              -->
+              <app-athlete-identity
+                [athlete]="athlete"
+                [linkToDetail]="true"
+                [avatarHandle]="publicProfileHandle(athlete)"
+              >
+                <!--
+                  On the name's own line since #1445, right after the age,
+                  rather than on a line of its own underneath. Two icons do
+                  not earn a row on a screen scrolled one-handed — and that
+                  row rendered for some athletes and not others, so the
+                  roster's rhythm depended on who had filled the field in.
+
+                  The `stopPropagation` is belt-and-braces: this `<tr>` has no
+                  click handler, so a social tap has nothing to bubble into.
+                  It stays, pinned by its own spec, so that adding a row-level
+                  handler later cannot silently start swallowing these taps.
+                -->
+                @if (athlete.facebook || athlete.instagram) {
+                  <div class="athlete-name__socials">
+                    @if (athlete.facebook) {
+                      <a
+                        class="athlete-name__social-link"
+                        [href]="athlete.facebook"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [pTooltip]="'athletes.list.social.facebookLabel' | translate"
+                        [attr.aria-label]="'athletes.list.social.facebookLabel' | translate"
+                        [attr.title]="'athletes.list.social.facebookLabel' | translate"
+                        [attr.data-cy]="'athlete-social-facebook-' + athlete.id"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <i class="pi pi-facebook" aria-hidden="true"></i>
+                      </a>
+                    }
+                    @if (athlete.instagram) {
+                      <a
+                        class="athlete-name__social-link"
+                        [href]="athlete.instagram"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [pTooltip]="'athletes.list.social.instagramLabel' | translate"
+                        [attr.aria-label]="'athletes.list.social.instagramLabel' | translate"
+                        [attr.title]="'athletes.list.social.instagramLabel' | translate"
+                        [attr.data-cy]="'athlete-social-instagram-' + athlete.id"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <i class="pi pi-instagram" aria-hidden="true"></i>
+                      </a>
+                    }
+                  </div>
+                }
+                <!-- Owner-as-athlete chip (#750) — which roster rows are
+                     academy staff training in their own academy. -->
+                @if (athlete.is_self) {
+                  <p-tag
+                    [value]="'athletes.list.ownerChip' | translate"
+                    severity="secondary"
+                    [rounded]="true"
+                    [attr.data-cy]="'athlete-owner-chip-' + athlete.id"
+                  />
+                }
+                <!--
                   The status, only when there is one worth saying (#1403).
                   "Active" on twelve rows out of fourteen was a column that
-                  taught the eye to skip it. "Inactive" is the one word
-                  that carries information, and it belongs next to the name
-                  rather than in a place of its own.
+                  taught the eye to skip it.
                 -->
-                  @if (isNotActive(athlete)) {
-                    <span
-                      class="athlete-name__status"
-                      [attr.data-cy]="'athlete-status-' + athlete.id"
-                      >{{ statusLabel(athlete.status) }}</span
-                    >
-                  }
-                </div>
-              </div>
+                @if (isNotActive(athlete)) {
+                  <span
+                    class="athlete-name__status"
+                    [attr.data-cy]="'athlete-status-' + athlete.id"
+                    >{{ statusLabel(athlete.status) }}</span
+                  >
+                }
+              </app-athlete-identity>
             </td>
             @if (hasAttendanceCounts()) {
               <td>
@@ -479,12 +480,21 @@
                   that informs, and giving it a target would promise a drill-
                   down that does not exist.
                 -->
-                <span class="athlete-attendance" [attr.aria-label]="attendanceAria(athlete)">
-                  <span class="athlete-attendance__month">{{
-                    athlete.attendance_month_count ?? 0
-                  }}</span>
-                  <span class="athlete-attendance__total" aria-hidden="true"
-                    >· {{ athlete.attendance_total_count ?? 0 }}</span
+                @let s = sessions(athlete);
+                <span class="athlete-attendance" [attr.aria-label]="sessionsAria(athlete)">
+                  <span
+                    class="athlete-attendance__month"
+                    [pTooltip]="'athletes.list.attendance.tooltipMonth' | translate"
+                    tooltipPosition="left"
+                    aria-hidden="true"
+                    >{{ sessionsLine(s.monthAttended, s.monthScheduled) }}</span
+                  >
+                  <span
+                    class="athlete-attendance__total"
+                    [pTooltip]="'athletes.list.attendance.tooltipTotal' | translate"
+                    tooltipPosition="left"
+                    aria-hidden="true"
+                    >{{ sessionsLine(s.totalAttended, s.totalScheduled) }}</span
                   >
                 </span>
               </td>
@@ -830,7 +840,10 @@
                     [attr.data-cy]="'athlete-card-attendance-' + athlete.id"
                   >
                     <i class="pi pi-calendar" aria-hidden="true"></i>
-                    <span aria-hidden="true">{{ athlete.attendance_month_count }}</span>
+                    @let cs = sessions(athlete);
+                    <span aria-hidden="true">{{
+                      sessionsLine(cs.monthAttended, cs.monthScheduled)
+                    }}</span>
                   </span>
                 }
                 <!-- Inside the badge row since #1445, not on a line of its own

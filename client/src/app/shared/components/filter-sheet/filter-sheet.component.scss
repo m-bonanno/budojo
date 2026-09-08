@@ -3,12 +3,17 @@
 }
 
 .filter-sheet {
+  // Square and icon-only since #1456 — see the template comment. The width
+  // matches the toolbar's other icon buttons so the strip reads as one row of
+  // controls rather than a chip with buttons after it.
   &__chip {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    height: 2.5rem;
-    padding: 0 1rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
     border-radius: 999px;
     border: 1px solid var(--p-content-border-color);
     background: var(--p-content-background);

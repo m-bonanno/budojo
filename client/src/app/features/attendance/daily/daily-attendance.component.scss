@@ -395,3 +395,36 @@ $attendance-mobile-breakpoint: 768px;
     outline-offset: 2px;
   }
 }
+
+// The way through to the month's summary (#1455). Reads as a quiet secondary
+// action beside the date picker, not a second primary: picking the day is
+// what this page is for.
+.attendance__summary-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: var(--p-border-radius-md);
+  border: 1px solid var(--p-content-border-color);
+  color: var(--p-text-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--p-content-hover-background);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+  }
+}
+
+// The identity block's spine is absolutely positioned, so the cell has to be
+// its containing block — same arrangement as the roster's name cell (#1458).
+.attendance-cell-name {
+  position: relative;
+}

@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -30,6 +31,7 @@ import {
   Belt,
 } from '../../../core/services/athlete.service';
 import { AttendanceService } from '../../../core/services/attendance.service';
+import { AthleteIdentityComponent } from '../../../shared/components/athlete-identity/athlete-identity.component';
 import { BeltBadgeComponent } from '../../../shared/components/belt-badge/belt-badge.component';
 import { FilterSheetComponent } from '../../../shared/components/filter-sheet/filter-sheet.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -68,8 +70,10 @@ function toLocalDateString(d: Date): string {
     SkeletonModule,
     TableModule,
     Toast,
+    RouterLink,
     TranslatePipe,
     BeltBadgeComponent,
+    AthleteIdentityComponent,
     FilterSheetComponent,
     PageHeaderComponent,
   ],

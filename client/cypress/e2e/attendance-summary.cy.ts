@@ -70,44 +70,17 @@ describe('monthly attendance summary', () => {
     });
   });
 
-  it('renders the dashboard widget with the top athletes and the avg-athletes-per-session headline', () => {
-    // Configure training_days so the avgAthletesPerSession denominator
-    // exists — without it the headline shows "—" (legacy fallback).
-    // Schedule = Mon/Wed/Fri (1, 3, 5) so the academy is on the same
-    // training train regardless of which weekday CI happens to run on.
-    cy.intercept('GET', '/api/v1/academy', {
-      statusCode: 200,
-      body: { data: { ...MOCK_ACADEMY, training_days: [1, 3, 5] } },
-    }).as('academy-with-schedule');
-    cy.intercept('GET', `/api/v1/attendance/summary?month=${currentMonthStr()}`, SUMMARY_THREE).as(
-      'summary',
-    );
+  it('reaches the month summary from the attendance page (#1455)', () => {
+    // The widget on the roster was this page's only way in, and it went with
+    // the Sessions column that replaced it. The link lives on the attendance
+    // screen now — where someone thinking about attendance already is.
+    cy.visitAuthenticated('/dashboard/attendance');
 
-    cy.visitAuthenticated('/dashboard/athletes');
+    cy.intercept('GET', '/api/v1/attendance/summary*', SUMMARY_THREE).as('summary');
+
+    cy.get('[data-cy="attendance-summary-link"]').click();
     cy.wait('@summary');
 
-    cy.get('[data-cy="monthly-summary-widget"]').should('exist');
-    // Total events = 23 (8 + 3 + 12). Headline now reads
-    // `<avg> athletes / session` — assert on the unit string instead of
-    // the exact number so the test stays date-independent (the
-    // denominator changes with the run date).
-    cy.get('[data-cy="monthly-summary-total"]').should('contain.text', 'athletes / session');
-    // Top 3 (sorted desc by count): 12, 8, 3 → Marco, Mario, Luigi
-    cy.get('[data-cy="monthly-summary-row-3"]').should('contain.text', 'Marco Bianchi');
-    cy.get('[data-cy="monthly-summary-row-1"]').should('contain.text', 'Mario Rossi');
-  });
-
-  it('navigates to the full summary page when the widget is clicked', () => {
-    cy.intercept('GET', `/api/v1/attendance/summary?month=${currentMonthStr()}`, SUMMARY_THREE).as(
-      'summary',
-    );
-
-    cy.visitAuthenticated('/dashboard/athletes');
-    cy.wait('@summary');
-
-    cy.get('[data-cy="monthly-summary-widget"]').click();
-    cy.wait('@summary'); // page also loads the same month
-    cy.location('pathname').should('include', '/dashboard/attendance/summary');
     cy.get('[data-cy="monthly-summary-page"]').should('exist');
     cy.get('[data-cy="monthly-summary-table"]').should('exist');
   });

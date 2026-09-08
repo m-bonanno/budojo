@@ -190,23 +190,32 @@ describe('AthletesListComponent', () => {
     });
   });
 
-  describe('Belt 2-state sort cycle (#210)', () => {
-    // The Belt header has its own custom click handler (replacing the
-    // dropped pSortableColumn + p-sortIcon pair, see #205 / #210). The
-    // cycle is simpler than Full-name's 4-state — just asc / desc on
-    // the belt rank, since there's no first-vs-last lead to choose.
+  describe('Belt sort — two states, and the order the page opens on (#1457)', () => {
+    // Belt is the roster's default sort now, so the control lost its third
+    // "off" leg: turning it off would drop the reader into insertion order,
+    // which is an artefact of how rows were typed in rather than an order
+    // anyone would choose. The sort still moves away from belt — the Full
+    // name and Sessions headers take it — just not from this button.
 
-    it('starts at belt asc when the sort is initially neutral', () => {
+    it('opens the roster on belt, highest rank first', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
-      const component = fixture.componentInstance;
       fixture.detectChanges();
 
-      component.cycleBeltSort();
-      expect(component.sortField()).toBe('belt');
-      expect(component.sortOrder()).toBe('asc');
+      expect(fixture.componentInstance.sortField()).toBe('belt');
+      expect(fixture.componentInstance.sortOrder()).toBe('desc');
     });
 
-    it('cycles asc → desc → off, so the toolbar control can also stop sorting (#1443)', () => {
+    it('asks the server for that order on the very first load', () => {
+      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
+      const fixture = TestBed.createComponent(AthletesListComponent);
+      fixture.detectChanges();
+
+      // The default is worth nothing if it only exists in the component: the
+      // server does the ranking, so it has to be on the first request.
+      expect(listSpy.mock.calls[0][0]).toMatchObject({ sortBy: 'belt', sortOrder: 'desc' });
+    });
+
+    it('flips between desc and asc, and never turns itself off', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
@@ -217,50 +226,25 @@ describe('AthletesListComponent', () => {
       component.cycleBeltSort();
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'desc']);
 
-      // Third press releases the sort entirely. While this was a column
-      // header, clicking a different header was the way out; standing alone
-      // in the toolbar it needs its own off state, or a belt sort could only
-      // be escaped by sorting on something else.
-      component.cycleBeltSort();
-      expect(component.sortField()).toBeNull();
-
-      // And a fourth starts the cycle over.
+      // A third press is the second state again, not a null field.
       component.cycleBeltSort();
       expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'asc']);
     });
 
-    it('drops sort_by from the request once the cycle reaches off', () => {
-      const fixture = TestBed.createComponent(AthletesListComponent);
-      const component = fixture.componentInstance;
-      fixture.detectChanges();
-      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
-
-      component.cycleBeltSort();
-      component.cycleBeltSort();
-      listSpy.mockClear();
-      component.cycleBeltSort();
-
-      // Not "belt with some default direction" — absent, which hands the
-      // order back to the server rather than inventing a third one here.
-      expect(listSpy.mock.calls[0][0].sortBy).toBeUndefined();
-      expect(listSpy.mock.calls[0][0].sortOrder).toBeUndefined();
-    });
-
-    it('restarts at asc when the active sort is on a different column', () => {
+    it('comes back to descending when the sort was on another column', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
 
-      component.cycleFullNameSort(); // first_name asc
-      component.cycleFullNameSort(); // first_name desc
-      expect([component.sortField(), component.sortOrder()]).toEqual(['first_name', 'desc']);
+      component.cycleFullNameSort();
+      expect(component.sortField()).toBe('first_name');
 
       component.cycleBeltSort();
-      // Coming in from a non-belt sort → back to asc, not flipped to desc.
-      expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'asc']);
+      // The order the page opens on, not the flip of whatever it was before.
+      expect([component.sortField(), component.sortOrder()]).toEqual(['belt', 'desc']);
     });
 
-    it('shows the direction on the toolbar button icon, neutral when the sort is elsewhere', () => {
+    it('shows the direction on the button, and goes neutral when the sort is elsewhere', () => {
       const fixture = TestBed.createComponent(AthletesListComponent);
       const component = fixture.componentInstance;
       fixture.detectChanges();
@@ -269,15 +253,12 @@ describe('AthletesListComponent', () => {
         (fixture.nativeElement.querySelector('[data-cy="athletes-sort-belt"] i') as HTMLElement)
           .classList;
 
-      expect(icon()).toContain('pi-sort-alt');
+      // Lit on arrival now, because the page arrives sorted by belt.
+      expect(icon()).toContain('pi-sort-amount-down');
 
       component.cycleBeltSort();
       fixture.detectChanges();
       expect(icon()).toContain('pi-sort-amount-up-alt');
-
-      component.cycleBeltSort();
-      fixture.detectChanges();
-      expect(icon()).toContain('pi-sort-amount-down');
 
       // Sorting by something else returns this control to neutral — the
       // signal is the source, so it cannot be left highlighted the way
@@ -285,23 +266,6 @@ describe('AthletesListComponent', () => {
       component.cycleFullNameSort();
       fixture.detectChanges();
       expect(icon()).toContain('pi-sort-alt');
-    });
-
-    it('forwards sort_by=belt + sort_order to the backend filter', () => {
-      const fixture = TestBed.createComponent(AthletesListComponent);
-      const component = fixture.componentInstance;
-      fixture.detectChanges();
-      const listSpy = TestBed.inject(AthleteService).list as unknown as Mock;
-
-      listSpy.mockClear();
-      component.cycleBeltSort();
-      expect(listSpy.mock.calls[0][0].sortBy).toBe('belt');
-      expect(listSpy.mock.calls[0][0].sortOrder).toBe('asc');
-
-      listSpy.mockClear();
-      component.cycleBeltSort();
-      expect(listSpy.mock.calls[0][0].sortBy).toBe('belt');
-      expect(listSpy.mock.calls[0][0].sortOrder).toBe('desc');
     });
   });
 
@@ -802,7 +766,10 @@ describe('AthletesListComponent', () => {
       ]);
       const link = fixture.nativeElement.querySelector('[data-cy="athlete-social-facebook-20"]');
 
-      expect(link.closest('.athlete-name__primary')).not.toBeNull();
+      // The line itself moved into the shared identity block in #1458, so
+      // the parent to assert moved with it — the contract is unchanged: the
+      // icons are ON the name's line, not on a row of their own.
+      expect(link.closest('.athlete-identity__body')).not.toBeNull();
       expect(fixture.nativeElement.querySelector('.athlete-name__body')).toBeNull();
     });
 
@@ -1847,5 +1814,126 @@ describe('AthletesListComponent — how often they actually turn up (#1447)', ()
     // un-prove what an earlier page already showed.
     expect(fixture.componentInstance.hasAttendanceCounts()).toBe(true);
     expect(el(fixture, '[data-cy="athletes-th-attendance"]')).not.toBeNull();
+  });
+});
+
+describe('AthletesListComponent — sessions out of sessions held (#1455)', () => {
+  function makeAthlete(over: Partial<Athlete> = {}): Athlete {
+    return {
+      id: 1,
+      first_name: 'Mario',
+      last_name: 'Rossi',
+      email: null,
+      phone_country_code: null,
+      phone_national_number: null,
+      address: null,
+      date_of_birth: null,
+      belt: 'white',
+      stripes: 0,
+      status: 'active',
+      joined_at: '2026-09-01',
+      created_at: '2026-01-01T00:00:00Z',
+      attendance_month_count: 2,
+      attendance_total_count: 2,
+      ...over,
+    } as Athlete;
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [AthletesListComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: AthleteService, useClass: FakeAthleteService },
+        { provide: PaymentService, useClass: FakePaymentService },
+        ...provideI18nTesting(),
+      ],
+    });
+  });
+
+  function render(rows: Athlete[], trainingDays: number[] | null = [1, 2, 3, 4, 5, 6, 0]) {
+    TestBed.inject(AcademyService).academy.set({
+      id: 1,
+      name: 'Test',
+      slug: 'test',
+      address: null,
+      logo_url: null,
+      training_days: trainingDays,
+    } as unknown as Academy);
+    const athleteService = TestBed.inject(AthleteService) as unknown as FakeAthleteService;
+    athleteService.list.mockReturnValue(
+      of({
+        data: rows,
+        meta: { total: rows.length, current_page: 1, per_page: 20, last_page: 1 },
+      }),
+    );
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function text(fixture: ComponentFixture<AthletesListComponent>, sel: string): string {
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector(sel)?.textContent?.replace(/\s+/g, '') ??
+      ''
+    );
+  }
+
+  it('writes each line as attended over sessions held', () => {
+    // Training every day, so the denominator is "days elapsed this month" —
+    // deterministic without freezing the clock, since both lines count the
+    // same days the component does.
+    const fixture = render([makeAthlete()]);
+
+    expect(text(fixture, '.athlete-attendance__month')).toMatch(/^2\/\d+$/);
+    expect(text(fixture, '.athlete-attendance__total')).toMatch(/^2\/\d+$/);
+  });
+
+  it('measures the total against the athlete, not against the academy', () => {
+    // Someone who joined yesterday is compared to yesterday's sessions. The
+    // alternative — every athlete over the academy's whole history — reports
+    // a number about the gym and calls it the athlete's.
+    const joinedToday = new Date();
+    const iso = `${joinedToday.getFullYear()}-${String(joinedToday.getMonth() + 1).padStart(2, '0')}-${String(joinedToday.getDate()).padStart(2, '0')}`;
+    const fixture = render([
+      makeAthlete({ joined_at: iso, attendance_month_count: 1, attendance_total_count: 1 }),
+    ]);
+
+    // One session held since they joined today, and they were at it.
+    expect(text(fixture, '.athlete-attendance__total')).toBe('1/1');
+  });
+
+  it('drops the denominator when the academy has no schedule on file', () => {
+    // Not a zero: nobody has said which days they train, so "out of how
+    // many" has no answer and the cell shows the counts alone.
+    const fixture = render([makeAthlete()], null);
+
+    expect(text(fixture, '.athlete-attendance__month')).toBe('2');
+    expect(text(fixture, '.athlete-attendance__total')).toBe('2');
+  });
+
+  it('says both windows in words for a screen reader', () => {
+    // The stacking is the only thing distinguishing the two lines visually,
+    // and a screen reader cannot see a layout.
+    const fixture = render([makeAthlete()]);
+    const label =
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('.athlete-attendance')
+        ?.getAttribute('aria-label') ?? '';
+
+    expect(label).toContain('this month');
+    expect(label).toContain('joining');
+  });
+
+  it('no longer draws the attendance summary widget beside the table', () => {
+    // It answered the same question for the top five athletes that the
+    // column now answers for every row.
+    const fixture = render([makeAthlete()]);
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('app-monthly-summary-widget'),
+    ).toBeNull();
   });
 });

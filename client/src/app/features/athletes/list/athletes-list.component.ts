@@ -25,6 +25,7 @@ import { ConfirmPopup } from 'primeng/confirmpopup';
 import { Menu, MenuModule } from 'primeng/menu';
 import { PaginatorModule } from 'primeng/paginator';
 import { Tooltip } from 'primeng/tooltip';
+import { Popover } from 'primeng/popover';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AcademyService } from '../../../core/services/academy.service';
@@ -43,12 +44,11 @@ import {
 } from '../../../core/services/athlete.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { RuntimeService } from '../../../core/services/runtime.service';
+import { AthleteIdentityComponent } from '../../../shared/components/athlete-identity/athlete-identity.component';
 import { BeltBadgeComponent } from '../../../shared/components/belt-badge/belt-badge.component';
 import { UserAvatarComponent } from '../../../shared/components/user-avatar/user-avatar.component';
 import { AgeBadgeComponent } from '../../../shared/components/age-badge/age-badge.component';
 import { FilterSheetComponent } from '../../../shared/components/filter-sheet/filter-sheet.component';
-import { ExpiringDocumentsWidgetComponent } from '../../../shared/components/expiring-documents-widget/expiring-documents-widget.component';
-import { MonthlySummaryWidgetComponent } from '../../../shared/components/monthly-summary-widget/monthly-summary-widget.component';
 import { UnpaidThisMonthWidgetComponent } from '../../../shared/components/unpaid-this-month-widget/unpaid-this-month-widget.component';
 import { PaidBadgeComponent } from '../../../shared/components/paid-badge/paid-badge.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -58,6 +58,12 @@ import { IconButtonComponent } from '../../../shared/components/icon-button/icon
 import { OnboardingChecklistComponent } from '../../onboarding/onboarding-checklist.component';
 import { OnboardingService } from '../../../core/services/onboarding.service';
 import { academyChargesAFee } from '../../../shared/utils/academy-fee';
+import {
+  countScheduledTrainingDays,
+  countScheduledTrainingDaysBetween,
+  schedulesForAcademy,
+} from '../../../shared/utils/attendance-rate';
+import { DocumentService } from '../../../core/services/document.service';
 import { BELT_KEYS, BELT_ORDER } from '../../../shared/utils/i18n-enum-keys';
 import { CarnetService } from '../../../core/services/carnet.service';
 
@@ -85,13 +91,13 @@ interface SelectOption<T extends string> {
     MenuModule,
     PaginatorModule,
     Tooltip,
+    Popover,
     TranslatePipe,
     AgeBadgeComponent,
     FilterSheetComponent,
     BeltBadgeComponent,
+    AthleteIdentityComponent,
     UserAvatarComponent,
-    ExpiringDocumentsWidgetComponent,
-    MonthlySummaryWidgetComponent,
     UnpaidThisMonthWidgetComponent,
     PaidBadgeComponent,
     OnboardingChecklistComponent,
@@ -124,6 +130,7 @@ export class AthletesListComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly languageService = inject(LanguageService);
   private readonly onboardingService = inject(OnboardingService);
+  private readonly documentService = inject(DocumentService);
 
   readonly athletes = signal<Athlete[]>([]);
   readonly totalRecords = signal(0);
@@ -162,7 +169,14 @@ export class AthletesListComponent implements OnInit {
    */
   selectedStatus = signal<AthleteListStatus | ''>('active');
   selectedPaid = signal<AthletePaidFilter | ''>('');
-  readonly sortField = signal<AthleteSortField | null>(null);
+  /**
+   * Rank first, highest first (#1457).
+   *
+   * The roster used to open in insertion order, which is an answer to
+   * "who did I type in last" — a question nobody asks. Belt is what an
+   * instructor sorts people by, so that is where the list starts.
+   */
+  readonly sortField = signal<AthleteSortField | null>('belt');
   readonly sortOrder = signal<AthleteSortOrder>('desc');
 
   /**
@@ -357,6 +371,7 @@ export class AthletesListComponent implements OnInit {
     // Lazy-load onboarding state — only when the user hasn't already
     // dismissed/completed the tour. The component itself is the
     // visibility gate; a single HTTP call hydrates the state.
+    this.loadAlerts();
     if (!this.onboardingService.loaded()) {
       this.onboardingService.load().subscribe({
         // Silent on error — the checklist just won't render, which is
@@ -758,6 +773,144 @@ export class AthletesListComponent implements OnInit {
   }
 
   /**
+   * The academy's schedule history, resolved once per render pass.
+   *
+   * Every denominator below reads it, and it is the same value for every row
+   * — pulling it out keeps 20 rows from re-deriving the same back-compat
+   * bridge twenty times.
+   */
+  private readonly schedules = computed(() => schedulesForAcademy(this.academyService.academy()));
+
+  /**
+   * Sessions the academy has actually held this month, capped at today.
+   * `null` when nobody has configured `training_days` — then the cell falls
+   * back to bare counts, the same way the summary widget does.
+   */
+  private readonly scheduledThisMonth = computed<number | null>(() => {
+    const now = new Date();
+    return countScheduledTrainingDays(this.schedules(), now.getFullYear(), now.getMonth() + 1);
+  });
+
+  /**
+   * Sessions held since THIS athlete joined — a different window per row, and
+   * the only honest denominator for a lifetime rate. Measuring someone who
+   * joined last month against three years of sessions reports a number about
+   * the academy, not about them.
+   *
+   * Memoised on `joined_at`: the schedule is shared, so two athletes who
+   * joined the same day have the same denominator, and the walk is one day at
+   * a time over what can be years.
+   */
+  private readonly scheduledSinceJoined = new Map<string, number | null>();
+
+  private scheduledSince(joinedAt: string): number | null {
+    const cached = this.scheduledSinceJoined.get(joinedAt);
+    if (cached !== undefined) return cached;
+
+    const [y, m, d] = joinedAt.split('-').map(Number);
+    const value = countScheduledTrainingDaysBetween(
+      this.schedules(),
+      new Date(y, m - 1, d),
+      new Date(),
+    );
+    this.scheduledSinceJoined.set(joinedAt, value);
+    return value;
+  }
+
+  /**
+   * The two fractions the Sessions cell renders (#1455): attended over held,
+   * this month above, the athlete's whole history below.
+   *
+   * A bare count answers "how often" but not "out of how many", and those are
+   * different questions — three sessions is everything in a month with three,
+   * and nothing in a month with twelve. `scheduled: null` means the academy
+   * has no schedule on file, and the cell then shows the counts alone rather
+   * than inventing a denominator.
+   */
+  protected sessions(athlete: Athlete): {
+    monthAttended: number;
+    monthScheduled: number | null;
+    totalAttended: number;
+    totalScheduled: number | null;
+  } {
+    return {
+      monthAttended: athlete.attendance_month_count ?? 0,
+      monthScheduled: this.scheduledThisMonth(),
+      totalAttended: athlete.attendance_total_count ?? 0,
+      totalScheduled: this.scheduledSince(athlete.joined_at),
+    };
+  }
+
+  /**
+   * One line of the cell, as text: `"5/6"`, or `"5"` when there is no
+   * denominator to divide by.
+   *
+   * Composed here rather than in the template because the template cannot
+   * hold `{{ a }}/{{ b }}` without the formatter inserting whitespace around
+   * the slash — it renders as `5 /6`, which reads as two numbers again and
+   * undoes the whole point of the fraction.
+   */
+  protected sessionsLine(attended: number, scheduled: number | null): string {
+    return scheduled === null ? String(attended) : `${attended}/${scheduled}`;
+  }
+
+  /** One label for both stacked lines — the layout alone does not say which is which. */
+  protected sessionsAria(athlete: Athlete): string {
+    this.languageService.currentLang();
+    const s = this.sessions(athlete);
+    if (s.monthScheduled === null || s.totalScheduled === null) {
+      return this.translate.instant('athletes.list.attendance.cellAriaCounts', {
+        monthAttended: s.monthAttended,
+        totalAttended: s.totalAttended,
+      });
+    }
+    return this.translate.instant('athletes.list.attendance.cellAria', {
+      monthAttended: s.monthAttended,
+      monthScheduled: s.monthScheduled,
+      totalAttended: s.totalAttended,
+      totalScheduled: s.totalScheduled,
+    });
+  }
+
+  /**
+   * Roster alerts (#1456), replacing the full-width banner that used to sit
+   * above the table.
+   *
+   * Same request the widget made — the composite documents-health envelope —
+   * read as two groups rather than one number, so the panel can say what
+   * needs doing rather than only how much of it there is.
+   */
+  protected readonly alertsMissing = signal<number>(0);
+  protected readonly alertsExpiring = signal<number>(0);
+  protected readonly alertCount = computed<number>(
+    () => this.alertsMissing() + this.alertsExpiring(),
+  );
+
+  private loadAlerts(): void {
+    this.documentService
+      .fetchDocumentsHealth()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (resp) => {
+          // Both arrays defaulted: `missing_medical_certificate` arrived with
+          // #881, so a response predating it — or any caller that only fills
+          // `data` — would otherwise throw inside a subscribe callback and
+          // take the whole roster down with it. The alerts are the least
+          // important thing on this page; they must not be able to break it.
+          this.alertsExpiring.set(resp.data?.length ?? 0);
+          this.alertsMissing.set(resp.missing_medical_certificate?.length ?? 0);
+        },
+        // Non-blocking: a failed health check must not cost the reader the
+        // roster it came for. The button simply stays at zero.
+        error: () => {},
+      });
+  }
+
+  protected goToExpiringDocuments(): void {
+    void this.router.navigate(['/dashboard/documents/expiring']);
+  }
+
+  /**
    * The table cell's "6 · 214", read out in full — the separator between the
    * two numbers is `aria-hidden`, so without this a screen reader announces
    * "6 214" and leaves the listener to guess which is which.
@@ -805,35 +958,29 @@ export class AthletesListComponent implements OnInit {
     const f = this.sortField();
     const o = this.sortOrder();
 
-    // asc → desc → OFF. The third leg is what a toolbar control needs and a
-    // column header did not: while this lived in a `<th>` there was always
-    // another header to click to move the sort elsewhere, so "stop sorting by
-    // belt" needed no state of its own. Standing on its own in the toolbar it
-    // does — otherwise the only way out of a belt sort is to sort by name.
+    // desc ⇄ asc, two states (#1457). The third "off" leg went with the
+    // default: belt is now what the roster opens on, so "stop sorting by
+    // belt" would drop the reader back into insertion order — a state that
+    // exists only as an accident of how rows were typed in, and one nobody
+    // would choose on purpose.
     //
-    // `load()` omits both sort params when the field is null, which hands the
-    // order back to the server's default rather than inventing a third one
-    // here.
-    if (f === 'belt' && o === 'asc') {
-      this.sortOrder.set('desc');
-    } else if (f === 'belt' && o === 'desc') {
-      this.sortField.set(null);
+    // The sort still moves away from belt, just not from this button: the
+    // Full name and Sessions headers take it, and this one goes neutral and
+    // returns to descending when pressed again.
+    if (f === 'belt') {
+      this.sortOrder.set(o === 'desc' ? 'asc' : 'desc');
     } else {
-      // Coming in from any other state (null, a name sort) → asc, the
-      // conventional default.
+      // Coming back from a name or sessions sort — highest rank first, the
+      // same order the page opens on.
       this.sortField.set('belt');
-      this.sortOrder.set('asc');
+      this.sortOrder.set('desc');
     }
 
     this.resetPage();
     this.load();
   }
 
-  /**
-   * Plain-English tooltip — Norman § signifier. Says what the NEXT press
-   * does, which a tri-state control has to, since two of its three states
-   * look alike from the outside.
-   */
+  /** Plain-English tooltip — Norman § signifier. Says what the NEXT press does. */
   readonly beltSortTooltip = computed<string>(() => {
     this.languageService.currentLang(); // signal dep — recompute on toggle
     if (this.sortField() !== 'belt') {
