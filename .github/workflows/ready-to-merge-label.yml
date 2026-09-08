@@ -9,17 +9,21 @@ name: 🟢 Ready-to-merge label
 # from CI it becomes information — the board and the PR list can be trusted
 # without opening each one.
 #
-# `check_suite: completed` is the trigger rather than `status`, because the
-# repo's gates are GitHub Actions jobs: one suite completing carries all of
-# them, so the workflow runs once per push instead of once per job.
+# `workflow_run` is the trigger, and the choice matters. The obvious one is
+# `check_suite: completed` — which is what this workflow shipped with, and it
+# never fires: GitHub does not raise check-suite events for check runs created
+# by Actions itself, to stop workflows triggering each other forever. The
+# first PR it was meant to label got nothing, and the run log said
+# `green=false`, evaluated from the `pull_request` event while the gates were
+# still running.
+#
+# `workflow_run` fires when the named workflow FINISHES, which is exactly the
+# moment the answer is knowable.
 
 on:
-  check_suite:
+  workflow_run:
+    workflows: ['PR Quality Gates']
     types: [completed]
-  # A PR opened against an already-green head commit gets no new suite, so
-  # this evaluates on open/reopen/sync too.
-  pull_request:
-    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
@@ -28,9 +32,9 @@ permissions:
   statuses: read
 
 concurrency:
-  # One evaluation per PR at a time; a later push supersedes an in-flight run
-  # rather than racing it to a stale verdict.
-  group: ready-label-${{ github.event.pull_request.number || github.event.check_suite.head_sha }}
+  # One evaluation per commit at a time; a later push supersedes an in-flight
+  # run rather than racing it to a stale verdict.
+  group: ready-label-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
 
 jobs:
@@ -43,14 +47,23 @@ jobs:
           script: |
             const LABEL = '🟢 ready to merge';
 
-            // The PRs this event is about. A check_suite carries its own
-            // list; a pull_request event is about exactly one.
-            const prs = context.eventName === 'pull_request'
-              ? [context.payload.pull_request]
-              : (context.payload.check_suite.pull_requests ?? []);
+            const run = context.payload.workflow_run;
+
+            // `workflow_run.pull_requests` comes back empty often enough that
+            // the head SHA is the safer key — it is what the checks actually
+            // attach to.
+            let prs = run.pull_requests ?? [];
+            if (prs.length === 0) {
+              const { data } = await github.rest.pulls.list({
+                ...context.repo,
+                state: 'open',
+                per_page: 100,
+              });
+              prs = data.filter((p) => p.head.sha === run.head_sha);
+            }
 
             if (prs.length === 0) {
-              core.info('No pull request attached to this event — nothing to label.');
+              core.info(`No open pull request at ${run.head_sha} — nothing to label.`);
               return;
             }
 
@@ -77,10 +90,10 @@ jobs:
                 ref: pr.head.sha,
               });
 
-              // This workflow is itself a check run on the same commit, and
-              // it is `in_progress` while it looks — counting itself would
-              // mean the label could never be applied.
-              const others = runs.filter((r) => r.name !== context.job && r.name !== 'Sync the label with the checks');
+              // This workflow's own check run sits on the same commit and is
+              // `in_progress` while it looks, so counting itself would mean
+              // the label could never be applied.
+              const others = runs.filter((r) => r.name !== 'Sync the label with the checks');
 
               const unfinished = others.filter((r) => r.status !== 'completed');
               const failed = others.filter(
