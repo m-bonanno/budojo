@@ -1519,6 +1519,19 @@ describe('AthletesListComponent — what is paying for the month (#1402)', () =>
     );
   }
 
+  /**
+   * The same chip on the mobile card. Both layouts render in jsdom, so
+   * without this the card's own `[icon]` binding could be deleted and the
+   * suite would stay green — on the form factor this app is built for.
+   */
+  function cardChipIcon(fixture: ComponentFixture<AthletesListComponent>, id: number): string {
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-cy="athlete-card-coverage-${id}"] .p-tag-icon`,
+      )?.className ?? ''
+    );
+  }
+
   it('gives the chip a glyph for what pays, so the column can be scanned (#1444)', () => {
     // Three shapes, not five: every subscription period is the same answer to
     // "is this settled", and the carnet is the one that is settled by a
@@ -1547,6 +1560,12 @@ describe('AthletesListComponent — what is paying for the month (#1402)', () =>
       makeAthlete({ id: 13, paid_current_month: false, payment_coverage: 'none' }),
     ]);
     expect(chipIcon(unpaid, 13)).toContain('pi-times-circle');
+
+    // The card carries the same fact, and #1402 settled that it has to read
+    // the same in both places or it does not exist for the instructor on the
+    // mat. Asserted on the card too, or half the binding is untested.
+    expect(cardChipIcon(carnet, 12)).toContain('pi-ticket');
+    expect(cardChipIcon(unpaid, 13)).toContain('pi-times-circle');
   });
 
   it('tells paid from unpaid without reading the colour (#1444)', () => {

@@ -364,9 +364,16 @@
                        hand — and that row rendered for some athletes and not
                        others, so the roster's rhythm depended on who had filled
                        the field in.
-                       Conditional render, no empty placeholder. stopPropagation
-                       keeps the row's primary nav target (the name link) from
-                       firing when a social link is tapped. -->
+                       Conditional render, no empty placeholder.
+
+                       The `stopPropagation` below is belt-and-braces, not
+                       load-bearing: this `<tr>` has no click handler and the
+                       table has no selectionMode, so a social tap has nothing
+                       to bubble into. It stays — pinned by its own spec — so
+                       that adding a row-level handler later cannot silently
+                       start swallowing these taps. The mobile card solves the
+                       same problem with `z-index` instead, because there the
+                       thing to beat is a stretched link. -->
                   @if (athlete.facebook || athlete.instagram) {
                     <div class="athlete-name__socials">
                       @if (athlete.facebook) {

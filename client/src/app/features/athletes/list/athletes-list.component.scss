@@ -102,12 +102,13 @@
 
 // ── Table cells ────────────────────────────────────────────────────────────────
 
+// Type only. The column layout that used to live here was stacking the name
+// line above the socials line; #1445 put them on one line, so there is one
+// child left and nothing to lay out — see `__primary` below, which is where
+// the row's arrangement actually happens now.
 .athlete-name {
   font-weight: 500;
   color: var(--p-surface-900);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
 
   // The row's one line: avatar, name, age, socials, and whichever of the
   // owner chip and the status actually apply.
@@ -156,11 +157,11 @@
     }
   }
 
-  // Socials row — pi-facebook / pi-instagram icons inline below the
-  // name. Conditional render in template (no empty placeholder for
-  // athletes without socials). Mirrors academy-detail's contactLinks
-  // pattern. Per audit § 5, icon size pinned to 14px (PrimeNG SVG
-  // icon canonical "sm" step) — pre-empts the eventual icon-scale
+  // The socials, as a group ON the name line since #1445 — they used to be
+  // a row of their own beneath it. Conditional render in template (no empty
+  // placeholder for athletes without socials). Mirrors academy-detail's
+  // contactLinks pattern. Per audit § 5, icon size pinned to 14px (PrimeNG
+  // SVG icon canonical "sm" step) — pre-empts the eventual icon-scale
   // tokens.
   &__socials {
     display: flex;
@@ -222,7 +223,6 @@
       border-radius: var(--p-border-radius-sm);
     }
   }
-  flex-wrap: wrap;
 
   &__text {
     flex: 0 1 auto;
@@ -429,13 +429,14 @@ $athletes-mobile-breakpoint: 768px;
   gap: 0.625rem;
 }
 
-// Apple-minimalist card: name + 3-dot on top, belt + status + paid on a
-// chip row, optional socials below. The whole card surface (except the
-// 3-dot button + social links) is a tap target for the athlete detail
-// page via a "stretched link" pseudo-element (#670 Copilot review): the
-// name anchor carries a `::after` that expands to fill the card. The
-// menu button and social links sit on a higher z-index so their own
-// tap targets still win against the stretched link.
+// Apple-minimalist card: name + 3-dot on top, then one wrapping chip row
+// carrying belt, status, payment and the socials (#1445 folded the socials
+// in; they used to be a row of their own). The whole card surface is a tap
+// target for the athlete detail page via a "stretched link" pseudo-element
+// (#670 Copilot review): the name anchor carries a `::after` that expands to
+// fill the card. Every control that has to win against it — the 3-dot, the
+// avatar, the social links, the payment chip — lifts itself to `z-index: 2`.
+// Anything added to this card needs the same lift or it is decoration.
 .athlete-card {
   position: relative;
   display: flex;
@@ -583,6 +584,18 @@ $athletes-mobile-breakpoint: 768px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  // The payment chip needs the same lift as everything else on this card
+  // (#1444). It has been the one control the stretched link swallowed since
+  // #1402: `.athlete-coverage` carries no stacking of its own, so on the card
+  // — and only on the card, the desktop table has no overlay — tapping
+  // "Monthly" navigated to the athlete instead of opening the payment menu.
+  // Scoped here rather than on `.athlete-coverage` itself, which the table
+  // shares and where a `position: relative` would mean nothing.
+  .athlete-coverage {
+    position: relative;
+    z-index: 2;
   }
 
   // Social links sit on a higher z-index than the stretched name link
