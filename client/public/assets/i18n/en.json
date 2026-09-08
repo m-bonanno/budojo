@@ -1943,9 +1943,34 @@
           "confirm": "Save",
           "cancel": "Cancel"
         },
+        "addPast": "Add a past promotion",
+        "deleteAria": "Delete this promotion",
+        "confirmDelete": "Delete this promotion? This can't be undone.",
+        "deleteConfirm": "Delete",
+        "createDialog": {
+          "title": "Add a past promotion",
+          "body": "For a promotion that happened before Budojo existed. It must line up with any promotions already recorded around it.",
+          "kindLabel": "Type",
+          "kindBelt": "Belt",
+          "kindStripe": "Stripe",
+          "dateLabel": "Recorded on",
+          "fromBelt": "From belt",
+          "toBelt": "To belt",
+          "firstBelt": "First belt (no prior)",
+          "beltAtEvent": "Belt at the time",
+          "fromStripes": "From stripes",
+          "toStripes": "To stripes",
+          "confirm": "Add promotion",
+          "error": "Couldn't add this promotion. Try again."
+        },
         "toast": {
           "updatedSummary": "Date updated",
           "updatedDetail": "The promotion history has been corrected.",
+          "createdSummary": "Promotion added",
+          "createdDetail": "The promotion history has been updated.",
+          "deletedSummary": "Promotion deleted",
+          "deletedDetail": "The promotion history has been updated.",
+          "deleteErrorDetail": "Couldn't delete this promotion. Try again.",
           "errorSummary": "Something went wrong",
           "errorGeneric": "Couldn't update the date. Try again."
         }

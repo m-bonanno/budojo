@@ -3,6 +3,11 @@
   flex-direction: column;
   gap: 1rem;
 
+  &__header {
+    display: flex;
+    justify-content: flex-end;
+  }
+
   &__list {
     list-style: none;
     margin: 0;
@@ -103,5 +108,23 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--p-text-color);
+  }
+
+  &__create-form {
+    display: flex;
+    flex-direction: column;
+
+    // Groups each label with the control right after it; the space
+    // between GROUPS comes from here rather than the list's own
+    // gap, which would apply evenly between every element instead.
+    .promotions__dialog-label:not(:first-child) {
+      margin-top: 1rem;
+    }
+  }
+
+  &__create-stripes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
   }
 }

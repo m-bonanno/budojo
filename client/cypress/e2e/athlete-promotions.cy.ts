@@ -1,12 +1,13 @@
 import { MOCK_ACADEMY } from '../support/fixtures';
 
 /**
- * Belt + stripe promotion history — the read timeline (post-v2.9.0) plus
- * correcting `recorded_at` on an existing row (#1431 PR 1 of 2). Every call
- * is intercepted, so what this proves is the client wiring: the pencil opens
- * a dialog seeded with the row's own date, confirming PATCHes and reloads
- * the timeline, cancelling touches nothing, and a failed PATCH surfaces an
- * error instead of silently losing the edit.
+ * Belt + stripe promotion history — the read timeline (post-v2.9.0),
+ * correcting `recorded_at` on an existing row (#1431 PR 1), and backfilling
+ * / deleting historical rows (#1431 PR 2). Every call is intercepted, so
+ * what this proves is the client wiring: the pencil opens a dialog seeded
+ * with the row's own date, "add a past promotion" composes the right
+ * per-kind payload, a chain-consistency 422 surfaces inline rather than a
+ * generic toast, and delete goes through the shared confirm popup.
  */
 
 const ACADEMY_OK = { statusCode: 200, body: { data: MOCK_ACADEMY } };
@@ -61,7 +62,7 @@ function promotionsPage(rows: unknown[]) {
   };
 }
 
-describe('Athlete promotion history (#1431 PR 1 of 2)', () => {
+describe('Athlete promotion history (#1431)', () => {
   beforeEach(() => {
     // Catch-all FIRST — see docs/development/visual-verification.md and the
     // repo gotchas: any dashboard-shell call left unmocked reaches the live
@@ -82,7 +83,10 @@ describe('Athlete promotion history (#1431 PR 1 of 2)', () => {
     cy.visitAuthenticated('/dashboard/athletes/1/promotions');
     cy.wait(['@academy', '@athlete', '@promotions']);
 
-    cy.get('[data-cy="promotion-9"]').should('be.visible').and('contain.text', 'stripes');
+    cy.get('[data-cy="promotion-9"]')
+      .scrollIntoView()
+      .should('be.visible')
+      .and('contain.text', 'stripes');
     cy.get('[data-cy="promotion-edit-9"]').click();
     cy.get('[data-cy="promotion-edit-dialog"]').should('be.visible');
     // Seeded from the row's own date — confirming with no further input is
@@ -158,5 +162,204 @@ describe('Athlete promotion history (#1431 PR 1 of 2)', () => {
     cy.contains(/couldn.t update the date/i).should('be.visible');
     // The row is unchanged — a failed correction is not a silent data loss.
     cy.get('[data-cy="promotion-9"]').should('be.visible');
+  });
+
+  describe('backfilling a historical promotion (#1431 PR 2 of 2)', () => {
+    it('adds a belt promotion and reloads the timeline', () => {
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([promotion()])).as(
+        'promotions',
+      );
+      cy.intercept('POST', '/api/v1/athletes/1/promotions', {
+        statusCode: 201,
+        body: {
+          data: promotion({
+            id: 10,
+            kind: 'belt',
+            from_belt: 'white',
+            to_belt: 'blue',
+            from_stripes: null,
+            to_stripes: null,
+            recorded_at: '2019-03-15T00:00:00+00:00',
+          }),
+        },
+      }).as('create');
+
+      cy.visitAuthenticated('/dashboard/athletes/1/promotions');
+      cy.wait(['@academy', '@athlete', '@promotions']);
+
+      cy.intercept(
+        'GET',
+        '/api/v1/athletes/1/promotions*',
+        promotionsPage([
+          promotion(),
+          promotion({
+            id: 10,
+            kind: 'belt',
+            from_belt: 'white',
+            to_belt: 'blue',
+            from_stripes: null,
+            to_stripes: null,
+            recorded_at: '2019-03-15T00:00:00+00:00',
+          }),
+        ]),
+      ).as('reload');
+
+      cy.get('[data-cy="promotions-add"]').click();
+      cy.get('[data-cy="promotion-create-dialog"]').should('be.visible');
+      // Defaults to Belt — filling the two selects + a date is the whole
+      // flow. Picked from the calendar panel, not typed: typing leaves the
+      // panel open over the next field (carnets.cy.ts uses the same click).
+      cy.get('[data-cy="promotion-create-date"] input').click();
+      cy.get('.p-datepicker-panel td span:not(.p-disabled)').first().click();
+      cy.get('[data-cy="promotion-create-from-belt"]').click();
+      cy.get('.p-select-option').contains('White').click();
+      cy.get('[data-cy="promotion-create-to-belt"]').click();
+      cy.get('.p-select-option').contains('Blue').click();
+      cy.get('[data-cy="promotion-create-confirm"]').click();
+
+      cy.wait('@create').then(({ request }) => {
+        expect(request.body.recorded_at).to.match(/^\d{4}-\d{2}-\d{2}$/);
+        expect(request.body).to.deep.include({ kind: 'belt', from_belt: 'white', to_belt: 'blue' });
+      });
+      cy.wait('@reload');
+      cy.get('.p-dialog-mask').should('not.exist');
+      cy.get('[data-cy="promotion-10"]').should('be.visible');
+    });
+
+    it('adds a stripe promotion once switched to the Stripe kind', () => {
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([promotion()])).as(
+        'promotions',
+      );
+      cy.intercept('POST', '/api/v1/athletes/1/promotions', {
+        statusCode: 201,
+        body: { data: promotion({ id: 11, recorded_at: '2020-06-01T00:00:00+00:00' }) },
+      }).as('create');
+
+      cy.visitAuthenticated('/dashboard/athletes/1/promotions');
+      cy.wait(['@academy', '@athlete', '@promotions']);
+
+      cy.get('[data-cy="promotions-add"]').click();
+      cy.get('[data-cy="promotion-create-kind"]').contains('Stripe').click();
+      cy.get('[data-cy="promotion-create-date"] input').click();
+      cy.get('.p-datepicker-panel td span:not(.p-disabled)').first().click();
+      cy.get('[data-cy="promotion-create-belt-at-event"]').click();
+      cy.get('.p-select-option').contains('Blue').click();
+      // Confirm both the pick landed AND its overlay is fully gone before
+      // the next select opens — appendTo="body" puts every panel's options
+      // under the same `.p-select-option` selector, so a still-closing
+      // overlay can steal a click meant for the next one.
+      cy.get('[data-cy="promotion-create-belt-at-event"]').should('contain.text', 'Blue');
+      cy.get('.p-select-option').should('not.exist');
+      cy.get('[data-cy="promotion-create-from-stripes"]')
+        .should('not.have.class', 'p-disabled')
+        .click();
+      cy.get('.p-select-option').contains('1').click();
+      cy.get('[data-cy="promotion-create-from-stripes"]').should('contain.text', '1');
+      cy.get('.p-select-option').should('not.exist');
+      cy.get('[data-cy="promotion-create-to-stripes"]')
+        .should('not.have.class', 'p-disabled')
+        .click();
+      cy.get('.p-select-option').contains('2').click();
+      cy.get('[data-cy="promotion-create-to-stripes"]').should('contain.text', '2');
+      cy.get('[data-cy="promotion-create-confirm"]').click();
+
+      cy.wait('@create').then(({ request }) => {
+        expect(request.body.recorded_at).to.match(/^\d{4}-\d{2}-\d{2}$/);
+        expect(request.body).to.deep.include({
+          kind: 'stripe',
+          belt_at_event: 'blue',
+          from_stripes: 1,
+          to_stripes: 2,
+        });
+      });
+    });
+
+    it('surfaces a chain-consistency conflict inline and keeps the dialog open', () => {
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([promotion()])).as(
+        'promotions',
+      );
+      cy.intercept('POST', '/api/v1/athletes/1/promotions', {
+        statusCode: 422,
+        body: {
+          message: 'The given data was invalid.',
+          errors: {
+            from_belt: [
+              "Doesn't match the belt after the previous promotion on 2019-01-01 (white).",
+            ],
+          },
+        },
+      }).as('createFails');
+
+      cy.visitAuthenticated('/dashboard/athletes/1/promotions');
+      cy.wait(['@academy', '@athlete', '@promotions']);
+
+      cy.get('[data-cy="promotions-add"]').click();
+      cy.get('[data-cy="promotion-create-date"] input').click();
+      cy.get('.p-datepicker-panel td span:not(.p-disabled)').first().click();
+      cy.get('[data-cy="promotion-create-from-belt"]').click();
+      cy.get('.p-select-option').contains('White').click();
+      cy.get('[data-cy="promotion-create-to-belt"]').click();
+      cy.get('.p-select-option').contains('Purple').click();
+      cy.get('[data-cy="promotion-create-confirm"]').click();
+      cy.wait('@createFails');
+
+      cy.get('[data-cy="promotion-create-error"]').should(
+        'contain.text',
+        "Doesn't match the belt after the previous promotion",
+      );
+      // The specific reason is worth seeing, so the dialog stays open with
+      // the owner's input intact rather than being dismissed.
+      cy.get('[data-cy="promotion-create-dialog"]').should('be.visible');
+    });
+
+    it('cancel closes the dialog without calling the server', () => {
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([promotion()])).as(
+        'promotions',
+      );
+
+      cy.visitAuthenticated('/dashboard/athletes/1/promotions');
+      cy.wait(['@academy', '@athlete', '@promotions']);
+
+      cy.get('[data-cy="promotions-add"]').click();
+      cy.get('[data-cy="promotion-create-cancel"]').click();
+      cy.get('.p-dialog-mask').should('not.exist');
+    });
+  });
+
+  describe('deleting a promotion (#1431 PR 2 of 2)', () => {
+    it('deletes on confirm and reloads the timeline', () => {
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([promotion()])).as(
+        'promotions',
+      );
+      cy.intercept('DELETE', '/api/v1/athletes/1/promotions/9', { statusCode: 204 }).as('delete');
+
+      cy.visitAuthenticated('/dashboard/athletes/1/promotions');
+      cy.wait(['@academy', '@athlete', '@promotions']);
+
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([])).as('reload');
+
+      cy.get('[data-cy="promotion-delete-9"]').click();
+      cy.get('.p-confirmpopup').should('be.visible');
+      cy.get('.p-confirmpopup-accept-button').click();
+
+      cy.wait('@delete');
+      cy.wait('@reload');
+      cy.get('[data-cy="promotions-empty"]').should('be.visible');
+    });
+
+    it('does not delete when the confirm popup is rejected', () => {
+      cy.intercept('GET', '/api/v1/athletes/1/promotions*', promotionsPage([promotion()])).as(
+        'promotions',
+      );
+      cy.intercept('DELETE', '/api/v1/athletes/1/promotions/9', { statusCode: 204 }).as('delete');
+
+      cy.visitAuthenticated('/dashboard/athletes/1/promotions');
+      cy.wait(['@academy', '@athlete', '@promotions']);
+
+      cy.get('[data-cy="promotion-delete-9"]').click();
+      cy.get('.p-confirmpopup-reject-button').click();
+      cy.get('@delete.all').should('have.length', 0);
+      cy.get('[data-cy="promotion-9"]').should('be.visible');
+    });
   });
 });

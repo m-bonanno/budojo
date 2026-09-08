@@ -1943,9 +1943,34 @@
           "confirm": "Salva",
           "cancel": "Annulla"
         },
+        "addPast": "Aggiungi una promozione passata",
+        "deleteAria": "Elimina questa promozione",
+        "confirmDelete": "Eliminare questa promozione? L'azione non può essere annullata.",
+        "deleteConfirm": "Elimina",
+        "createDialog": {
+          "title": "Aggiungi una promozione passata",
+          "body": "Per una promozione avvenuta prima che Budojo esistesse. Deve essere coerente con le promozioni già registrate intorno ad essa.",
+          "kindLabel": "Tipo",
+          "kindBelt": "Cintura",
+          "kindStripe": "Striscetta",
+          "dateLabel": "Registrata il",
+          "fromBelt": "Da cintura",
+          "toBelt": "A cintura",
+          "firstBelt": "Prima cintura (nessuna precedente)",
+          "beltAtEvent": "Cintura al momento",
+          "fromStripes": "Da striscette",
+          "toStripes": "A striscette",
+          "confirm": "Aggiungi promozione",
+          "error": "Impossibile aggiungere questa promozione. Riprova."
+        },
         "toast": {
           "updatedSummary": "Data aggiornata",
           "updatedDetail": "Lo storico promozioni è stato corretto.",
+          "createdSummary": "Promozione aggiunta",
+          "createdDetail": "Lo storico promozioni è stato aggiornato.",
+          "deletedSummary": "Promozione eliminata",
+          "deletedDetail": "Lo storico promozioni è stato aggiornato.",
+          "deleteErrorDetail": "Impossibile eliminare questa promozione. Riprova.",
           "errorSummary": "Qualcosa è andato storto",
           "errorGeneric": "Impossibile aggiornare la data. Riprova."
         }

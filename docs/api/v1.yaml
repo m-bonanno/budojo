@@ -4501,6 +4501,61 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorMessage' }
               example: { message: Forbidden. }
 
+    post:
+      tags: [athletes]
+      summary: Backfill a historical promotion (#1431 PR 2 of 2)
+      description: |
+        Transcribes a promotion that happened before Budojo existed, for
+        either belts or stripes. Writes straight to the row; never touches
+        the athlete's current `belt` or `stripes`, so it cannot fire the
+        `AthleteObserver` — no spurious `CommunityPost`, no notification
+        fanout. `recorded_by_user_id` on the created row is always the
+        caller, never a guess at who recorded the real-world event.
+
+        A backfill that contradicts an existing same-kind neighbour in the
+        athlete's timeline (its `from_*` doesn't match the nearest earlier
+        row's `to_*`, or its `to_*` doesn't match the nearest later row's
+        `from_*`) is refused with a 422 naming the row it disagrees with.
+        A row with no same-kind neighbour on one side is unconstrained on
+        that side — the athlete's earliest or latest known event of that
+        kind. Belt and stripe chains are checked independently; a stripe
+        row is never cross-checked against belt rows.
+
+        `belt_at_event` is not accepted for `kind=belt` — it always equals
+        `to_belt` and is derived server-side.
+      operationId: athletePromotionCreate
+      parameters:
+        - name: athlete
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AthletePromotionCreateRequest'
+      responses:
+        '201':
+          description: The created promotion row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AthletePromotion'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: Athlete is not in the authenticated academy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorMessage' }
+              example: { message: Forbidden. }
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /athletes/{athlete}/promotions/{promotion}:
     patch:
       tags: [athletes]
@@ -4556,6 +4611,39 @@ paths:
           $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [athletes]
+      summary: Undo a promotion entered by mistake (#1431 PR 2 of 2)
+      description: |
+        Hard delete — a promotion row has no downstream ledger to
+        reconcile, so there is no restore concept here (unlike athletes
+        or carnets).
+
+        403 when the promotion does not belong to the athlete in the path.
+      operationId: athletePromotionDelete
+      parameters:
+        - name: athlete
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: promotion
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204':
+          description: Promotion deleted
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: Athlete is not in the authenticated academy, or the promotion does not belong to it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorMessage' }
+              example: { message: Forbidden. }
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /athletes/{athlete}/attendance:
     get:
@@ -7575,6 +7663,38 @@ components:
           description: |
             Date-only, matching the timeline's display precision. Must not be
             in the future — a promotion can't be recorded ahead of today.
+
+    AthletePromotionCreateRequest:
+      type: object
+      description: |
+        `from_belt`/`to_belt` are only accepted (and `to_belt` required)
+        when `kind=belt`; `from_stripes`/`to_stripes`/`belt_at_event` are
+        only accepted (and required) when `kind=stripe`. Sending a
+        belt-shaped field with `kind=stripe`, or vice versa, is a 422.
+      required: [kind, recorded_at]
+      properties:
+        kind:
+          type: string
+          enum: [belt, stripe]
+        recorded_at:
+          type: string
+          format: date
+          description: Date-only. Must not be in the future.
+        from_belt:
+          allOf:
+            - $ref: '#/components/schemas/Belt'
+          nullable: true
+          description: Null on the athlete's first belt assignment. `kind=belt` only.
+        to_belt:
+          $ref: '#/components/schemas/Belt'
+        from_stripes: { type: integer, minimum: 0, maximum: 6 }
+        to_stripes: { type: integer, minimum: 0, maximum: 6 }
+        belt_at_event:
+          allOf:
+            - $ref: '#/components/schemas/Belt'
+          description: |
+            `kind=stripe` only — the belt this stripe happened on. Not
+            accepted for `kind=belt`; the server derives it as `to_belt`.
 
     AthleteEnvelope:
       type: object

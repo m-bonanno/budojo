@@ -520,6 +520,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
         // describes. 403 when the promotion doesn't belong to the
         // athlete in the path, same double-check as carnets below.
         Route::patch('/athletes/{athlete}/promotions/{promotion}', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'update']);
+        // Backfilling historical rows + undoing a mistaken one (#1431 PR 2
+        // of 2) — transcribing a paper register from before Budojo existed.
+        Route::post('/athletes/{athlete}/promotions', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'store']);
+        Route::delete('/athletes/{athlete}/promotions/{promotion}', [\App\Http\Controllers\Athlete\AthletePromotionController::class, 'destroy']);
         // Documents — flat routes for operations that target a single document.
         // `/expiring` must come before `/{document}` routes or Laravel tries to
         // bind the literal "expiring" as a document id.
