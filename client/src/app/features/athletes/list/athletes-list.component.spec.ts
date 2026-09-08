@@ -456,14 +456,11 @@ describe('AthletesListComponent', () => {
       expect(fixture.nativeElement.querySelector('[data-cy="athletes-th-paid"]')).not.toBeNull();
     });
 
-    it('Paid column header carries the current month abbreviation (#282)', () => {
-      // Header should read "Paid · Apr" (or whatever the current month
-      // is) so an instructor doesn't have to guess which month the
-      // status refers to. We don't pin a specific month here — that
-      // would make the test break every time the wall clock crosses
-      // a month boundary — but we DO assert the prefix + the
-      // separator + a 3-letter abbreviation matching the component's
-      // own derivation.
+    it('names the payment column without a month, because most cells are not about one (#1425)', () => {
+      // It read "Payment · Sep" from #282, when the column answered "has this
+      // athlete paid for September". Since #1402 it answers HOW the month is
+      // covered — and a Quarterly bought in February or an Annual bought in
+      // January are exactly the cells the month suffix contradicted.
       const academyService = TestBed.inject(AcademyService);
       academyService.academy.set({ ...ACADEMY_BASE, monthly_fee_cents: 9500 });
 
@@ -473,14 +470,9 @@ describe('AthletesListComponent', () => {
       const headerText = fixture.nativeElement
         .querySelector('[data-cy="athletes-th-paid"]')
         ?.textContent?.trim();
-      const expected = `Payment · ${fixture.componentInstance.currentMonthShort()}`;
-      expect(headerText).toBe(expected);
 
-      // Sanity-check that the derived month is a recognisable
-      // 3-letter English abbreviation — guards against a future
-      // refactor that changes the format token (e.g. "month: 'numeric'")
-      // and silently breaks the contract.
-      expect(fixture.componentInstance.currentMonthShort()).toMatch(/^[A-Z][a-z]{2}$/);
+      expect(headerText).toBe('Payment');
+      expect(headerText).not.toContain('·');
     });
 
     function makeAthlete(over: Partial<Athlete> = {}): Athlete {
@@ -1253,6 +1245,58 @@ describe('AthletesListComponent — the roster shows who trains here (#1403)', (
 
     cmp.onStatusChange('trashed');
     expect(cmp.canToggleInactive()).toBe(false);
+  });
+
+  it('has no status select left — the eye is the whole control (#1426)', () => {
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+
+    // Two controls answering the same question, wired so they could not
+    // contradict each other. The wiring existed because they were the same
+    // question; one of them had to go, and the eye is one gesture with a
+    // default state that answers what people open the page with.
+    const selects = fixture.nativeElement.querySelectorAll('p-select');
+    const labels = Array.from(selects).map((el) => (el as HTMLElement).getAttribute('placeholder'));
+    expect(labels).not.toContain('All statuses');
+  });
+
+  it('keeps the eye reachable on a phone, where the inline row is not (#1426)', () => {
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+
+    // The consequence the issue did not anticipate: the eye used to live
+    // inside `__filters-inline`, which is `display: none` below 768px, and the
+    // status select was what carried this job there. Removing the select with
+    // the eye still inside would have left a phone unable to see an inactive
+    // athlete at all.
+    const inline = fixture.nativeElement.querySelector('[data-cy="athletes-filters-inline"]');
+    const eye = fixture.nativeElement.querySelector('[data-cy="athletes-reveal-inactive"]');
+
+    expect(eye).not.toBeNull();
+    expect(inline?.contains(eye)).toBe(false);
+  });
+
+  it('reaches the deleted athletes without the select that used to hold them (#1426)', () => {
+    const fixture = TestBed.createComponent(AthletesListComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance;
+
+    // The second consequence, and the one that would have broken a feature:
+    // `trashed` was a value in the status menu, so removing the menu removed
+    // the only way into the restore picker (#700).
+    const bin = fixture.nativeElement.querySelector(
+      '[data-cy="athletes-reveal-trashed"]',
+    ) as HTMLButtonElement;
+    expect(bin).not.toBeNull();
+
+    bin.click();
+    expect(cmp.isTrashedMode()).toBe(true);
+
+    bin.click();
+    // Back to the default list, not to whatever the eye was showing before:
+    // restoring someone is a finished errand, not a filter you were in.
+    expect(cmp.isTrashedMode()).toBe(false);
+    expect(cmp.selectedStatus()).toBe('active');
   });
 
   it('resets to the actives, not to everyone', () => {

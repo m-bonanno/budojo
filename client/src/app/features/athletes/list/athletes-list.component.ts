@@ -226,13 +226,6 @@ export class AthletesListComponent implements OnInit {
     this.languageService.currentLang() === 'it' ? 'it-IT' : 'en-US',
   );
 
-  readonly currentMonthShort = computed<string>(() =>
-    this._now.toLocaleString(this.locale(), {
-      month: 'short',
-      timeZone: 'UTC',
-    }),
-  );
-
   readonly currentMonthLong = computed<string>(() =>
     this._now.toLocaleString(this.locale(), {
       month: 'long',
@@ -340,17 +333,6 @@ export class AthletesListComponent implements OnInit {
     'trashed',
   ];
 
-  readonly statusOptions = computed<SelectOption<AthleteListStatus>[]>(() => {
-    this.languageService.currentLang();
-    return this.statusOrder.map((value) => ({
-      label:
-        value === ''
-          ? this.translate.instant('statuses.all')
-          : this.translate.instant(this.statusLabelKeys[value]),
-      value,
-    }));
-  });
-
   /**
    * True when the user picked "Cancellati" / "Deleted" in the status
    * filter — the list is in restore-picker mode and per-row actions
@@ -442,6 +424,20 @@ export class AthletesListComponent implements OnInit {
    */
   toggleInactive(): void {
     this.onStatusChange(this.showingInactive() ? 'active' : '');
+  }
+
+  /**
+   * In and out of the restore picker (#1426).
+   *
+   * The one job the status select did that the eye does not: "who did I
+   * delete" is a different question from "who trains here", not a wider
+   * answer to it — so it gets its own control rather than a value buried in
+   * a filter menu. Leaving it returns to the default list, not to whatever
+   * the eye was showing before, because the two are independent views and
+   * restoring someone is a finished errand.
+   */
+  toggleTrashed(): void {
+    this.onStatusChange(this.isTrashedMode() ? 'active' : 'trashed');
   }
 
   /** True for a row the eye revealed: rendered muted, with its status named. */
