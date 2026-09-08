@@ -118,6 +118,17 @@ For surfaces where the **brand speaks louder than the UI** — app icon, empty s
 | App icon (PWA, favicon, iOS home screen) | Brand filled-chip |
 | Empty-state hero glyph, marketing site, onboarding illustrations | Brand filled-chip |
 | Status chips (belt, active/inactive, expiring) | Neither — colored text/fill only |
+| Payment chips (what covers the month) | PrimeIcons, leading — the one exception, see below |
+
+#### The one status chip that carries an icon
+
+The payment chip on the athletes roster is the exception, added in #1444.
+
+The rule above exists because a status chip's colour and its word usually say the same thing twice, and a third channel on a dense row is noise. Payment breaks that premise on both halves. The instructor **scans** that column for a state rather than reading it, and the four "covered" wordings — Monthly, Quarterly, Half-yearly, Annual — share no shape for the eye to catch, so scanning degrades into reading. And the chip's states are told apart by green-vs-amber, which is the one pair a red-green reader cannot separate; the glyph is what makes paid and unpaid distinguishable without colour.
+
+So it takes a leading PrimeIcon: `pi-money-bill` for any subscription period, `pi-ticket` for a carnet, `pi-times-circle` for nothing covering the month.
+
+**The test a future chip has to pass to join it:** the reader scans the column for its state instead of reading it, **and** the icon says something the colour and the word do not already say together. A chip that fails either half stays text-and-fill — an icon that merely repeats the label is the noise this rule was written to keep out.
 
 ### App icon + logo assets
 

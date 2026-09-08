@@ -8,7 +8,12 @@ import { MOBILE_VIEWPORTS } from '../support/viewports';
 // so a CSS regression like #238 (phone-cc ellipsis on Pixel 8 Pro)
 // gets caught before reaching production.
 
-const ACADEMY_OK = { statusCode: 200, body: { data: MOCK_ACADEMY } };
+// A fee is configured so the card renders its payment chip — the control
+// that turned out to be sitting under the card's stretched link (#1444).
+const ACADEMY_OK = {
+  statusCode: 200,
+  body: { data: { ...MOCK_ACADEMY, monthly_fee_cents: 9500 } },
+};
 
 const ATHLETES_TWO = {
   statusCode: 200,
@@ -28,6 +33,13 @@ const ATHLETES_TWO = {
         status: 'active',
         joined_at: '2023-01-10',
         created_at: '2026-04-22T10:00:00+00:00',
+        // Mario carries socials and Luigi does not — #1445 moved these into
+        // the badge row, and the interesting case is a card that has them
+        // sitting next to a card that does not.
+        facebook: 'https://facebook.com/mario',
+        instagram: 'https://instagram.com/mario',
+        paid_current_month: true,
+        payment_coverage: 'monthly',
       },
       {
         id: 2,
@@ -96,6 +108,40 @@ MOBILE_VIEWPORTS.forEach(({ name, width, height }) => {
         cy.contains('Mario').should('be.visible');
         cy.contains('Luigi').should('be.visible');
       });
+    });
+
+    it('keeps the socials inside the badge row rather than under it (#1445)', () => {
+      // The change is worth a card row of height only if the icons actually
+      // join the badges — and only if joining them does not push the row
+      // past the card. Both halves asserted here, at every mobile width.
+      cy.visitAuthenticated('/dashboard/athletes');
+      cy.wait(['@academy', '@athletes']);
+
+      cy.get('[data-cy="athlete-card-social-facebook-1"]')
+        .should('be.visible')
+        .parents('.athlete-card__badges')
+        .should('have.length', 1);
+
+      cy.document().then((doc) => {
+        const root = doc.documentElement;
+        expect(root.scrollWidth, 'document.scrollWidth').to.be.lte(root.clientWidth);
+      });
+    });
+
+    it('opens the payment menu instead of navigating when the chip is tapped (#1444)', () => {
+      // The card's stretched link covers the whole surface at `z-index: 1`,
+      // and every other control on it — the 3-dot, the avatar, the socials —
+      // lifts itself above with `z-index: 2`. The payment chip never did, so
+      // since #1402 it has been the one badge-row control the overlay
+      // swallowed: tapping "Monthly" navigated to the athlete instead of
+      // opening its menu, on the form factor this app is built for.
+      cy.visitAuthenticated('/dashboard/athletes');
+      cy.wait(['@academy', '@athletes']);
+
+      cy.get('[data-cy="athlete-card-coverage-1"]').click();
+
+      cy.get('.p-menu').should('be.visible');
+      cy.location('pathname').should('eq', '/dashboard/athletes');
     });
 
     it('shows the belt spine on the card without widening the layout (#1429)', () => {

@@ -102,27 +102,29 @@
 
 // ── Table cells ────────────────────────────────────────────────────────────────
 
+// Type only. The column layout that used to live here was stacking the name
+// line above the socials line; #1445 put them on one line, so there is one
+// child left and nothing to lay out — see `__primary` below, which is where
+// the row's arrangement actually happens now.
 .athlete-name {
   font-weight: 500;
   color: var(--p-surface-900);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
 
-  &__body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-  }
-
-  // Primary line — avatar link + name link + age badge inline.
-  // Replaces the old single-row layout when socials were absent;
-  // structure is now primary stack + optional socials row below.
+  // The row's one line: avatar, name, age, socials, and whichever of the
+  // owner chip and the status actually apply.
+  //
+  // It used to be a stack — this line, plus a socials line under it — with a
+  // `__body` column wrapper holding the two together. #1445 moved the socials
+  // up here, which left that wrapper holding a single child, so it is gone
+  // and its `min-width: 0` moved onto this rule. Wrapping matters now that
+  // the line can carry six things: a long name next to an owner chip and two
+  // social icons has to fall to a second line rather than push the cell wide.
   &__primary {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
   }
 
   // Avatar affordance on the desktop table (#983). Same affordance
@@ -155,11 +157,11 @@
     }
   }
 
-  // Socials row — pi-facebook / pi-instagram icons inline below the
-  // name. Conditional render in template (no empty placeholder for
-  // athletes without socials). Mirrors academy-detail's contactLinks
-  // pattern. Per audit § 5, icon size pinned to 14px (PrimeNG SVG
-  // icon canonical "sm" step) — pre-empts the eventual icon-scale
+  // The socials, as a group ON the name line since #1445 — they used to be
+  // a row of their own beneath it. Conditional render in template (no empty
+  // placeholder for athletes without socials). Mirrors academy-detail's
+  // contactLinks pattern. Per audit § 5, icon size pinned to 14px (PrimeNG
+  // SVG icon canonical "sm" step) — pre-empts the eventual icon-scale
   // tokens.
   &__socials {
     display: flex;
@@ -221,7 +223,6 @@
       border-radius: var(--p-border-radius-sm);
     }
   }
-  flex-wrap: wrap;
 
   &__text {
     flex: 0 1 auto;
@@ -428,13 +429,14 @@ $athletes-mobile-breakpoint: 768px;
   gap: 0.625rem;
 }
 
-// Apple-minimalist card: name + 3-dot on top, belt + status + paid on a
-// chip row, optional socials below. The whole card surface (except the
-// 3-dot button + social links) is a tap target for the athlete detail
-// page via a "stretched link" pseudo-element (#670 Copilot review): the
-// name anchor carries a `::after` that expands to fill the card. The
-// menu button and social links sit on a higher z-index so their own
-// tap targets still win against the stretched link.
+// Apple-minimalist card: name + 3-dot on top, then one wrapping chip row
+// carrying belt, status, payment and the socials (#1445 folded the socials
+// in; they used to be a row of their own). The whole card surface is a tap
+// target for the athlete detail page via a "stretched link" pseudo-element
+// (#670 Copilot review): the name anchor carries a `::after` that expands to
+// fill the card. Every control that has to win against it — the 3-dot, the
+// avatar, the social links, the payment chip — lifts itself to `z-index: 2`.
+// Anything added to this card needs the same lift or it is decoration.
 .athlete-card {
   position: relative;
   display: flex;
@@ -575,10 +577,25 @@ $athletes-mobile-breakpoint: 768px;
     gap: 0.5rem;
   }
 
+  // A group inside the badge row since #1445, not a row of its own beneath
+  // it — so no top margin, and the gap comes back onto the 8dp grid now that
+  // it is not compensating for a 2px offset (it was 0.625rem / 10px).
   &__socials {
     display: flex;
-    gap: 0.625rem;
-    margin-top: 0.125rem;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  // The payment chip needs the same lift as everything else on this card
+  // (#1444). It has been the one control the stretched link swallowed since
+  // #1402: `.athlete-coverage` carries no stacking of its own, so on the card
+  // — and only on the card, the desktop table has no overlay — tapping
+  // "Monthly" navigated to the athlete instead of opening the payment menu.
+  // Scoped here rather than on `.athlete-coverage` itself, which the table
+  // shares and where a `position: relative` would mean nothing.
+  .athlete-coverage {
+    position: relative;
+    z-index: 2;
   }
 
   // Social links sit on a higher z-index than the stretched name link
