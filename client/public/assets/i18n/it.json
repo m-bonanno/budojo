@@ -1812,7 +1812,8 @@
       "alerts": {
         "button": "Avvisi",
         "missingCertificate": "senza certificato medico",
-        "expiringCertificate": "certificato in scadenza entro 30 giorni"
+        "expiringCertificate": "certificato in scadenza entro 30 giorni",
+        "none": "Non c'è niente da controllare"
       }
     },
     "invitation": {
