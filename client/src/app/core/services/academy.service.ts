@@ -240,6 +240,26 @@ export interface Academy {
    * Optional for fixture-compat.
    */
   schedules?: AcademySchedule[];
+  /**
+   * The training year (#1484), in three parts because three places need
+   * different halves of it.
+   *
+   * `season_start_month` is the setting itself — 1-12, or `null` when nobody
+   * has chosen and the server's September default applies. The settings form
+   * is the only consumer.
+   *
+   * `season_start` and `season_label` are the server's answer for *today*:
+   * the ISO date the current season began, and the name a person reads for
+   * it (`2025/26`). Both are derived, so the SPA never re-implements the
+   * boundary — "is March in this season or last?" has exactly one
+   * definition, and it is `App\Support\Season`.
+   *
+   * All optional for the same fixture-compat reason as the fee above.
+   */
+  season_start_month?: number | null;
+  /** ISO `YYYY-MM-DD`. */
+  season_start?: string;
+  season_label?: string;
 }
 
 /**
@@ -319,6 +339,8 @@ export interface UpdateAcademyPayload {
   carnet_price_cents?: number | null;
   carnet_entries?: number | null;
   training_days?: number[] | null;
+  /** Month the training year restarts in, 1-12 (#1484). `null` = "not chosen". */
+  season_start_month?: number | null;
 }
 
 interface AcademyResponse {
