@@ -1812,7 +1812,8 @@
       "alerts": {
         "button": "Alerts",
         "missingCertificate": "no medical certificate",
-        "expiringCertificate": "certificate expiring within 30 days"
+        "expiringCertificate": "certificate expiring within 30 days",
+        "none": "Nothing needs attention"
       }
     },
     "invitation": {
