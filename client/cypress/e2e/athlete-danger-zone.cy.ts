@@ -78,7 +78,7 @@ describe('Athlete danger zone (#1430)', () => {
       const copy = $copy[0].getBoundingClientRect();
       cy.get('[data-cy="danger-zone-delete-btn"]').then(($btn) => {
         const btn = $btn[0].getBoundingClientRect();
-        expect(btn.top, 'button shares the copy\'s line').to.be.lessThan(copy.bottom);
+        expect(btn.top, "button shares the copy's line").to.be.lessThan(copy.bottom);
         expect(copy.width, 'copy is capped to a readable measure').to.be.lessThan(600);
       });
     });
